@@ -1,0 +1,10 @@
+/* Shared table pagination footer; self-contained so it works on any page */
+.table-pagination { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 10px 12px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #64748b; }
+.table-pagination__summary { margin: 0; }
+.table-pagination__summary strong { color: #1e293b; font-weight: 600; }
+.table-pagination__controls { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.table-pagination__size { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+/* Two classes so it outranks Fluent's runtime-injected min-width */
+.table-pagination .table-pagination__size-dropdown { min-width: 72px; }
+.table-pagination__pages { display: flex; align-items: center; gap: 8px; }
+.table-pagination__page { min-width: 56px; text-align: center; color: #1e293b; font-weight: 600; }
