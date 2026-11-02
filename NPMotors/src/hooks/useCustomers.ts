@@ -14,7 +14,8 @@ import {
   selectCustomerQuery,
   selectCustomers,
 } from '../redux/customers/customers.selectors'
-import type { Customer, CustomerQuery, CustomerStatusFilter, RequestStatus } from '../types/customers'
+import type { RequestStatus } from '../types/common'
+import type { Customer, CustomerQuery, CustomerStatusFilter } from '../types/customers'
 
 const SEARCH_DEBOUNCE_MS = 300
 

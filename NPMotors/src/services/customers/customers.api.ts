@@ -1,7 +1,7 @@
 import { CUSTOMER_ENDPOINTS } from '../api/apiConstants'
 import { customerClient } from '../api/customerClient'
-import type { CustomerPage, CustomerQuery } from '../../types/customers'
-import { mapCustomerCollection, readHasNext } from './customers.mappers'
+import type { Customer, CustomerPage, CustomerQuery } from '../../types/customers'
+import { mapCustomer, mapCustomerCollection, readHasNext } from './customers.mappers'
 
 interface CustomerQueryParams {
   PageNumber: number
@@ -22,4 +22,9 @@ async function getCustomers(query: CustomerQuery, signal?: AbortSignal): Promise
   return { items, hasNext: readHasNext(data) ?? items.length === query.pageSize }
 }
 
-export const customersApi = { getCustomers }
+async function getCustomerById(id: string, signal?: AbortSignal): Promise<Customer> {
+  const { data } = await customerClient.get<unknown>(CUSTOMER_ENDPOINTS.getCustomerById, { params: { id }, signal })
+  return mapCustomer(data)
+}
+
+export const customersApi = { getCustomers, getCustomerById }

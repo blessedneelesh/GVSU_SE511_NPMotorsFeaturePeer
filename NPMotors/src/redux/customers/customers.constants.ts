@@ -6,4 +6,8 @@ export const CUSTOMER_ACTIONS = {
   SET_STATUS_FILTER: 'customers/setStatusFilter',
   SET_PAGE: 'customers/setPage',
   SET_PAGE_SIZE: 'customers/setPageSize',
+  SELECT: 'customers/select',
+  CLEAR_SELECTION: 'customers/clearSelection',
+  LOAD_BY_ID_SUCCESS: 'customers/loadByIdSuccess',
+  LOAD_BY_ID_FAILURE: 'customers/loadByIdFailure',
 } as const

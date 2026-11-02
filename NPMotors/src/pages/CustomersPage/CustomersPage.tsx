@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   Button,
   Dropdown,
@@ -17,7 +16,7 @@ import {
   TableHeaderCell,
   TableRow,
 } from '@fluentui/react-components'
-import { salesInvoices } from '../../data/sampleData'
+import { useCustomerDetail } from '../../hooks/useCustomerDetail'
 import { useCustomers } from '../../hooks/useCustomers'
 import type { Customer, CustomerStatusFilter } from '../../types/customers'
 import { CustomerDetail } from './CustomerDetail'
@@ -63,17 +62,10 @@ export function CustomersPage() {
     setPageSize,
     retry,
   } = useCustomers()
-  const [selected, setSelected] = useState<Customer | null>(null)
+  const { selectedId, openCustomer } = useCustomerDetail()
 
-  if (selected) {
-    return (
-      <CustomerDetail
-        customer={selected}
-        invoices={salesInvoices.filter((invoice) => invoice.customerId === selected.id)}
-        onBack={() => setSelected(null)}
-      />
-    )
-  }
+  // The list hook stays mounted while the detail view is open, so its query and page are kept
+  if (selectedId) return <CustomerDetail />
 
   const isLoading = listStatus === 'loading'
   const isInitialLoad = (isLoading || listStatus === 'idle') && customers.length === 0
@@ -133,7 +125,7 @@ export function CustomersPage() {
       {showTable && (
         <section className="card">
           <div className={`table-scroll ${isLoading ? 'is-refreshing' : ''}`}>
-            <Table aria-label="Customers" aria-busy={isLoading} className="customers-table">
+            <Table aria-label="Customers" aria-busy={isLoading} className="data-table customers-table">
               <TableHeader>
                 <TableRow>
                   <TableHeaderCell>Name</TableHeaderCell>
@@ -151,7 +143,7 @@ export function CustomersPage() {
                     <TableCell>
                       <div className="customer-cell">
                         <div className="customer-avatar" aria-hidden="true">{getInitials(customer)}</div>
-                        <Link as="button" className="customer-cell__name" onClick={() => setSelected(customer)}>
+                        <Link as="button" className="customer-cell__name" disabled={!customer.id} onClick={() => openCustomer(customer.id)}>
                           {customer.fullName}
                         </Link>
                       </div>

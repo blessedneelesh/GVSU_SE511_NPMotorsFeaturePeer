@@ -1,6 +1,5 @@
 export type CustomerStatus = 'Active' | 'Inactive'
 export type CustomerStatusFilter = 'all' | 'active' | 'inactive'
-export type RequestStatus = 'idle' | 'loading' | 'success' | 'error'
 
 export interface Customer {
   id: string
