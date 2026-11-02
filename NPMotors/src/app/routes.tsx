@@ -6,9 +6,10 @@ import { CustomersPage } from '../pages/CustomersPage/CustomersPage'
 import { DashboardPage } from '../pages/DashboardPage/DashboardPage'
 import { EmployeesPage } from '../pages/EmployeesPage/EmployeesPage'
 import { NotFoundPage } from '../pages/NotFoundPage/NotFoundPage'
+import { VehiclesPage } from '../pages/VehiclesPage/VehiclesPage'
 import { VendorsPage } from '../pages/VendorsPage/VendorsPage'
 
-const builtPaths = new Set(['/dashboard', '/customers', '/vendors', '/employees'])
+const builtPaths = new Set(['/dashboard', '/customers', '/vendors', '/employees', '/vehicle-inventory'])
 
 export function AppRoutes() {
   return (
@@ -19,6 +20,7 @@ export function AppRoutes() {
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/vendors" element={<VendorsPage />} />
         <Route path="/employees" element={<EmployeesPage />} />
+        <Route path="/vehicle-inventory" element={<VehiclesPage />} />
         {navigationItems
           .filter((item) => !builtPaths.has(item.path))
           .map((item) => <Route key={item.path} path={item.path} element={<ComingSoonPage title={item.label} />} />)}

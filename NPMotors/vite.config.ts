@@ -27,6 +27,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Vehicle endpoints, same API. Capitalised, so the /vehicle-inventory page route is unaffected.
+      '/Vehicle': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   test: {
