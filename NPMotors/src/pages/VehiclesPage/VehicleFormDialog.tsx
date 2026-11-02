@@ -46,6 +46,9 @@ const emptyForm = (): VehicleFormValues => ({
   sellingPrice: '',
 })
 
+// Fixed list: the lots the existing inventory uses. The API stores warehouse as free text, so it doesn't enforce these.
+const WAREHOUSE_OPTIONS = ['Main Lot', 'Showroom', 'Lot B'] as const
+
 const MAX_YEAR = new Date().getFullYear() + 1
 const MIN_YEAR = 1900
 
@@ -86,7 +89,7 @@ interface VehicleFormDialogProps {
   onClose: () => void
 }
 
-type TextField = Exclude<VehicleFormField, 'vendorId'>
+type TextField = Exclude<VehicleFormField, 'vendorId' | 'warehouse'>
 
 interface TextFieldOptions {
   type?: 'number' | 'date'
@@ -198,7 +201,16 @@ export function VehicleFormDialog({ onClose }: VehicleFormDialogProps) {
                   {textField('model', 'Model', { placeholder: 'Camry', maxLength: 50 })}
                   {textField('year', 'Year', { type: 'number', placeholder: String(MAX_YEAR - 1), min: MIN_YEAR, max: MAX_YEAR })}
                   {textField('color', 'Color', { placeholder: 'Silver', maxLength: 30 })}
-                  {textField('warehouse', 'Warehouse', { placeholder: 'Main Lot', maxLength: 100 })}
+                  <Field label="Warehouse" validationState={errorFor('warehouse') ? 'error' : 'none'} validationMessage={errorFor('warehouse')}>
+                    <Dropdown
+                      value={values.warehouse}
+                      selectedOptions={values.warehouse ? [values.warehouse] : []}
+                      placeholder="Select warehouse…"
+                      onOptionSelect={(_, data) => { if (data.optionValue) setField('warehouse', data.optionValue) }}
+                    >
+                      {WAREHOUSE_OPTIONS.map((warehouse) => <Option key={warehouse} value={warehouse}>{warehouse}</Option>)}
+                    </Dropdown>
+                  </Field>
                   {textField('vin', 'VIN Number', { placeholder: '1HGCR2F3XEA000000', maxLength: 17, mono: true })}
                 </div>
               </fieldset>
