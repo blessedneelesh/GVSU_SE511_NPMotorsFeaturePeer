@@ -20,3 +20,9 @@ export const selectSelectedCustomer = createSelector([selectCustomerState], (cus
 export const selectCustomerDetailStatus = createSelector([selectCustomerState], (customers) => customers.detailStatus)
 
 export const selectCustomerDetailError = createSelector([selectCustomerState], (customers) => customers.detailError)
+
+export const selectCustomerSaveStatus = createSelector([selectCustomerState], (customers) => customers.saveStatus)
+
+export const selectCustomerSaveError = createSelector([selectCustomerState], (customers) => customers.saveError)
+
+export const selectCustomerFieldErrors = createSelector([selectCustomerState], (customers) => customers.fieldErrors)

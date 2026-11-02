@@ -1,12 +1,16 @@
-import { all, call, cancelled, put, select, takeLatest } from 'redux-saga/effects'
+import { all, call, cancelled, put, select, takeLatest, takeLeading } from 'redux-saga/effects'
 import type { SagaIterator } from 'redux-saga'
 import { customersApi } from '../../services/customers/customers.api'
-import { getCustomerDetailErrorMessage, getCustomerErrorMessage } from '../../services/customers/customers.errors'
+import { getCustomerDetailErrorMessage, getCustomerErrorMessage, getCustomerSaveError } from '../../services/customers/customers.errors'
 import type { Customer, CustomerPage, CustomerQuery } from '../../types/customers'
 import {
   type clearCustomerSelection,
+  type createCustomer,
+  createCustomerFailure,
+  createCustomerSuccess,
   loadCustomerByIdFailure,
   loadCustomerByIdSuccess,
+  loadCustomers,
   loadCustomersFailure,
   loadCustomersSuccess,
   type selectCustomer,
@@ -48,6 +52,18 @@ function* loadCustomerByIdWorker(action: CustomerDetailAction): SagaIterator {
   }
 }
 
+function* createCustomerWorker(action: ReturnType<typeof createCustomer>): SagaIterator {
+  try {
+    yield call(customersApi.addCustomer, action.payload)
+    yield put(createCustomerSuccess())
+    // Paging is server-side, so refetch the current page instead of inserting the row locally
+    yield put(loadCustomers())
+  } catch (error) {
+    const saveError = getCustomerSaveError(error)
+    if (saveError.message || Object.keys(saveError.fieldErrors).length) yield put(createCustomerFailure(saveError))
+  }
+}
+
 export default function* customersSaga(): SagaIterator {
   yield all([
     takeLatest(
@@ -62,5 +78,7 @@ export default function* customersSaga(): SagaIterator {
     ),
     // Leaving the detail view cancels an in-flight lookup, so a late response can't fill a closed view
     takeLatest([CUSTOMER_ACTIONS.SELECT, CUSTOMER_ACTIONS.CLEAR_SELECTION], loadCustomerByIdWorker),
+    // takeLeading ignores repeat submits while a save is in flight, so a double-click can't add the customer twice
+    takeLeading(CUSTOMER_ACTIONS.CREATE, createCustomerWorker),
   ])
 }

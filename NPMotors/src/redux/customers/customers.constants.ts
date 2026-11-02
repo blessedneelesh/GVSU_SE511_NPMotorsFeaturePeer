@@ -10,4 +10,8 @@ export const CUSTOMER_ACTIONS = {
   CLEAR_SELECTION: 'customers/clearSelection',
   LOAD_BY_ID_SUCCESS: 'customers/loadByIdSuccess',
   LOAD_BY_ID_FAILURE: 'customers/loadByIdFailure',
+  CREATE: 'customers/create',
+  CREATE_SUCCESS: 'customers/createSuccess',
+  CREATE_FAILURE: 'customers/createFailure',
+  RESET_SAVE: 'customers/resetSave',
 } as const

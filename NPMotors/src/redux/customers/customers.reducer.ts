@@ -1,6 +1,6 @@
 import type { UnknownAction } from 'redux'
 import type { RequestStatus } from '../../types/common'
-import type { Customer, CustomerQuery } from '../../types/customers'
+import type { Customer, CustomerFieldErrors, CustomerQuery } from '../../types/customers'
 import type { CustomersAction } from './customers.actions'
 import { CUSTOMER_ACTIONS } from './customers.constants'
 
@@ -14,6 +14,9 @@ export interface CustomersState {
   selected: Customer | null
   detailStatus: RequestStatus
   detailError: string | null
+  saveStatus: RequestStatus
+  saveError: string | null
+  fieldErrors: CustomerFieldErrors
 }
 
 export const initialCustomersState: CustomersState = {
@@ -26,6 +29,9 @@ export const initialCustomersState: CustomersState = {
   selected: null,
   detailStatus: 'idle',
   detailError: null,
+  saveStatus: 'idle',
+  saveError: null,
+  fieldErrors: {},
 }
 
 const customerActionTypes: ReadonlySet<string> = new Set(Object.values(CUSTOMER_ACTIONS))
@@ -59,6 +65,14 @@ export default function customersReducer(state: CustomersState = initialCustomer
       return { ...state, selected: action.payload, detailStatus: 'success' }
     case CUSTOMER_ACTIONS.LOAD_BY_ID_FAILURE:
       return { ...state, detailStatus: 'error', detailError: action.payload }
+    case CUSTOMER_ACTIONS.CREATE:
+      return { ...state, saveStatus: 'loading', saveError: null, fieldErrors: {} }
+    case CUSTOMER_ACTIONS.CREATE_SUCCESS:
+      return { ...state, saveStatus: 'success' }
+    case CUSTOMER_ACTIONS.CREATE_FAILURE:
+      return { ...state, saveStatus: 'error', saveError: action.payload.message || null, fieldErrors: action.payload.fieldErrors }
+    case CUSTOMER_ACTIONS.RESET_SAVE:
+      return { ...state, saveStatus: 'idle', saveError: null, fieldErrors: {} }
     default: {
       const unhandled: never = action
       void unhandled

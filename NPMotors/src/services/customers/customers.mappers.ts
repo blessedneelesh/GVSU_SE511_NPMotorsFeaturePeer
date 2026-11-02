@@ -1,4 +1,4 @@
-import type { Customer, CustomerStatus } from '../../types/customers'
+import type { Customer, CustomerFormValues, CustomerStatus } from '../../types/customers'
 
 // Accepted spellings per field: ASP.NET camelCase (first_Name), plain camelCase, PascalCase and snake_case
 const DTO_FIELDS = {
@@ -98,4 +98,33 @@ export function readHasNext(body: unknown): boolean | null {
   if (!isRecord(metaData)) return null
   const hasNext = metaData.hasNext ?? metaData.HasNext
   return typeof hasNext === 'boolean' ? hasNext : null
+}
+
+// Body of POST Customer/AddCustomer (CustomerCreateDto); optional columns are nullable, so send null rather than ''
+export interface CustomerCreateDto {
+  first_Name: string
+  last_Name: string
+  email: string
+  phone: string | null
+  address: string | null
+  city: string | null
+  state: string | null
+  zip: string | null
+  status: 'active' | 'inactive'
+}
+
+const orNull = (value: string) => value.trim() || null
+
+export function toCustomerCreateDto(values: CustomerFormValues): CustomerCreateDto {
+  return {
+    first_Name: values.firstName.trim(),
+    last_Name: values.lastName.trim(),
+    email: values.email.trim().toLowerCase(),
+    phone: orNull(values.phone),
+    address: orNull(values.address),
+    city: orNull(values.city),
+    state: orNull(values.state.toUpperCase()),
+    zip: orNull(values.zip),
+    status: values.status === 'Inactive' ? 'inactive' : 'active',
+  }
 }

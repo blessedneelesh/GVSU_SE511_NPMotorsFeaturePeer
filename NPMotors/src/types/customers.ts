@@ -28,3 +28,25 @@ export interface CustomerPage {
   items: Customer[]
   hasNext: boolean
 }
+
+// Form state: what the user types, before it is converted to the API's CustomerCreateDto
+export interface CustomerFormValues {
+  firstName: string
+  lastName: string
+  phone: string
+  email: string
+  address: string
+  city: string
+  state: string
+  zip: string
+  status: CustomerStatus
+}
+
+export type CustomerFormField = keyof CustomerFormValues
+
+export type CustomerFieldErrors = Partial<Record<CustomerFormField, string>>
+
+export interface CustomerSaveError {
+  message: string
+  fieldErrors: CustomerFieldErrors
+}
