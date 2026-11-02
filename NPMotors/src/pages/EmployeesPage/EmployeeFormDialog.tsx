@@ -170,10 +170,8 @@ export function EmployeeFormDialog({ onClose }: EmployeeFormDialogProps) {
                     </Dropdown>
                   </Field>
                   {textField('salary', 'Salary', { type: 'number', min: 0 })}
-                  <div className="employee-dialog__grid">
-                    {textField('bonus', 'Bonus', { type: 'number', min: 0 })}
-                    {textField('commissionRate', 'Commission %', { type: 'number', min: 0, max: 100, step: 0.1 })}
-                  </div>
+                  {textField('bonus', 'Bonus', { type: 'number', min: 0 })}
+                  {textField('commissionRate', 'Commission %', { type: 'number', min: 0, max: 100, step: 0.1 })}
                 </div>
               </fieldset>
             </DialogContent>
