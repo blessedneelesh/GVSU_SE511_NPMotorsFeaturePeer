@@ -15,3 +15,10 @@ export const VENDOR_ENDPOINTS = {
   getVendorById: 'Vendor/GetVendorById',
   addVendor: 'Vendor/AddVendor',
 } as const
+
+// Also on the Customers API origin, so employee requests reuse customerClient
+export const EMPLOYEE_ENDPOINTS = {
+  getAllEmployees: 'Employee/GetAllEmployees',
+  getEmployeeById: 'Employee/GetEmployeeById',
+  addEmployee: 'Employee/AddEmployee',
+} as const

@@ -1,0 +1,18 @@
+export const EMPLOYEE_ACTIONS = {
+  LOAD: 'employees/load',
+  LOAD_SUCCESS: 'employees/loadSuccess',
+  LOAD_FAILURE: 'employees/loadFailure',
+  SET_SEARCH: 'employees/setSearch',
+  SET_DEPARTMENT_FILTER: 'employees/setDepartmentFilter',
+  SET_STATUS_FILTER: 'employees/setStatusFilter',
+  SET_PAGE: 'employees/setPage',
+  SET_PAGE_SIZE: 'employees/setPageSize',
+  SELECT: 'employees/select',
+  CLEAR_SELECTION: 'employees/clearSelection',
+  LOAD_BY_ID_SUCCESS: 'employees/loadByIdSuccess',
+  LOAD_BY_ID_FAILURE: 'employees/loadByIdFailure',
+  CREATE: 'employees/create',
+  CREATE_SUCCESS: 'employees/createSuccess',
+  CREATE_FAILURE: 'employees/createFailure',
+  RESET_SAVE: 'employees/resetSave',
+} as const

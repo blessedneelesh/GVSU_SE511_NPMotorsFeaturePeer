@@ -11,6 +11,7 @@ import {
   Money20Regular,
   MoneyHand20Regular,
   People20Regular,
+  PeopleTeam20Regular,
   Receipt20Regular,
   Scales20Regular,
   VehicleCar20Regular,
@@ -33,7 +34,10 @@ export interface NavigationGroup {
 export const navigationGroups: NavigationGroup[] = [
   {
     section: 'Main',
-    items: [{ label: 'Dashboard', path: '/dashboard', icon: Grid20Regular }],
+    items: [
+      { label: 'Dashboard', path: '/dashboard', icon: Grid20Regular },
+      { label: 'Employees', path: '/employees', icon: PeopleTeam20Regular },
+    ],
   },
   {
     section: 'Sales',
