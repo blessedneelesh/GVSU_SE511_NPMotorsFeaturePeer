@@ -1,0 +1,17 @@
+export const VENDOR_ACTIONS = {
+  LOAD: 'vendors/load',
+  LOAD_SUCCESS: 'vendors/loadSuccess',
+  LOAD_FAILURE: 'vendors/loadFailure',
+  SET_SEARCH: 'vendors/setSearch',
+  SET_TYPE_FILTER: 'vendors/setTypeFilter',
+  SET_PAGE: 'vendors/setPage',
+  SET_PAGE_SIZE: 'vendors/setPageSize',
+  SELECT: 'vendors/select',
+  CLEAR_SELECTION: 'vendors/clearSelection',
+  LOAD_BY_ID_SUCCESS: 'vendors/loadByIdSuccess',
+  LOAD_BY_ID_FAILURE: 'vendors/loadByIdFailure',
+  CREATE: 'vendors/create',
+  CREATE_SUCCESS: 'vendors/createSuccess',
+  CREATE_FAILURE: 'vendors/createFailure',
+  RESET_SAVE: 'vendors/resetSave',
+} as const

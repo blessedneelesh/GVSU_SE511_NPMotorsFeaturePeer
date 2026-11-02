@@ -7,10 +7,12 @@ import { render } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { initialCustomersState, type CustomersState } from '../redux/customers/customers.reducer'
 import { rootReducer, type RootState } from '../redux/rootReducer'
+import { initialVendorsState, type VendorsState } from '../redux/vendors/vendors.reducer'
 
-// Builds a full RootState from the slice's initial state; tests override only what the scenario needs
-export const makeState = (overrides: Partial<CustomersState> = {}): RootState => ({
+// Builds a full RootState from each slice's initial state; tests override only what the scenario needs
+export const makeState = (overrides: Partial<CustomersState> = {}, vendorOverrides: Partial<VendorsState> = {}): RootState => ({
   customers: { ...initialCustomersState, ...overrides },
+  vendors: { ...initialVendorsState, ...vendorOverrides },
 })
 
 interface RenderOptions {

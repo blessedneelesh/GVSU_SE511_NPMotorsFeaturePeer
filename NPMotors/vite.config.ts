@@ -15,6 +15,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Vendor endpoints live on the same .NET API. Capitalised, so the /vendors page route is unaffected.
+      '/Vendor': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   test: {
