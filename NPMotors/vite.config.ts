@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
@@ -15,5 +16,12 @@ export default defineConfig({
         secure: false,
       },
     },
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/test/setupTests.ts',
+    restoreMocks: true,
+    css: false,
+    coverage: { provider: 'v8', include: ['src/redux/**', 'src/pages/**'], reporter: ['text', 'html'] },
   },
 })

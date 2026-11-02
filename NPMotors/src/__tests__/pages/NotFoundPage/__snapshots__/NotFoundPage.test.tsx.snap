@@ -1,0 +1,33 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`NotFoundPage > matches the snapshot 1`] = `
+<div>
+  <div
+    class="fui-FluentProvider fui-FluentProvider_r_0_ ___jdtuxv0_17k0bs4 f19n0e5 fxugw4r f1o700av fk6fouc fkhj508 figsok6 f1i3iumi"
+    dir="ltr"
+  >
+    <div
+      class="page empty-state"
+    >
+      <div
+        aria-hidden="true"
+        class="empty-state__icon"
+      >
+        404
+      </div>
+      <h1>
+        Page not found
+      </h1>
+      <p>
+        The page you requested does not exist.
+      </p>
+      <a
+        class="primary-button"
+        href="/dashboard"
+      >
+        Return to dashboard
+      </a>
+    </div>
+  </div>
+</div>
+`;
