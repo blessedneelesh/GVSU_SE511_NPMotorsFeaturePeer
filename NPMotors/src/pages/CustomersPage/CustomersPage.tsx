@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   Button,
   Dropdown,
@@ -17,15 +17,20 @@ import {
   TableHeaderCell,
   TableRow,
 } from '@fluentui/react-components'
-import { salesInvoices } from '../../data/sampleData'
+import { Add20Regular } from '@fluentui/react-icons'
+import { useCustomerDetail } from '../../hooks/useCustomerDetail'
+import { useCustomerMutations } from '../../hooks/useCustomerMutations'
 import { useCustomers } from '../../hooks/useCustomers'
 import type { Customer, CustomerStatusFilter } from '../../types/customers'
 import { CustomerDetail } from './CustomerDetail'
+import { CustomerFormDialog } from './CustomerFormDialog'
 import { formatCurrency, getInitials } from './customerMetrics'
 import { TablePagination } from '../../components/TablePagination/TablePagination'
 import './CustomersPage.css'
 
 const pageSizeOptions = [5, 10, 25, 50]
+
+const SAVED_BANNER_MS = 4000
 
 const statusOptions: { value: CustomerStatusFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -63,17 +68,29 @@ export function CustomersPage() {
     setPageSize,
     retry,
   } = useCustomers()
-  const [selected, setSelected] = useState<Customer | null>(null)
+  const { selectedId, openCustomer } = useCustomerDetail()
+  const { saveStatus, resetSave } = useCustomerMutations()
+  const [isAddOpen, setAddOpen] = useState(false)
 
-  if (selected) {
-    return (
-      <CustomerDetail
-        customer={selected}
-        invoices={salesInvoices.filter((invoice) => invoice.customerId === selected.id)}
-        onBack={() => setSelected(null)}
-      />
-    )
+  const openAdd = () => {
+    resetSave()
+    setAddOpen(true)
   }
+  const closeAdd = useCallback(() => {
+    resetSave()
+    setAddOpen(false)
+  }, [resetSave])
+
+  // A successful save swaps the dialog for the success banner, which hides itself after a few seconds
+  const isSaved = isAddOpen && saveStatus === 'success'
+  useEffect(() => {
+    if (!isSaved) return
+    const timer = window.setTimeout(closeAdd, SAVED_BANNER_MS)
+    return () => window.clearTimeout(timer)
+  }, [isSaved, closeAdd])
+
+  // The list hook stays mounted while the detail view is open, so its query and page are kept
+  if (selectedId) return <CustomerDetail />
 
   const isLoading = listStatus === 'loading'
   const isInitialLoad = (isLoading || listStatus === 'idle') && customers.length === 0
@@ -89,9 +106,21 @@ export function CustomersPage() {
           <p>{customers.length} {customers.length === 1 ? 'customer' : 'customers'} on this page</p>
         </div>
         <div className="customers-header__actions">
+          <Button appearance="primary" icon={<Add20Regular />} onClick={openAdd}>Add Customer</Button>
           <Button disabled={customers.length === 0} onClick={() => exportCustomers(customers)}>Export</Button>
         </div>
       </header>
+
+      {isAddOpen && !isSaved && <CustomerFormDialog onClose={closeAdd} />}
+
+      {isSaved && (
+        <MessageBar intent="success" className="customers-message">
+          <MessageBarBody>Customer added successfully.</MessageBarBody>
+          <MessageBarActions>
+            <Button appearance="transparent" size="small" onClick={closeAdd}>Dismiss</Button>
+          </MessageBarActions>
+        </MessageBar>
+      )}
 
       <div className="customers-filters">
         <SearchBox
@@ -133,7 +162,7 @@ export function CustomersPage() {
       {showTable && (
         <section className="card">
           <div className={`table-scroll ${isLoading ? 'is-refreshing' : ''}`}>
-            <Table aria-label="Customers" aria-busy={isLoading} className="customers-table">
+            <Table aria-label="Customers" aria-busy={isLoading} className="data-table customers-table">
               <TableHeader>
                 <TableRow>
                   <TableHeaderCell>Name</TableHeaderCell>
@@ -151,7 +180,7 @@ export function CustomersPage() {
                     <TableCell>
                       <div className="customer-cell">
                         <div className="customer-avatar" aria-hidden="true">{getInitials(customer)}</div>
-                        <Link as="button" className="customer-cell__name" onClick={() => setSelected(customer)}>
+                        <Link as="button" className="customer-cell__name" disabled={!customer.id} onClick={() => openCustomer(customer.id)}>
                           {customer.fullName}
                         </Link>
                       </div>

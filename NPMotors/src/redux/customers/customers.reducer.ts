@@ -1,5 +1,6 @@
 import type { UnknownAction } from 'redux'
-import type { Customer, CustomerQuery, RequestStatus } from '../../types/customers'
+import type { RequestStatus } from '../../types/common'
+import type { Customer, CustomerFieldErrors, CustomerQuery } from '../../types/customers'
 import type { CustomersAction } from './customers.actions'
 import { CUSTOMER_ACTIONS } from './customers.constants'
 
@@ -9,6 +10,13 @@ export interface CustomersState {
   query: CustomerQuery
   listStatus: RequestStatus
   listError: string | null
+  selectedId: string | null
+  selected: Customer | null
+  detailStatus: RequestStatus
+  detailError: string | null
+  saveStatus: RequestStatus
+  saveError: string | null
+  fieldErrors: CustomerFieldErrors
 }
 
 export const initialCustomersState: CustomersState = {
@@ -17,6 +25,13 @@ export const initialCustomersState: CustomersState = {
   query: { pageNumber: 1, pageSize: 5, status: 'all', searchTerm: '' },
   listStatus: 'idle',
   listError: null,
+  selectedId: null,
+  selected: null,
+  detailStatus: 'idle',
+  detailError: null,
+  saveStatus: 'idle',
+  saveError: null,
+  fieldErrors: {},
 }
 
 const customerActionTypes: ReadonlySet<string> = new Set(Object.values(CUSTOMER_ACTIONS))
@@ -42,6 +57,22 @@ export default function customersReducer(state: CustomersState = initialCustomer
       return { ...state, listStatus: 'loading', listError: null, query: { ...state.query, pageSize: action.payload, pageNumber: 1 } }
     case CUSTOMER_ACTIONS.SET_PAGE:
       return { ...state, listStatus: 'loading', listError: null, query: { ...state.query, pageNumber: Math.max(1, action.payload) } }
+    case CUSTOMER_ACTIONS.SELECT:
+      return { ...state, selectedId: action.payload, selected: null, detailStatus: 'loading', detailError: null }
+    case CUSTOMER_ACTIONS.CLEAR_SELECTION:
+      return { ...state, selectedId: null, selected: null, detailStatus: 'idle', detailError: null }
+    case CUSTOMER_ACTIONS.LOAD_BY_ID_SUCCESS:
+      return { ...state, selected: action.payload, detailStatus: 'success' }
+    case CUSTOMER_ACTIONS.LOAD_BY_ID_FAILURE:
+      return { ...state, detailStatus: 'error', detailError: action.payload }
+    case CUSTOMER_ACTIONS.CREATE:
+      return { ...state, saveStatus: 'loading', saveError: null, fieldErrors: {} }
+    case CUSTOMER_ACTIONS.CREATE_SUCCESS:
+      return { ...state, saveStatus: 'success' }
+    case CUSTOMER_ACTIONS.CREATE_FAILURE:
+      return { ...state, saveStatus: 'error', saveError: action.payload.message || null, fieldErrors: action.payload.fieldErrors }
+    case CUSTOMER_ACTIONS.RESET_SAVE:
+      return { ...state, saveStatus: 'idle', saveError: null, fieldErrors: {} }
     default: {
       const unhandled: never = action
       void unhandled

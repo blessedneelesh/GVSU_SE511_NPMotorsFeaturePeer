@@ -25,16 +25,22 @@
 .customers-page .badge-partial { background: #fef3c7; color: #b45309; }
 .customers-page .badge-pending { background: #fef9c3; color: #a16207; }
 
-/* Data table (overrides the global table styles from App.css) */
-.customers-page .data-table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 13px; }
-.customers-page .data-table th { background: var(--slate-50); padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 600; color: var(--slate-500); text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--slate-200); white-space: nowrap; }
-.customers-page .data-table td { padding: 10px 12px; font-size: 13px; color: var(--gray-700); border-bottom: 1px solid var(--slate-100); vertical-align: middle; white-space: nowrap; }
-.customers-page .data-table tr:last-child td { border-bottom: none; }
-.customers-page .data-table .num { text-align: right; font-family: var(--mono); color: var(--slate-800); }
-.customers-page .data-table th.num { font-family: inherit; color: var(--slate-500); }
+/* Fluent tables (override the global table styles from App.css); cell text helpers need the extra specificity */
+.customers-page .data-table th, .customers-page .data-table td { padding: 10px 12px; font-size: 13px; color: var(--gray-700); white-space: nowrap; }
+.customers-page .data-table th { background: var(--slate-50); font-size: 11px; font-weight: 600; color: var(--slate-500); text-transform: uppercase; letter-spacing: .05em; }
+.customers-page .data-table .num { justify-content: flex-end; text-align: right; font-family: var(--mono); }
+.customers-page .data-table th.num { font-family: inherit; }
+.customers-page .data-table .text-xs { font-size: 12px; }
+.customers-page .data-table .text-secondary { color: var(--slate-600); }
+.customers-page .data-table .text-muted { color: var(--slate-500); }
+.customers-page .data-table .text-link { color: var(--accent); }
+.customers-page .data-table .text-amber { color: var(--amber); }
+.customers-page .data-table .text-green { color: var(--green); }
+.customers-page .data-table .text-faint { color: var(--slate-400); }
 .customers-page .table-empty { text-align: center; color: var(--slate-400); padding: 24px 12px; }
+.customers-page .is-refreshing { opacity: .55; transition: opacity .15s; }
 
-/* Text helpers (shared by the Fluent table and the invoice table) */
+/* Text helpers */
 .customers-page .mono { font-family: var(--mono); }
 .customers-page .strong { font-weight: 600; }
 .customers-page .text-xs { font-size: 12px; }
@@ -58,16 +64,8 @@
 .customers-message { margin-bottom: 16px; }
 .customers-loading { display: flex; justify-content: center; padding: 48px 16px; }
 
-/* Fluent table (overrides the global table styles from App.css) */
 .customers-page .customers-table { min-width: 860px; }
-.customers-page .customers-table th, .customers-page .customers-table td { padding: 10px 12px; font-size: 13px; color: var(--gray-700); white-space: nowrap; }
-.customers-page .customers-table th { background: var(--slate-50); font-size: 11px; font-weight: 600; color: var(--slate-500); text-transform: uppercase; letter-spacing: .05em; }
-.customers-page .customers-table .num { justify-content: flex-end; text-align: right; font-family: var(--mono); }
-.customers-page .customers-table th.num { font-family: inherit; }
-.customers-page .customers-table .text-secondary { color: var(--slate-600); }
-.customers-page .customers-table .text-amber { color: var(--amber); }
-.customers-page .customers-table .text-faint { color: var(--slate-400); }
-.customers-page .is-refreshing { opacity: .55; transition: opacity .15s; }
+.customers-page .invoices-table { min-width: 720px; }
 
 .customer-cell { display: flex; align-items: center; gap: 8px; }
 .customers-page .customer-cell__name { font-size: 13px; font-weight: 500; }

@@ -1,0 +1,92 @@
+/* Vendors screen — matches the Figma Make "Car Dealership Management System" design */
+.vendors-page {
+  --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-300: #cbd5e1; --slate-400: #94a3b8;
+  --slate-500: #64748b; --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b; --slate-900: #0f172a;
+  --gray-700: #374151; --accent: #2563eb; --violet-soft: #f5f3ff; --violet: #6d28d9; --violet-100: #ede9fe;
+  --green-bright: #059669; --red: #dc2626;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  padding: 20px;
+  color: var(--slate-900);
+  font-size: 14px;
+}
+
+/* Shared primitives */
+.vendors-page .card { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; }
+.vendors-page .table-scroll { overflow-x: auto; }
+
+.vendors-page .link-button { background: none; border: 0; padding: 0; color: var(--accent); font-size: 12px; }
+.vendors-page .link-button:hover { text-decoration: underline; }
+
+.vendors-page .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.vendors-page .badge-posted { background: #dcfce7; color: #15803d; }
+.vendors-page .badge-cancelled { background: #fee2e2; color: #b91c1c; }
+.vendors-page .type-chip { display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--violet-soft); color: var(--violet); font-size: 12px; font-weight: 500; }
+
+/* Fluent tables (override the global table styles from App.css); cell text helpers need the extra specificity */
+.vendors-page .data-table th, .vendors-page .data-table td { padding: 10px 12px; font-size: 13px; color: var(--gray-700); white-space: nowrap; }
+.vendors-page .data-table th { background: var(--slate-50); font-size: 11px; font-weight: 600; color: var(--slate-500); text-transform: uppercase; letter-spacing: .05em; }
+.vendors-page .data-table .num { justify-content: flex-end; text-align: right; font-family: var(--mono); }
+.vendors-page .data-table th.num { font-family: inherit; }
+.vendors-page .data-table .text-xs { font-size: 12px; }
+.vendors-page .data-table .text-secondary { color: var(--slate-600); }
+.vendors-page .data-table .text-red { color: var(--red); }
+.vendors-page .data-table .text-faint { color: var(--slate-400); }
+.vendors-page .table-empty { text-align: center; color: var(--slate-400); padding: 24px 12px; }
+.vendors-page .is-refreshing { opacity: .55; transition: opacity .15s; }
+
+/* Text helpers */
+.vendors-page .mono { font-family: var(--mono); }
+.vendors-page .strong { font-weight: 600; }
+
+/* List view */
+.vendors-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.vendors-header h1 { margin: 0; font-size: 20px; font-weight: 600; color: var(--slate-900); }
+.vendors-header p { margin: 0; font-size: 14px; color: var(--slate-500); }
+.vendors-header__actions { display: flex; gap: 8px; }
+
+.vendors-filters { display: flex; gap: 8px; margin-bottom: 16px; }
+.vendors-page .vendors-filters__search { width: 280px; max-width: none; }
+.vendors-page .vendors-filters__type { min-width: 144px; }
+
+.vendors-message { margin-bottom: 16px; }
+.vendors-loading { display: flex; justify-content: center; padding: 48px 16px; }
+
+.vendors-page .vendors-table { min-width: 880px; }
+
+.vendor-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.vendors-page .vendor-cell__name { font-size: 13px; font-weight: 500; }
+
+/* Detail view */
+.vendors-breadcrumb { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 14px; }
+.vendors-breadcrumb .link-button { font-size: 14px; }
+.vendors-breadcrumb span { color: var(--slate-300); }
+.vendors-breadcrumb strong { color: var(--slate-700); font-weight: 500; }
+
+.vendor-overview { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+.vendor-profile { padding: 16px; }
+.vendor-profile__header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.vendor-profile__header h1 { margin: 0; font-size: 18px; font-weight: 600; color: var(--slate-900); }
+.vendor-profile__header p { margin: 0; font-size: 14px; color: var(--slate-500); }
+.vendor-profile__header .badge { margin-left: auto; }
+.vendor-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 56px; height: 56px; border-radius: 8px; background: var(--violet-100); color: var(--violet); }
+.vendor-profile__facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; font-size: 14px; }
+.vendor-profile__facts dt, .vendor-profile__facts dd { display: inline; margin: 0; }
+.vendor-profile__facts dt { color: var(--slate-500); }
+.vendor-profile__facts dd { color: var(--slate-700); }
+
+.vendor-stats { display: grid; gap: 12px; align-content: start; }
+.vendors-page .stat-card { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; padding: 16px 20px; }
+.vendors-page .stat-label { font-size: 12px; font-weight: 500; color: var(--slate-500); margin-bottom: 4px; }
+.vendors-page .stat-value { font-family: var(--mono); font-size: 22px; font-weight: 600; line-height: 1.2; }
+.vendors-page .stat-value--blue { color: var(--accent); }
+.vendors-page .stat-value--red { color: var(--red); }
+.vendors-page .stat-value--green { color: var(--green-bright); }
+
+@media (max-width: 760px) {
+  .vendors-page { padding: 70px 16px 32px; }
+  .vendors-header { flex-direction: column; align-items: stretch; }
+  .vendors-filters { flex-wrap: wrap; }
+  .vendors-page .vendors-filters__search, .vendors-page .vendors-filters__type { width: 100%; }
+  .vendor-overview, .vendor-profile__facts { grid-template-columns: 1fr; }
+  .vendor-profile__header { flex-wrap: wrap; }
+}

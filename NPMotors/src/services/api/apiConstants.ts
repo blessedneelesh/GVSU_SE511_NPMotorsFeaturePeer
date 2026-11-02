@@ -5,4 +5,13 @@ export const CUSTOMER_API_BASE_URL: string =
 
 export const CUSTOMER_ENDPOINTS = {
   getAllCustomers: 'Customer/GetAllCustomers',
+  getCustomerById: 'Customer/GetCustomerById',
+  addCustomer: 'Customer/AddCustomer',
+} as const
+
+// Same .NET API (and origin) as Customers, so vendor requests reuse customerClient
+export const VENDOR_ENDPOINTS = {
+  getAllVendors: 'Vendor/GetAllVendors',
+  getVendorById: 'Vendor/GetVendorById',
+  addVendor: 'Vendor/AddVendor',
 } as const

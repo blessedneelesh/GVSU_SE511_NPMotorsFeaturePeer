@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
@@ -14,6 +15,19 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Vendor endpoints live on the same .NET API. Capitalised, so the /vendors page route is unaffected.
+      '/Vendor': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
     },
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/test/setupTests.ts',
+    restoreMocks: true,
+    css: false,
+    coverage: { provider: 'v8', include: ['src/redux/**', 'src/pages/**'], reporter: ['text', 'html'] },
   },
 })

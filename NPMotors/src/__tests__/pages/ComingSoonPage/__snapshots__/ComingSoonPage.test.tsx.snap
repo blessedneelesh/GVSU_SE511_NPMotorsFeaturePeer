@@ -1,0 +1,50 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ComingSoonPage > matches the snapshot 1`] = `
+<div>
+  <div
+    class="fui-FluentProvider fui-FluentProvider_r_0_ ___jdtuxv0_17k0bs4 f19n0e5 fxugw4r f1o700av fk6fouc fkhj508 figsok6 f1i3iumi"
+    dir="ltr"
+  >
+    <div
+      class="page"
+    >
+      <header
+        class="page-header"
+      >
+        <div>
+          <p
+            class="eyebrow"
+          >
+            NPMotors
+          </p>
+          <h1>
+            Vendors
+          </h1>
+          <p
+            class="page-subtitle"
+          >
+            This screen hasn't been built yet.
+          </p>
+        </div>
+      </header>
+      <section
+        class="panel empty-state"
+      >
+        <h2>
+          Vendors
+           is coming soon
+        </h2>
+        <p>
+          <a
+            class="text-link"
+            href="/dashboard"
+          >
+            Back to dashboard
+          </a>
+        </p>
+      </section>
+    </div>
+  </div>
+</div>
+`;
