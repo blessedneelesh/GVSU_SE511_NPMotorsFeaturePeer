@@ -1,0 +1,87 @@
+/* Employees screen — matches the Figma Make "Car Dealership Management System" design */
+.employees-page {
+  --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-300: #cbd5e1; --slate-400: #94a3b8;
+  --slate-500: #64748b; --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b; --slate-900: #0f172a;
+  --gray-700: #374151; --accent: #2563eb; --accent-dark: #1d4ed8; --accent-soft: #dbeafe;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  padding: 20px;
+  color: var(--slate-900);
+  font-size: 14px;
+}
+
+/* Shared primitives */
+.employees-page .card { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; }
+.employees-page .table-scroll { overflow-x: auto; }
+
+.employees-page .link-button { background: none; border: 0; padding: 0; color: var(--accent); font-size: 12px; }
+.employees-page .link-button:hover { text-decoration: underline; }
+
+.employees-page .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.employees-page .badge-posted { background: #dcfce7; color: #15803d; }
+.employees-page .badge-cancelled { background: #fee2e2; color: #b91c1c; }
+.employees-page .badge-sales { background: var(--accent-soft); color: var(--accent-dark); }
+
+/* Fluent tables (override the global table styles from App.css); cell text helpers need the extra specificity */
+.employees-page .data-table th, .employees-page .data-table td { padding: 10px 12px; font-size: 13px; color: var(--gray-700); white-space: nowrap; }
+.employees-page .data-table th { background: var(--slate-50); font-size: 11px; font-weight: 600; color: var(--slate-500); text-transform: uppercase; letter-spacing: .05em; }
+.employees-page .data-table .text-xs { font-size: 12px; }
+.employees-page .data-table .text-secondary { color: var(--slate-600); }
+.employees-page .data-table .text-muted { color: var(--slate-500); }
+.employees-page .table-empty { text-align: center; color: var(--slate-400); padding: 24px 12px; }
+.employees-page .is-refreshing { opacity: .55; transition: opacity .15s; }
+
+/* Text helpers */
+.employees-page .mono { font-family: var(--mono); }
+
+/* List view */
+.employees-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.employees-header h1 { margin: 0; font-size: 20px; font-weight: 600; color: var(--slate-900); }
+.employees-header p { margin: 0; font-size: 14px; color: var(--slate-500); }
+.employees-header__actions { display: flex; gap: 8px; }
+
+.employees-filters { display: flex; gap: 8px; margin-bottom: 16px; }
+.employees-page .employees-filters__search { width: 256px; max-width: none; }
+.employees-page .employees-filters__department { min-width: 176px; }
+.employees-page .employees-filters__status { min-width: 144px; }
+
+.employees-message { margin-bottom: 16px; }
+.employees-loading { display: flex; justify-content: center; padding: 48px 16px; }
+
+.employees-page .employees-table { min-width: 720px; }
+
+.employee-cell { display: flex; align-items: center; gap: 8px; }
+.employees-page .employee-cell__name { font-size: 13px; font-weight: 500; }
+.employee-avatar { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-dark); font-size: 12px; font-weight: 700; }
+.employee-avatar--large { width: 56px; height: 56px; font-size: 18px; }
+
+/* Detail view */
+.employees-breadcrumb { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 14px; }
+.employees-breadcrumb .link-button { font-size: 14px; }
+.employees-breadcrumb span { color: var(--slate-300); }
+.employees-breadcrumb strong { color: var(--slate-700); font-weight: 500; }
+
+.employee-overview { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+.employee-profile { padding: 16px; }
+.employee-profile__header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.employee-profile__header h1 { margin: 0; font-size: 18px; font-weight: 600; color: var(--slate-900); }
+.employee-profile__header p { margin: 0; font-size: 14px; color: var(--slate-500); }
+.employee-profile__badges { display: flex; gap: 6px; margin-left: auto; }
+.employee-profile__facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; font-size: 14px; }
+.employee-profile__facts dt, .employee-profile__facts dd { display: inline; margin: 0; }
+.employee-profile__facts dt { color: var(--slate-500); }
+.employee-profile__facts dd { color: var(--slate-700); }
+
+.employee-stats { display: grid; gap: 12px; align-content: start; }
+.employees-page .stat-card { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; padding: 16px 20px; }
+.employees-page .stat-label { font-size: 12px; font-weight: 500; color: var(--slate-500); margin-bottom: 4px; }
+.employees-page .stat-value { font-family: var(--mono); font-size: 22px; font-weight: 600; line-height: 1.2; color: var(--slate-900); }
+.employees-page .stat-value--blue { color: var(--accent); }
+
+@media (max-width: 760px) {
+  .employees-page { padding: 70px 16px 32px; }
+  .employees-header { flex-direction: column; align-items: stretch; }
+  .employees-filters { flex-wrap: wrap; }
+  .employees-page .employees-filters__search, .employees-page .employees-filters__department, .employees-page .employees-filters__status { width: 100%; }
+  .employee-overview, .employee-profile__facts { grid-template-columns: 1fr; }
+  .employee-profile__header { flex-wrap: wrap; }
+}
