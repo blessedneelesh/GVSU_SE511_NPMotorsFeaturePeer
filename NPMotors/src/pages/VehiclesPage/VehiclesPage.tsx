@@ -169,15 +169,15 @@ export function VehiclesPage() {
             <Table aria-label="Vehicles" aria-busy={isLoading} className="data-table vehicles-table">
               <TableHeader>
                 <TableRow>
-                  <TableHeaderCell>VIN</TableHeaderCell>
-                  <TableHeaderCell>Vehicle</TableHeaderCell>
-                  <TableHeaderCell>Color</TableHeaderCell>
-                  <TableHeaderCell>Warehouse</TableHeaderCell>
-                  <TableHeaderCell className="num">Cost</TableHeaderCell>
-                  <TableHeaderCell className="num">List Price</TableHeaderCell>
-                  <TableHeaderCell className="num">Profit</TableHeaderCell>
-                  <TableHeaderCell>Status</TableHeaderCell>
-                  <TableHeaderCell>Actions</TableHeaderCell>
+                  <TableHeaderCell className="col-vin">VIN</TableHeaderCell>
+                  <TableHeaderCell className="col-vehicle">Vehicle</TableHeaderCell>
+                  <TableHeaderCell className="col-color">Color</TableHeaderCell>
+                  <TableHeaderCell className="col-warehouse">Warehouse</TableHeaderCell>
+                  <TableHeaderCell className="num col-money">Cost</TableHeaderCell>
+                  <TableHeaderCell className="num col-money">List Price</TableHeaderCell>
+                  <TableHeaderCell className="num col-money">Profit</TableHeaderCell>
+                  <TableHeaderCell className="col-status">Status</TableHeaderCell>
+                  <TableHeaderCell className="col-actions">Actions</TableHeaderCell>
                 </TableRow>
               </TableHeader>
               <TableBody>
