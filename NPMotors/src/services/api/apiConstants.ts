@@ -22,3 +22,10 @@ export const EMPLOYEE_ENDPOINTS = {
   getEmployeeById: 'Employee/GetEmployeeById',
   addEmployee: 'Employee/AddEmployee',
 } as const
+
+// Also on the Customers API origin, so vehicle requests reuse customerClient
+export const VEHICLE_ENDPOINTS = {
+  getAllVehicles: 'Vehicle/GetAllVehicles',
+  getVehicleById: 'Vehicle/GetVehicleById',
+  addVehicle: 'Vehicle/AddVehicle',
+} as const
