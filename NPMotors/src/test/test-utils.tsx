@@ -15,6 +15,9 @@ export const makeState = (overrides: Partial<CustomersState> = {}, vendorOverrid
   vendors: { ...initialVendorsState, ...vendorOverrides },
 })
 
+// Shorthand for vendor tests: default customers slice, overridden vendors slice
+export const makeVendorState = (overrides: Partial<VendorsState> = {}): RootState => makeState({}, overrides)
+
 interface RenderOptions {
   preloadedState?: RootState
   route?: string
