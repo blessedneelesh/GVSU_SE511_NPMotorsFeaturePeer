@@ -1,0 +1,96 @@
+/* Receive Parts modal — the Figma Make PartsInventory ReceivePartsModal. Fluent renders dialogs in a portal outside
+   .parts-page, so everything is scoped under .part-dialog and the page's CSS variables are redeclared here. */
+.part-dialog {
+  --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-300: #cbd5e1; --slate-400: #94a3b8;
+  --slate-500: #64748b; --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b; --slate-900: #0f172a;
+  --blue-700: #1d4ed8; --green: #059669; --green-100: #d1fae5; --green-400: #34d399; --red-400: #f87171;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  width: min(620px, calc(100vw - 32px));
+  max-width: none;
+  max-height: 90vh;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.part-dialog form { display: flex; flex-direction: column; max-height: 90vh; }
+.part-dialog .part-dialog__body { display: flex; flex-direction: column; gap: 0; max-height: 90vh; }
+
+.part-dialog__header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; background: var(--slate-900); }
+.part-dialog__header h2 { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.4; color: #fff; }
+.part-dialog__header p { margin: 2px 0 0; font-size: 12px; color: var(--slate-400); }
+.part-dialog__header .fui-Button { color: var(--slate-400); }
+.part-dialog__header .fui-Button:hover { color: #fff; }
+
+.part-dialog .part-dialog__content { display: flex; flex-direction: column; gap: 20px; padding: 24px; overflow-y: auto; }
+
+.part-dialog__errors { margin: 0; padding-left: 16px; font-size: 12px; }
+
+.part-dialog__section { display: flex; flex-direction: column; gap: 12px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.part-dialog__section legend, .part-dialog__section-title { margin-bottom: 12px; padding: 0; font-size: 12px; font-weight: 700; color: var(--slate-400); text-transform: uppercase; letter-spacing: .05em; }
+.part-dialog__section-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.part-dialog__section-header .part-dialog__section-title { margin-bottom: 0; }
+
+/* align-items: start keeps a field's neighbour from stretching when its validation message wraps */
+.part-dialog__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 12px; }
+.part-dialog .part-dialog__wide { grid-column: 1 / -1; }
+.part-dialog .fui-Dropdown { min-width: 0; }
+.part-dialog__note { margin: 0; font-size: 12px; color: var(--slate-500); }
+
+/* Line items: a Fluent Table, styled here because App.css styles every table globally */
+.part-dialog__lines { overflow-x: auto; border: 1px solid var(--slate-200); border-radius: 8px; }
+.part-dialog .receive-lines-table { min-width: 540px; }
+.part-dialog .data-table th, .part-dialog .data-table td { padding: 8px 12px; font-size: 13px; color: var(--slate-700); border-bottom: 1px solid var(--slate-100); }
+.part-dialog .data-table th { background: var(--slate-50); font-size: 11px; font-weight: 600; color: var(--slate-500); text-transform: uppercase; letter-spacing: .05em; border-bottom-color: var(--slate-200); }
+.part-dialog .data-table tr:last-child td { border-bottom: 0; }
+.part-dialog .data-table .num { justify-content: flex-end; text-align: right; font-family: var(--mono); font-size: 12px; }
+.part-dialog .data-table th.num { font-family: inherit; font-size: 11px; }
+.part-dialog .receive-lines-table .col-qty { width: 80px; }
+.part-dialog .receive-lines-table .col-cost { width: 120px; }
+.part-dialog .receive-lines-table .col-total { width: 100px; }
+.part-dialog .receive-lines-table .col-remove { width: 72px; }
+.part-dialog .receive-lines-table .fui-Dropdown, .part-dialog .receive-lines-table .fui-Input { width: 100%; min-width: 0; }
+.part-dialog .part-dialog__number input { font-family: var(--mono); text-align: right; }
+.part-dialog .receive-lines-table .is-received td { background: #ecfdf5; }
+.part-dialog__received { font-size: 11px; font-weight: 600; color: var(--green); }
+
+.part-dialog__totals { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin: 0; padding-right: 4px; font-size: 14px; }
+.part-dialog__totals > div { display: flex; gap: 48px; }
+.part-dialog__totals dt { color: var(--slate-500); }
+.part-dialog__totals dd { width: 96px; margin: 0; font-family: var(--mono); font-weight: 600; color: var(--slate-800); text-align: right; }
+.part-dialog__totals .part-dialog__grand-total { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--slate-200); font-weight: 700; }
+.part-dialog__grand-total dt { color: var(--slate-700); }
+.part-dialog__totals .part-dialog__grand-total dd { color: var(--blue-700); }
+
+.part-dialog__journal { padding: 12px; background: var(--slate-800); border-radius: 8px; font-size: 12px; }
+.part-dialog__journal h3 { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: var(--slate-400); }
+.part-dialog__journal > div { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; color: var(--slate-300); }
+.part-dialog__journal > div span:last-child { font-family: var(--mono); }
+.part-dialog__journal .is-debit { color: var(--red-400); }
+.part-dialog__journal .is-credit { color: var(--green-400); }
+.part-dialog__journal .is-empty { color: var(--slate-500); }
+
+.part-dialog .part-dialog__footer { display: flex; align-items: center; gap: 8px; padding: 16px 24px; background: var(--slate-50); border-top: 1px solid var(--slate-200); }
+.part-dialog__footer-summary { margin-right: auto; font-size: 14px; color: var(--slate-500); }
+
+/* Success view: the design's smaller "Parts Received" card */
+.part-dialog.part-dialog--posted { width: min(480px, calc(100vw - 32px)); }
+.part-dialog .part-dialog__posted { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 32px; text-align: center; }
+.part-dialog__check { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 50%; background: var(--green-100); color: var(--green); }
+.part-dialog__posted h2 { margin: 0 0 4px; font-size: 18px; font-weight: 700; color: var(--slate-900); }
+.part-dialog__posted > p { margin: 0 0 16px; font-size: 14px; color: var(--slate-500); }
+.part-dialog__posted > p strong { font-weight: 600; color: var(--slate-700); }
+.part-dialog__summary { margin: 0 0 16px; padding: 16px; background: var(--slate-50); border-radius: 8px; font-size: 14px; text-align: left; }
+.part-dialog__summary > div { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
+.part-dialog__summary dt { color: var(--slate-600); }
+.part-dialog__summary dd { margin: 0; font-family: var(--mono); font-weight: 500; color: var(--slate-800); }
+.part-dialog__summary .part-dialog__summary-total { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--slate-200); font-weight: 600; }
+.part-dialog__summary-total dt { color: var(--slate-800); }
+.part-dialog__posted .part-dialog__journal { margin-bottom: 20px; text-align: left; }
+.part-dialog .part-dialog__done { width: 100%; }
+
+.part-dialog .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (max-width: 560px) {
+  .part-dialog__grid { grid-template-columns: 1fr; }
+}

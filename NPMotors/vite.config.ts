@@ -33,6 +33,18 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Part endpoints, same API. Capitalised, so the /parts-inventory page route is unaffected.
+      '/Part': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
+      // Bank account endpoints (the Receive Parts "Pay From" list), same API. No page route starts with /BankAccount.
+      '/BankAccount': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   test: {
