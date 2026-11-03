@@ -67,8 +67,6 @@ const isValidQuantity = (value: string) => {
   return Number.isInteger(quantity) && quantity >= 1 && quantity <= MAX_QUANTITY
 }
 
-const isValidCost = (value: string) => toNumber(value) > 0
-
 const lineTotal = (line: ReceiptLine) => toNumber(line.quantity) * toNumber(line.unitCost)
 
 const partLabel = (part: Part | undefined) => (part ? `${part.name || 'Unnamed part'} (${part.partNumber || part.id})` : '')
@@ -125,14 +123,14 @@ export function ReceivePartsDialog({ onClose, onDone }: ReceivePartsDialogProps)
   // As in the design, picking a part fills in its current cost price
   const selectLinePart = (key: number, partId: string) => {
     const part = findPart(partId)
-    setLine(key, { partId, ...(part && part.costPrice > 0 ? { unitCost: String(part.costPrice) } : {}) })
+    setLine(key, { partId, unitCost: part ? String(part.costPrice) : '' })
   }
 
   const addLine = () => setLines((current) => [...current, emptyLine(Math.max(0, ...current.map((line) => line.key)) + 1)])
   const removeLine = (key: number) => setLines((current) => current.filter((line) => line.key !== key))
 
   // Lines without a part are ignored, as in the design
-  const validLines = lines.filter((line) => line.partId && isValidQuantity(line.quantity) && isValidCost(line.unitCost))
+  const validLines = lines.filter((line) => line.partId && isValidQuantity(line.quantity))
   const subtotal = validLines.reduce((sum, line) => sum + lineTotal(line), 0)
   const units = validLines.reduce((sum, line) => sum + toNumber(line.quantity), 0)
 
@@ -144,7 +142,6 @@ export function ReceivePartsDialog({ onClose, onDone }: ReceivePartsDialogProps)
       if (!line.partId) return
       const label = `Line ${index + 1}`
       if (!isValidQuantity(line.quantity)) found.push(`${label}: quantity must be a whole number greater than 0`)
-      if (!isValidCost(line.unitCost)) found.push(`${label}: cost must be greater than 0`)
       const firstIndex = lines.findIndex((other) => other.partId === line.partId)
       if (firstIndex !== index) found.push(`${label}: this part is already on line ${firstIndex + 1}`)
     })
@@ -310,13 +307,18 @@ export function ReceivePartsDialog({ onClose, onDone }: ReceivePartsDialogProps)
                   )}
                 </div>
                 <p className="part-dialog__note">
-                  Only the quantities are saved to inventory. Vendor, PO #, date, payment and unit cost aren&apos;t stored by the API yet.
+                  Only the quantities are saved to inventory. Vendor, PO #, date and payment aren&apos;t stored by the API yet.
                 </p>
               </fieldset>
 
-              <fieldset className="part-dialog__section part-dialog__section--lines" disabled={isSaving}>
-                <legend>Parts Received</legend>
-                <Button size="small" className="part-dialog__add-line" icon={<Add16Regular />} onClick={addLine}>Add Line</Button>
+              <fieldset className="part-dialog__section" disabled={isSaving}>
+                {/* The legend names the group for screen readers; the visible title shares a row with Add Line,
+                    which a legend can't do because browsers lay it out on the fieldset border */}
+                <legend className="visually-hidden">Parts Received</legend>
+                <div className="part-dialog__section-header">
+                  <span className="part-dialog__section-title" aria-hidden="true">Parts Received</span>
+                  <Button size="small" icon={<Add16Regular />} onClick={addLine}>Add Line</Button>
+                </div>
                 <div className="part-dialog__lines">
                   <Table aria-label="Parts received" className="data-table receive-lines-table">
                     <TableHeader>
@@ -371,8 +373,8 @@ export function ReceivePartsDialog({ onClose, onDone }: ReceivePartsDialogProps)
                                 step={0.01}
                                 placeholder="0.00"
                                 value={line.unitCost}
-                                disabled={isReceived}
-                                onChange={(_, data) => setLine(line.key, { unitCost: data.value })}
+                                // Always the part's cost price: UpdatePart can't store a different receipt cost
+                                disabled
                               />
                             </TableCell>
                             <TableCell className="num">

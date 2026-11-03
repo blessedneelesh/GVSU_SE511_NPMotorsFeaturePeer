@@ -14,7 +14,7 @@ import {
 } from '../../../redux/parts/parts.actions'
 import { PART_ACTIONS } from '../../../redux/parts/parts.constants'
 import type { PartsState } from '../../../redux/parts/parts.reducer'
-import { padsReceiveLine, partReceiveLines, partReceiveOptions, partVendorOptions, rotorsReceiveLine } from '../../../test/fixtures/parts'
+import { padsReceiveLine, part, partReceiveLines, partReceiveOptions, partVendorOptions, rotorsReceiveLine } from '../../../test/fixtures/parts'
 import { makePartState, renderWithProviders } from '../../../test/test-utils'
 
 // The dialog loads the vendors and the receive options (parts + bank accounts) on mount. Without a saga
@@ -156,6 +156,14 @@ describe('ReceivePartsDialog', () => {
     })
   })
 
+  it('keeps the unit cost read-only', async () => {
+    const { user } = renderDialog()
+    expect(lineCost(1)).toBeDisabled()
+    await choose(user, combobox(/^Vendor/), 'Great Lakes Auto Parts')
+    await choose(user, linePart(1), 'Front Brake Pad Set (BRK-1001)')
+    expect(lineCost(1)).toBeDisabled()
+  })
+
   it('fills the unit cost from the part and totals the lines', async () => {
     const { user } = renderDialog()
     await fillReceipt(user)
@@ -203,17 +211,30 @@ describe('ReceivePartsDialog', () => {
       expect(receipts(actions)).toHaveLength(0)
     })
 
-    it('rejects a quantity that is not a whole number above zero and a cost of zero', async () => {
+    it.each(['0', '2.5'])('rejects a quantity of %s', async (quantity) => {
       const { actions, user } = renderDialog()
       await choose(user, combobox(/^Vendor/), 'Great Lakes Auto Parts')
       await choose(user, linePart(1), 'Front Brake Pad Set (BRK-1001)')
-      await replace(user, lineQuantity(1), '0')
-      await replace(user, lineCost(1), '0')
+      await replace(user, lineQuantity(1), quantity)
       await user.click(submit())
 
       expect(screen.getByText('Line 1: quantity must be a whole number greater than 0')).toBeInTheDocument()
-      expect(screen.getByText('Line 1: cost must be greater than 0')).toBeInTheDocument()
       expect(receipts(actions)).toHaveLength(0)
+    })
+
+    // The unit cost can't be edited, so a part without a cost price must not block the receipt
+    it('accepts a part whose cost price is zero', async () => {
+      const { store, actions, user } = renderDialog({}, { options: false })
+      act(() => {
+        store.dispatch(loadPartVendorOptionsSuccess(partVendorOptions))
+        store.dispatch(loadPartReceiveOptionsSuccess({ ...partReceiveOptions, parts: [{ ...part, costPrice: 0 }] }))
+      })
+      await choose(user, combobox(/^Vendor/), 'Great Lakes Auto Parts')
+      await choose(user, linePart(1), 'Front Brake Pad Set (BRK-1001)')
+      expect(lineCost(1)).toHaveValue(0)
+      await user.click(submit())
+
+      expect(receipts(actions)).toEqual([receiveParts([{ partId: '1', quantity: 1 }])])
     })
 
     it('rejects the same part on two lines', async () => {
