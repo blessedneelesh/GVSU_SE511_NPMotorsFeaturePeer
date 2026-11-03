@@ -29,3 +29,16 @@ export const VEHICLE_ENDPOINTS = {
   getVehicleById: 'Vehicle/GetVehicleById',
   addVehicle: 'Vehicle/AddVehicle',
 } as const
+
+// Also on the Customers API origin, so part requests reuse customerClient.
+// UpdatePart is the stock receipt: it adds quantity_Received to the part's quantity.
+export const PART_ENDPOINTS = {
+  getAllParts: 'Part/GetAllParts',
+  getPartById: 'Part/GetPartById',
+  updatePart: 'Part/UpdatePart',
+} as const
+
+// Same API; only the Receive Parts "Pay From" list uses it so far
+export const BANK_ACCOUNT_ENDPOINTS = {
+  getAllBankAccounts: 'BankAccount/GetAllBankAccounts',
+} as const

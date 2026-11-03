@@ -10,6 +10,7 @@ import { rootReducer, type RootState } from '../redux/rootReducer'
 import { initialVendorsState, type VendorsState } from '../redux/vendors/vendors.reducer'
 import { initialEmployeesState, type EmployeesState } from '../redux/employees/employees.reducer'
 import { initialVehiclesState, type VehiclesState } from '../redux/vehicles/vehicles.reducer'
+import { initialPartsState, type PartsState } from '../redux/parts/parts.reducer'
 
 // Builds a full RootState from each slice's initial state; tests override only what the scenario needs
 export const makeState = (
@@ -17,11 +18,13 @@ export const makeState = (
   vendorOverrides: Partial<VendorsState> = {},
   employeeOverrides: Partial<EmployeesState> = {},
   vehicleOverrides: Partial<VehiclesState> = {},
+  partOverrides: Partial<PartsState> = {},
 ): RootState => ({
   customers: { ...initialCustomersState, ...overrides },
   vendors: { ...initialVendorsState, ...vendorOverrides },
   employees: { ...initialEmployeesState, ...employeeOverrides },
   vehicles: { ...initialVehiclesState, ...vehicleOverrides },
+  parts: { ...initialPartsState, ...partOverrides },
 })
 
 // Shorthand for vendor tests: default customers slice, overridden vendors slice

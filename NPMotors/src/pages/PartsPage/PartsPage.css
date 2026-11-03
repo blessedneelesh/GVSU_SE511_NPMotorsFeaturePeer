@@ -1,0 +1,119 @@
+/* Parts & Service Inventory screen — matches the Figma Make "Car Dealership Management System" design */
+.parts-page {
+  --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-300: #cbd5e1; --slate-400: #94a3b8;
+  --slate-500: #64748b; --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b; --slate-900: #0f172a;
+  --gray-700: #374151; --accent: #2563eb; --blue-700: #1d4ed8;
+  --green: #059669; --green-50: #ecfdf5; --green-700: #047857; --red: #dc2626;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  padding: 20px;
+  color: var(--slate-900);
+  font-size: 14px;
+}
+
+/* Shared primitives */
+.parts-page .card { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; }
+.parts-page .table-scroll { overflow-x: auto; }
+
+.parts-page .link-button { background: none; border: 0; padding: 0; color: var(--accent); font-size: 12px; }
+.parts-page .link-button:hover { text-decoration: underline; }
+
+.parts-page .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.parts-page .badge-posted { background: #dcfce7; color: #15803d; }
+.parts-page .badge-overdue { background: #fee2e2; color: #b91c1c; }
+
+.parts-page .section-title { margin: 0 0 12px; font-size: 12px; font-weight: 700; color: var(--slate-400); text-transform: uppercase; letter-spacing: .05em; }
+
+/* Fluent tables (override the global table styles from App.css); cell text helpers need the extra specificity */
+.parts-page .data-table th, .parts-page .data-table td { padding: 10px 12px; font-size: 13px; color: var(--gray-700); white-space: nowrap; }
+.parts-page .data-table th { background: var(--slate-50); font-size: 11px; font-weight: 600; color: var(--slate-500); text-transform: uppercase; letter-spacing: .05em; }
+.parts-page .data-table .num { justify-content: flex-end; text-align: right; font-family: var(--mono); }
+.parts-page .data-table th.num { font-family: inherit; }
+.parts-page .data-table .text-xs { font-size: 12px; }
+.parts-page .data-table .text-secondary { color: var(--slate-700); }
+.parts-page .data-table .text-muted { color: var(--slate-500); }
+.parts-page .data-table .text-faint { color: var(--slate-400); }
+.parts-page .data-table .text-dark { color: var(--slate-800); }
+.parts-page .data-table .text-green-dark { color: var(--green-700); }
+.parts-page .data-table .text-red { color: var(--red); }
+.parts-page .data-table .is-just-received td { background: var(--green-50); }
+.parts-page .table-empty { text-align: center; color: var(--slate-400); padding: 24px 12px; }
+.parts-page .is-refreshing { opacity: .55; transition: opacity .15s; }
+
+/* Text helpers */
+.parts-page .mono { font-family: var(--mono); }
+.parts-page .strong { font-weight: 700; }
+.parts-page .text-xs { font-size: 12px; }
+.parts-page .text-blue { color: var(--blue-700); }
+.parts-page .text-green { color: var(--green); }
+.parts-page .text-red { color: var(--red); }
+
+/* List view */
+.parts-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.parts-header h1 { margin: 0; font-size: 20px; font-weight: 600; color: var(--slate-900); }
+.parts-header p { margin: 0; font-size: 14px; color: var(--slate-500); }
+.parts-header__actions { display: flex; gap: 8px; }
+
+.parts-filters { display: flex; gap: 8px; margin-bottom: 16px; }
+.parts-page .parts-filters__search { width: 240px; max-width: none; }
+.parts-page .parts-filters__select { min-width: 144px; }
+
+.parts-message { margin-bottom: 16px; }
+.parts-loading { display: flex; justify-content: center; padding: 48px 16px; }
+
+.parts-page .parts-table { min-width: 1000px; }
+/* Fluent's Table is table-layout: fixed, so every column gets a width; wider screens scale them in proportion */
+.parts-page .parts-table .col-number { width: 110px; }
+.parts-page .parts-table .col-description { width: 220px; }
+.parts-page .parts-table .col-category { width: 110px; }
+.parts-page .parts-table .col-vendor { width: 170px; }
+.parts-page .parts-table .col-money { width: 105px; }
+.parts-page .parts-table .col-qty { width: 85px; }
+.parts-page .parts-table .col-status { width: 105px; }
+.parts-page .parts-table .col-actions { width: 70px; }
+
+.part-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.parts-page .part-cell__name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 13px; font-weight: 500; }
+.part-cell__received { font-size: 12px; font-weight: 500; color: var(--green); }
+.part-category { display: inline-block; padding: 2px 8px; border-radius: 4px; background: var(--slate-100); color: var(--slate-600); font-size: 12px; }
+
+/* Detail view */
+.parts-breadcrumb { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; font-size: 14px; }
+.parts-breadcrumb .link-button { font-size: 14px; }
+.parts-breadcrumb span { color: var(--slate-300); }
+.parts-breadcrumb strong { color: var(--slate-700); font-weight: 500; }
+
+.part-hero { overflow: hidden; margin-bottom: 20px; }
+.part-hero__header { display: flex; align-items: center; gap: 16px; padding: 16px 20px; background: var(--slate-900); }
+.part-hero__header h1 { margin: 0; font-size: 20px; font-weight: 700; color: #fff; }
+.part-hero__header p { margin: 2px 0 0; font-size: 13px; color: var(--slate-400); }
+.part-hero__icon { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 12px; background: rgba(59, 130, 246, .2); color: #93c5fd; }
+.parts-page .part-hero__badge { margin-left: auto; padding: 4px 12px; font-size: 12px; }
+.part-hero__stats { display: grid; grid-template-columns: repeat(5, 1fr); margin: 0; border-top: 1px solid var(--slate-100); }
+.part-hero__stats > div { padding: 12px 20px; text-align: center; }
+.part-hero__stats > div + div { border-left: 1px solid var(--slate-100); }
+.part-hero__stats dt { margin-bottom: 2px; font-size: 12px; color: var(--slate-400); }
+.part-hero__stats dd { margin: 0; font-size: 16px; font-weight: 700; color: var(--slate-800); }
+
+.part-panel { padding: 20px; }
+.part-panel--columns { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+.part-facts { margin: 0; }
+.part-facts > div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--slate-50); }
+.part-facts > div:last-child { border-bottom: 0; }
+.part-facts dt { color: var(--slate-500); }
+.part-facts dd { margin: 0; font-weight: 500; color: var(--slate-800); text-align: right; }
+.parts-page .part-facts dd.text-red { color: var(--red); }
+
+@media (max-width: 960px) {
+  .part-hero__stats { grid-template-columns: repeat(3, 1fr); }
+  .part-panel--columns { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .parts-page { padding: 70px 16px 32px; }
+  .parts-header { flex-direction: column; align-items: stretch; }
+  .parts-filters { flex-wrap: wrap; }
+  .parts-page .parts-filters__search, .parts-page .parts-filters__select { width: 100%; }
+  .part-hero__header { flex-wrap: wrap; }
+  .part-hero__stats { grid-template-columns: repeat(2, 1fr); }
+}
