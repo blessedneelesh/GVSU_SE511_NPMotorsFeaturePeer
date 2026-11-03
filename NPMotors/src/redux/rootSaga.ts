@@ -5,7 +5,8 @@ import vendorsSaga from './vendors/vendors.saga'
 import employeesSaga from './employees/employees.saga'
 import vehiclesSaga from './vehicles/vehicles.saga'
 import partsSaga from './parts/parts.saga'
+import salesInvoicesSaga from './salesInvoices/salesInvoices.saga'
 
 export default function* rootSaga(): SagaIterator {
-  yield all([fork(customersSaga), fork(vendorsSaga), fork(employeesSaga), fork(vehiclesSaga), fork(partsSaga)])
+  yield all([fork(customersSaga), fork(vendorsSaga), fork(employeesSaga), fork(vehiclesSaga), fork(partsSaga), fork(salesInvoicesSaga)])
 }

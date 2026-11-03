@@ -39,6 +39,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Sales invoice endpoints, same API. Capitalised, so the /sales-invoices page route is unaffected.
+      '/SalesInvoice': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
       // Bank account endpoints (the Receive Parts "Pay From" list), same API. No page route starts with /BankAccount.
       '/BankAccount': {
         target: 'https://localhost:7003',

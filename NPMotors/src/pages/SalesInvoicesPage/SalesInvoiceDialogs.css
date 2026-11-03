@@ -1,0 +1,38 @@
+/* Confirm Post and Cancel Invoice dialogs — match the Figma Make SalesInvoiceForm / SalesInvoiceDetail modals.
+   Fluent renders dialogs in a portal outside .sales-invoices-page, so everything is scoped under
+   .sales-invoice-dialog and the page's CSS variables are redeclared here. */
+.sales-invoice-dialog {
+  --slate-50: #f8fafc; --slate-200: #e2e8f0; --slate-500: #64748b; --slate-600: #475569; --slate-900: #0f172a;
+  --red: #dc2626; --red-dark: #b91c1c; --red-soft: #fef2f2; --red-border: #fecaca;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  width: min(420px, calc(100vw - 32px));
+  max-width: none;
+  border-radius: 8px;
+}
+
+.sales-invoice-dialog .sales-invoice-dialog__body { display: flex; flex-direction: column; gap: 16px; }
+.sales-invoice-dialog h2 { margin: 0 0 4px; font-size: 16px; font-weight: 600; color: var(--slate-900); }
+.sales-invoice-dialog p { margin: 0; font-size: 14px; color: var(--slate-600); }
+.sales-invoice-dialog .mono { font-family: var(--mono); }
+
+.sales-invoice-dialog__heading { display: flex; align-items: flex-start; gap: 12px; }
+.sales-invoice-dialog__warning { flex-shrink: 0; color: #d97706; }
+
+.sales-invoice-dialog .sales-invoice-dialog__content { display: flex; flex-direction: column; gap: 16px; }
+
+.sales-invoice-dialog__effects { margin: 0; padding: 12px 12px 12px 28px; background: var(--red-soft); border: 1px solid var(--red-border); border-radius: 8px; font-size: 12px; color: var(--red-dark); }
+.sales-invoice-dialog__effects li + li { margin-top: 2px; }
+
+.sales-invoice-dialog__summary { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 12px; background: var(--slate-50); border-radius: 8px; font-size: 14px; }
+.sales-invoice-dialog__summary div { display: flex; justify-content: space-between; gap: 16px; }
+.sales-invoice-dialog__summary dt { color: var(--slate-500); }
+.sales-invoice-dialog__summary dd { margin: 0; text-align: right; color: var(--slate-900); }
+.sales-invoice-dialog__summary .sales-invoice-dialog__summary-total { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--slate-200); font-weight: 600; }
+.sales-invoice-dialog__summary .sales-invoice-dialog__summary-total dt { color: var(--slate-900); }
+
+.sales-invoice-dialog .sales-invoice-dialog__footer { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Fluent has no danger appearance; the design's cmd-btn-danger confirm is solid red */
+.sales-invoice-dialog .sales-invoice-dialog__danger { background: var(--red); border-color: var(--red); color: #fff; }
+.sales-invoice-dialog .sales-invoice-dialog__danger:hover { background: var(--red-dark); border-color: var(--red-dark); color: #fff; }
+.sales-invoice-dialog .sales-invoice-dialog__danger:disabled { background: var(--red-border); border-color: var(--red-border); color: #fff; }
