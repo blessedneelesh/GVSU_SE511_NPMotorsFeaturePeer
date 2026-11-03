@@ -36,6 +36,9 @@ export const makeEmployeeState = (overrides: Partial<EmployeesState> = {}): Root
 // Shorthand for vehicle tests: default customers, vendors and employees slices, overridden vehicles slice
 export const makeVehicleState = (overrides: Partial<VehiclesState> = {}): RootState => makeState({}, {}, {}, overrides)
 
+// Shorthand for part tests: every other slice at its default, overridden parts slice
+export const makePartState = (overrides: Partial<PartsState> = {}): RootState => makeState({}, {}, {}, {}, overrides)
+
 interface RenderOptions {
   preloadedState?: RootState
   route?: string
