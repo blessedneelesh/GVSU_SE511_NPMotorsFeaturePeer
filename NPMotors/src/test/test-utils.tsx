@@ -11,6 +11,7 @@ import { initialVendorsState, type VendorsState } from '../redux/vendors/vendors
 import { initialEmployeesState, type EmployeesState } from '../redux/employees/employees.reducer'
 import { initialVehiclesState, type VehiclesState } from '../redux/vehicles/vehicles.reducer'
 import { initialPartsState, type PartsState } from '../redux/parts/parts.reducer'
+import { initialSalesInvoicesState, type SalesInvoicesState } from '../redux/salesInvoices/salesInvoices.reducer'
 
 // Builds a full RootState from each slice's initial state; tests override only what the scenario needs
 export const makeState = (
@@ -19,12 +20,14 @@ export const makeState = (
   employeeOverrides: Partial<EmployeesState> = {},
   vehicleOverrides: Partial<VehiclesState> = {},
   partOverrides: Partial<PartsState> = {},
+  salesInvoiceOverrides: Partial<SalesInvoicesState> = {},
 ): RootState => ({
   customers: { ...initialCustomersState, ...overrides },
   vendors: { ...initialVendorsState, ...vendorOverrides },
   employees: { ...initialEmployeesState, ...employeeOverrides },
   vehicles: { ...initialVehiclesState, ...vehicleOverrides },
   parts: { ...initialPartsState, ...partOverrides },
+  salesInvoices: { ...initialSalesInvoicesState, ...salesInvoiceOverrides },
 })
 
 // Shorthand for vendor tests: default customers slice, overridden vendors slice
@@ -38,6 +41,10 @@ export const makeVehicleState = (overrides: Partial<VehiclesState> = {}): RootSt
 
 // Shorthand for part tests: every other slice at its default, overridden parts slice
 export const makePartState = (overrides: Partial<PartsState> = {}): RootState => makeState({}, {}, {}, {}, overrides)
+
+// Shorthand for sales invoice tests: every other slice at its default, overridden sales invoices slice
+export const makeSalesInvoiceState = (overrides: Partial<SalesInvoicesState> = {}): RootState =>
+  makeState({}, {}, {}, {}, {}, overrides)
 
 interface RenderOptions {
   preloadedState?: RootState

@@ -21,6 +21,8 @@ export const EMPLOYEE_ENDPOINTS = {
   getAllEmployees: 'Employee/GetAllEmployees',
   getEmployeeById: 'Employee/GetEmployeeById',
   addEmployee: 'Employee/AddEmployee',
+  // Bare array of active employees with is_Salesperson; the Sales Invoice form's salesperson list
+  getActiveSalespeople: 'Employee/GetActiveSalespeople',
 } as const
 
 // Also on the Customers API origin, so vehicle requests reuse customerClient
@@ -36,6 +38,17 @@ export const PART_ENDPOINTS = {
   getAllParts: 'Part/GetAllParts',
   getPartById: 'Part/GetPartById',
   updatePart: 'Part/UpdatePart',
+} as const
+
+// Also on the Customers API origin, so sales invoice requests reuse customerClient.
+// AddSalesInvoice saves a draft and PostSalesInvoice posts a new invoice; both take SalesInvoiceCreateDto.
+// CancelSalesInvoice takes ?id= and { reason }, and only accepts posted invoices with nothing paid.
+export const SALES_INVOICE_ENDPOINTS = {
+  getAllSalesInvoices: 'SalesInvoice/GetAllSalesInvoices',
+  getSalesInvoiceById: 'SalesInvoice/GetSalesInvoiceById',
+  addSalesInvoice: 'SalesInvoice/AddSalesInvoice',
+  postSalesInvoice: 'SalesInvoice/PostSalesInvoice',
+  cancelSalesInvoice: 'SalesInvoice/CancelSalesInvoice',
 } as const
 
 // Same API; only the Receive Parts "Pay From" list uses it so far
