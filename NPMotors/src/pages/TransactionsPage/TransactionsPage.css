@@ -1,0 +1,96 @@
+/* Transactions screen — matches the Figma Make "Car Dealership Management System" design */
+.transactions-page {
+  --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-300: #cbd5e1; --slate-400: #94a3b8;
+  --slate-500: #64748b; --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b; --slate-900: #0f172a;
+  --gray-700: #374151; --accent: #2563eb; --green: #047857; --green-bright: #059669; --red: #b91c1c;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  padding: 20px;
+  color: var(--slate-900);
+  font-size: 14px;
+}
+
+/* Shared primitives */
+.transactions-page .card { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; }
+.transactions-page .table-scroll { overflow-x: auto; }
+
+.transactions-page .link-button { background: none; border: 0; padding: 0; color: var(--accent); font-size: 12px; }
+.transactions-page .link-button:hover { text-decoration: underline; }
+
+.transactions-page .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.transactions-page .badge-posted { background: #dcfce7; color: #15803d; }
+.transactions-page .badge-draft { background: var(--slate-100); color: var(--slate-600); }
+.transactions-page .badge-cancelled { background: #fee2e2; color: #b91c1c; }
+.transactions-page .type-chip { display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--slate-100); color: var(--slate-700); font-size: 12px; font-weight: 500; white-space: nowrap; }
+
+/* Fluent tables (override the global table styles from App.css); cell text helpers need the extra specificity */
+.transactions-page .data-table th, .transactions-page .data-table td { padding: 10px 12px; font-size: 13px; color: var(--gray-700); white-space: nowrap; }
+.transactions-page .data-table th { background: var(--slate-50); font-size: 11px; font-weight: 600; color: var(--slate-500); text-transform: uppercase; letter-spacing: .05em; }
+.transactions-page .data-table .num { justify-content: flex-end; text-align: right; font-family: var(--mono); }
+.transactions-page .data-table th.num { font-family: inherit; }
+.transactions-page .data-table .mono { font-family: var(--mono); }
+.transactions-page .data-table .text-xs { font-size: 12px; }
+.transactions-page .data-table .text-muted { color: var(--slate-500); }
+.transactions-page .data-table .text-faint { color: var(--slate-400); }
+.transactions-page .data-table .text-dark { color: var(--slate-700); }
+.transactions-page .data-table .text-green { color: var(--green); }
+.transactions-page .data-table .text-red { color: var(--red); }
+.transactions-page .data-table .description-cell { min-width: 220px; max-width: 320px; white-space: normal; }
+.transactions-page .table-empty { text-align: center; color: var(--slate-400); padding: 24px 12px; }
+.transactions-page .is-refreshing { opacity: .55; transition: opacity .15s; }
+
+/* Text helpers */
+.transactions-page .mono { font-family: var(--mono); }
+.transactions-page .strong { font-weight: 600; }
+
+/* List view */
+.transactions-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.transactions-header h1 { margin: 0; font-size: 20px; font-weight: 600; color: var(--slate-900); }
+.transactions-header p { margin: 0; font-size: 14px; color: var(--slate-500); }
+.transactions-header__actions { display: flex; align-items: center; gap: 8px; }
+.transactions-note { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--slate-200); border-radius: 8px; background: var(--slate-100); color: var(--slate-600); font-size: 12px; }
+
+.transactions-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; align-items: end; gap: 12px; margin-bottom: 16px; padding: 16px; }
+.transactions-page .transactions-filters .fui-Dropdown { min-width: 0; }
+
+.transactions-message { margin-bottom: 16px; }
+.transactions-loading { display: flex; justify-content: center; padding: 48px 16px; }
+
+.transactions-page .transactions-table { min-width: 1180px; }
+.transaction-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+
+/* Detail view */
+.transactions-breadcrumb { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 14px; }
+.transactions-breadcrumb .link-button { font-size: 14px; }
+.transactions-breadcrumb span { color: var(--slate-300); }
+.transactions-breadcrumb strong { color: var(--slate-700); font-weight: 500; }
+
+.transaction-overview { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+.transaction-profile { padding: 16px; }
+.transaction-profile__header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+.transaction-profile__header h1 { margin: 0; font-size: 18px; font-weight: 600; color: var(--slate-900); }
+.transaction-profile__header p { margin: 4px 0 0; font-size: 14px; color: var(--slate-500); }
+.transaction-profile__badges { display: flex; gap: 8px; margin-left: auto; }
+.transaction-profile__facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; font-size: 14px; }
+.transaction-profile__facts dt, .transaction-profile__facts dd { display: inline; margin: 0; }
+.transaction-profile__facts dt { color: var(--slate-500); }
+.transaction-profile__facts dd { color: var(--slate-700); }
+
+.transaction-stats { display: grid; gap: 12px; align-content: start; }
+.transactions-page .stat-card { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; padding: 16px 20px; }
+.transactions-page .stat-label { font-size: 12px; font-weight: 500; color: var(--slate-500); margin-bottom: 4px; }
+.transactions-page .stat-value { font-family: var(--mono); font-size: 22px; font-weight: 600; line-height: 1.2; }
+.transactions-page .stat-value--green { color: var(--green-bright); }
+.transactions-page .stat-value--red { color: var(--red); }
+
+@media (max-width: 1024px) {
+  .transactions-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .transactions-page { padding: 70px 16px 32px; }
+  .transactions-header { flex-direction: column; align-items: stretch; }
+  .transactions-header__actions { flex-wrap: wrap; }
+  .transactions-filters { grid-template-columns: 1fr; }
+  .transaction-overview, .transaction-profile__facts { grid-template-columns: 1fr; }
+  .transaction-profile__header { flex-wrap: wrap; }
+}

@@ -6,6 +6,7 @@ import vehiclesReducer from './vehicles/vehicles.reducer'
 import partsReducer from './parts/parts.reducer'
 import salesInvoicesReducer from './salesInvoices/salesInvoices.reducer'
 import bankAccountsReducer from './bankAccounts/bankAccounts.reducer'
+import transactionsReducer from './transactions/transactions.reducer'
 
 export const rootReducer = combineReducers({
   customers: customersReducer,
@@ -15,6 +16,7 @@ export const rootReducer = combineReducers({
   parts: partsReducer,
   salesInvoices: salesInvoicesReducer,
   bankAccounts: bankAccountsReducer,
+  transactions: transactionsReducer,
 })
 
 export type RootState = ReturnType<typeof rootReducer>

@@ -51,6 +51,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Transaction endpoints, same API. Capitalised, so the /transactions page route is unaffected.
+      '/Transaction': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   test: {
