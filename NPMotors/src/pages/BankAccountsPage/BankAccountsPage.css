@@ -1,0 +1,88 @@
+/* Banks & Accounts screen — matches the Figma Make "Car Dealership Management System" design */
+.bank-accounts-page {
+  --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-300: #cbd5e1; --slate-400: #94a3b8;
+  --slate-500: #64748b; --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b; --slate-900: #0f172a;
+  --gray-700: #374151; --accent: #2563eb; --blue-100: #dbeafe; --red: #dc2626;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  padding: 20px;
+  color: var(--slate-900);
+  font-size: 14px;
+}
+
+/* Shared primitives */
+.bank-accounts-page .card { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; }
+.bank-accounts-page .table-scroll { overflow-x: auto; }
+
+.bank-accounts-page .link-button { background: none; border: 0; padding: 0; color: var(--accent); font-size: 12px; }
+.bank-accounts-page .link-button:hover { text-decoration: underline; }
+
+.bank-accounts-page .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.bank-accounts-page .badge-posted { background: #dcfce7; color: #15803d; }
+.bank-accounts-page .badge-cancelled { background: #fee2e2; color: #b91c1c; }
+
+/* Fluent tables (override the global table styles from App.css); cell text helpers need the extra specificity */
+.bank-accounts-page .data-table th, .bank-accounts-page .data-table td { padding: 10px 12px; font-size: 13px; color: var(--gray-700); white-space: nowrap; }
+.bank-accounts-page .data-table th { background: var(--slate-50); font-size: 11px; font-weight: 600; color: var(--slate-500); text-transform: uppercase; letter-spacing: .05em; }
+.bank-accounts-page .data-table .num { justify-content: flex-end; text-align: right; font-family: var(--mono); }
+.bank-accounts-page .data-table th.num { font-family: inherit; }
+.bank-accounts-page .data-table .mono { font-family: var(--mono); }
+.bank-accounts-page .data-table .text-xs { font-size: 12px; }
+.bank-accounts-page .data-table .text-secondary { color: var(--slate-600); }
+.bank-accounts-page .data-table .text-muted { color: var(--slate-500); }
+.bank-accounts-page .data-table .text-dark { color: var(--slate-800); }
+.bank-accounts-page .table-empty { text-align: center; color: var(--slate-400); padding: 24px 12px; }
+.bank-accounts-page .is-refreshing { opacity: .55; transition: opacity .15s; }
+
+/* Text helpers */
+.bank-accounts-page .mono { font-family: var(--mono); }
+.bank-accounts-page .strong { font-weight: 600; }
+
+/* List view */
+.bank-accounts-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.bank-accounts-header h1 { margin: 0; font-size: 20px; font-weight: 600; color: var(--slate-900); }
+.bank-accounts-header p { margin: 0; font-size: 14px; color: var(--slate-500); }
+.bank-accounts-header__actions { display: flex; gap: 8px; }
+
+.bank-accounts-filters { display: flex; gap: 8px; margin-bottom: 16px; }
+.bank-accounts-page .bank-accounts-filters__search { width: 280px; max-width: none; }
+.bank-accounts-page .bank-accounts-filters__bank { min-width: 180px; }
+
+.bank-accounts-message { margin-bottom: 16px; }
+.bank-accounts-loading { display: flex; justify-content: center; padding: 48px 16px; }
+
+.bank-accounts-page .bank-accounts-table { min-width: 960px; }
+.bank-accounts-page .bank-account-cell__name { font-size: 13px; font-weight: 500; }
+
+/* Detail view */
+.bank-accounts-breadcrumb { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 14px; }
+.bank-accounts-breadcrumb .link-button { font-size: 14px; }
+.bank-accounts-breadcrumb span { color: var(--slate-300); }
+.bank-accounts-breadcrumb strong { color: var(--slate-700); font-weight: 500; }
+
+.bank-account-overview { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+.bank-account-profile { padding: 16px; }
+.bank-account-profile__header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.bank-account-profile__header h1 { margin: 0; font-size: 18px; font-weight: 600; color: var(--slate-900); }
+.bank-account-profile__header p { margin: 0; font-size: 14px; color: var(--slate-500); }
+.bank-account-profile__header .badge { margin-left: auto; }
+.bank-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 56px; height: 56px; border-radius: 8px; background: var(--blue-100); color: var(--accent); }
+.bank-account-profile__facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; font-size: 14px; }
+.bank-account-profile__facts dt, .bank-account-profile__facts dd { display: inline; margin: 0; }
+.bank-account-profile__facts dt { color: var(--slate-500); }
+.bank-account-profile__facts dd { color: var(--slate-700); }
+
+.bank-account-stats { display: grid; gap: 12px; align-content: start; }
+.bank-accounts-page .stat-card { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; padding: 16px 20px; }
+.bank-accounts-page .stat-label { font-size: 12px; font-weight: 500; color: var(--slate-500); margin-bottom: 4px; }
+.bank-accounts-page .stat-value { font-family: var(--mono); font-size: 22px; font-weight: 600; line-height: 1.2; }
+.bank-accounts-page .stat-value--blue { color: var(--accent); }
+.bank-accounts-page .stat-value--red { color: var(--red); }
+
+@media (max-width: 760px) {
+  .bank-accounts-page { padding: 70px 16px 32px; }
+  .bank-accounts-header { flex-direction: column; align-items: stretch; }
+  .bank-accounts-filters { flex-wrap: wrap; }
+  .bank-accounts-page .bank-accounts-filters__search, .bank-accounts-page .bank-accounts-filters__bank { width: 100%; }
+  .bank-account-overview, .bank-account-profile__facts { grid-template-columns: 1fr; }
+  .bank-account-profile__header { flex-wrap: wrap; }
+}

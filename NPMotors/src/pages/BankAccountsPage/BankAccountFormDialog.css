@@ -1,0 +1,35 @@
+/* Add Bank Account modal — matches the Figma Make BankList form. Fluent renders dialogs in a portal outside
+   .bank-accounts-page, so everything is scoped under .bank-account-dialog and the page's CSS variables are redeclared here. */
+.bank-account-dialog {
+  --slate-50: #f8fafc; --slate-200: #e2e8f0; --slate-400: #94a3b8; --slate-700: #334155; --slate-900: #0f172a;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  width: min(520px, calc(100vw - 32px));
+  max-width: none;
+  max-height: 90vh;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.bank-account-dialog form { display: flex; flex-direction: column; max-height: 90vh; }
+.bank-account-dialog .bank-account-dialog__body { display: flex; flex-direction: column; gap: 0; max-height: 90vh; }
+
+.bank-account-dialog__header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; background: var(--slate-900); border-bottom: 1px solid var(--slate-700); }
+.bank-account-dialog__header h2 { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.4; color: #fff; }
+.bank-account-dialog__header p { margin: 2px 0 0; font-size: 12px; color: var(--slate-400); }
+.bank-account-dialog__header .fui-Button { color: var(--slate-400); }
+.bank-account-dialog__header .fui-Button:hover { color: #fff; }
+
+.bank-account-dialog .bank-account-dialog__content { display: flex; flex-direction: column; gap: 20px; padding: 24px; overflow-y: auto; }
+
+.bank-account-dialog__section { display: flex; flex-direction: column; gap: 12px; min-width: 0; margin: 0; padding: 0; border: 0; }
+
+.bank-account-dialog__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.bank-account-dialog .fui-Dropdown { min-width: 0; }
+.bank-account-dialog .mono input { font-family: var(--mono); }
+
+.bank-account-dialog .bank-account-dialog__footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 24px; background: var(--slate-50); border-top: 1px solid var(--slate-200); }
+
+@media (max-width: 560px) {
+  .bank-account-dialog__grid { grid-template-columns: 1fr; }
+}

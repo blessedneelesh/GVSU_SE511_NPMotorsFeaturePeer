@@ -45,7 +45,7 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
-      // Bank account endpoints (the Receive Parts "Pay From" list), same API. No page route starts with /BankAccount.
+      // Bank account endpoints (Banks & Accounts page, Receive Parts "Pay From" list), same API. Capitalised, so the /banks page route is unaffected.
       '/BankAccount': {
         target: 'https://localhost:7003',
         changeOrigin: true,

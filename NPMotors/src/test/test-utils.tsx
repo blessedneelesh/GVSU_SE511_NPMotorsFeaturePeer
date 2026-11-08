@@ -12,6 +12,7 @@ import { initialEmployeesState, type EmployeesState } from '../redux/employees/e
 import { initialVehiclesState, type VehiclesState } from '../redux/vehicles/vehicles.reducer'
 import { initialPartsState, type PartsState } from '../redux/parts/parts.reducer'
 import { initialSalesInvoicesState, type SalesInvoicesState } from '../redux/salesInvoices/salesInvoices.reducer'
+import { initialBankAccountsState, type BankAccountsState } from '../redux/bankAccounts/bankAccounts.reducer'
 
 // Builds a full RootState from each slice's initial state; tests override only what the scenario needs
 export const makeState = (
@@ -21,6 +22,7 @@ export const makeState = (
   vehicleOverrides: Partial<VehiclesState> = {},
   partOverrides: Partial<PartsState> = {},
   salesInvoiceOverrides: Partial<SalesInvoicesState> = {},
+  bankAccountOverrides: Partial<BankAccountsState> = {},
 ): RootState => ({
   customers: { ...initialCustomersState, ...overrides },
   vendors: { ...initialVendorsState, ...vendorOverrides },
@@ -28,6 +30,7 @@ export const makeState = (
   vehicles: { ...initialVehiclesState, ...vehicleOverrides },
   parts: { ...initialPartsState, ...partOverrides },
   salesInvoices: { ...initialSalesInvoicesState, ...salesInvoiceOverrides },
+  bankAccounts: { ...initialBankAccountsState, ...bankAccountOverrides },
 })
 
 // Shorthand for vendor tests: default customers slice, overridden vendors slice
@@ -45,6 +48,10 @@ export const makePartState = (overrides: Partial<PartsState> = {}): RootState =>
 // Shorthand for sales invoice tests: every other slice at its default, overridden sales invoices slice
 export const makeSalesInvoiceState = (overrides: Partial<SalesInvoicesState> = {}): RootState =>
   makeState({}, {}, {}, {}, {}, overrides)
+
+// Shorthand for bank account tests: every other slice at its default, overridden bank accounts slice
+export const makeBankAccountState = (overrides: Partial<BankAccountsState> = {}): RootState =>
+  makeState({}, {}, {}, {}, {}, {}, overrides)
 
 interface RenderOptions {
   preloadedState?: RootState
