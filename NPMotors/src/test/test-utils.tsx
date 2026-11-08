@@ -70,6 +70,10 @@ export const makeTransactionState = (overrides: Partial<TransactionsState> = {})
 export const makeStatementLineState = (overrides: Partial<StatementLinesState> = {}): RootState =>
   makeState({}, {}, {}, {}, {}, {}, {}, {}, overrides)
 
+// Shorthand for transfer tests: every other slice at its default, overridden transfers slice
+export const makeTransferState = (overrides: Partial<TransfersState> = {}): RootState =>
+  makeState({}, {}, {}, {}, {}, {}, {}, {}, {}, overrides)
+
 interface RenderOptions {
   preloadedState?: RootState
   route?: string
