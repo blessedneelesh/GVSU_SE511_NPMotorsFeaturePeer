@@ -69,3 +69,8 @@ export const TRANSACTION_ENDPOINTS = {
 export const STATEMENT_LINE_ENDPOINTS = {
   getStatementLines: 'StatementLine/GetStatementLines',
 } as const
+
+// Also on the Customers API origin, so transfer requests reuse customerClient. There is only a create endpoint for now.
+export const TRANSFER_ENDPOINTS = {
+  createTransfer: 'Transfer/CreateTransfer',
+} as const

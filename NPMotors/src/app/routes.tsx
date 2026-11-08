@@ -10,11 +10,12 @@ import { NotFoundPage } from '../pages/NotFoundPage/NotFoundPage'
 import { PartsPage } from '../pages/PartsPage/PartsPage'
 import { TransactionsPage } from '../pages/TransactionsPage/TransactionsPage'
 import { StatementLinesPage } from '../pages/StatementLinesPage/StatementLinesPage'
+import { TransfersPage } from '../pages/TransfersPage/TransfersPage'
 import { SalesInvoicesPage } from '../pages/SalesInvoicesPage/SalesInvoicesPage'
 import { VehiclesPage } from '../pages/VehiclesPage/VehiclesPage'
 import { VendorsPage } from '../pages/VendorsPage/VendorsPage'
 
-const builtPaths = new Set(['/dashboard', '/customers', '/vendors', '/employees', '/vehicle-inventory', '/parts-inventory', '/sales-invoices', '/banks', '/transactions', '/bank-statement'])
+const builtPaths = new Set(['/dashboard', '/customers', '/vendors', '/employees', '/vehicle-inventory', '/parts-inventory', '/sales-invoices', '/banks', '/transactions', '/bank-statement', '/bank-transfer'])
 
 export function AppRoutes() {
   return (
@@ -31,6 +32,7 @@ export function AppRoutes() {
         <Route path="/banks" element={<BankAccountsPage />} />
         <Route path="/transactions" element={<TransactionsPage />} />
         <Route path="/bank-statement" element={<StatementLinesPage />} />
+        <Route path="/bank-transfer" element={<TransfersPage />} />
         {navigationItems
           .filter((item) => !builtPaths.has(item.path))
           .map((item) => <Route key={item.path} path={item.path} element={<ComingSoonPage title={item.label} />} />)}
