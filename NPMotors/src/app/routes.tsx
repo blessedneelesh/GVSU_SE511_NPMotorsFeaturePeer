@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './AppShell'
 import { navigationItems } from './navigation'
+import { BankAccountsPage } from '../pages/BankAccountsPage/BankAccountsPage'
 import { ComingSoonPage } from '../pages/ComingSoonPage/ComingSoonPage'
 import { CustomersPage } from '../pages/CustomersPage/CustomersPage'
 import { DashboardPage } from '../pages/DashboardPage/DashboardPage'
@@ -11,7 +12,7 @@ import { SalesInvoicesPage } from '../pages/SalesInvoicesPage/SalesInvoicesPage'
 import { VehiclesPage } from '../pages/VehiclesPage/VehiclesPage'
 import { VendorsPage } from '../pages/VendorsPage/VendorsPage'
 
-const builtPaths = new Set(['/dashboard', '/customers', '/vendors', '/employees', '/vehicle-inventory', '/parts-inventory', '/sales-invoices'])
+const builtPaths = new Set(['/dashboard', '/customers', '/vendors', '/employees', '/vehicle-inventory', '/parts-inventory', '/sales-invoices', '/banks'])
 
 export function AppRoutes() {
   return (
@@ -25,6 +26,7 @@ export function AppRoutes() {
         <Route path="/vehicle-inventory" element={<VehiclesPage />} />
         <Route path="/parts-inventory" element={<PartsPage />} />
         <Route path="/sales-invoices" element={<SalesInvoicesPage />} />
+        <Route path="/banks" element={<BankAccountsPage />} />
         {navigationItems
           .filter((item) => !builtPaths.has(item.path))
           .map((item) => <Route key={item.path} path={item.path} element={<ComingSoonPage title={item.label} />} />)}

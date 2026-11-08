@@ -51,7 +51,10 @@ export const SALES_INVOICE_ENDPOINTS = {
   cancelSalesInvoice: 'SalesInvoice/CancelSalesInvoice',
 } as const
 
-// Same API; only the Receive Parts "Pay From" list uses it so far
+// Also on the Customers API origin, so bank account requests reuse customerClient.
+// The Banks & Accounts page and the Receive Parts "Pay From" list both use it.
 export const BANK_ACCOUNT_ENDPOINTS = {
   getAllBankAccounts: 'BankAccount/GetAllBankAccounts',
+  getBankAccountById: 'BankAccount/GetBankAccountById',
+  addBankAccount: 'BankAccount/AddBankAccount',
 } as const
