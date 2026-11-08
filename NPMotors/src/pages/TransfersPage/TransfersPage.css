@@ -1,0 +1,69 @@
+/* Bank Transfers screen — matches the Figma Make "Car Dealership Management System" BankTransfer design */
+.transfers-page {
+  --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-300: #cbd5e1; --slate-400: #94a3b8;
+  --slate-500: #64748b; --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b; --slate-900: #0f172a;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  padding: 20px;
+  color: var(--slate-900);
+  font-size: 14px;
+}
+
+/* Shared primitives */
+.transfers-page .card { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; }
+
+.transfers-page .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.transfers-page .badge-draft { background: var(--slate-100); color: var(--slate-600); }
+
+/* Text helpers */
+.transfers-page .mono { font-family: var(--mono); }
+.transfers-page .strong { font-weight: 600; }
+
+/* Header */
+.transfers-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.transfers-header h1 { margin: 0; font-size: 20px; font-weight: 600; color: var(--slate-900); }
+.transfers-header p { margin: 0; font-size: 14px; color: var(--slate-500); }
+.transfers-header__note { padding: 8px 12px; font-size: 12px; color: var(--slate-600); background: var(--slate-100); border: 1px solid var(--slate-200); border-radius: 8px; }
+
+.transfers-message { margin-bottom: 16px; }
+
+/* Form + side column */
+.transfers-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+
+.transfer-form { display: flex; flex-direction: column; padding: 20px; }
+.transfer-form__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--slate-100); }
+.transfer-form__header h2 { margin: 0; font-size: 16px; font-weight: 600; color: var(--slate-800); }
+.transfer-form__header p { margin: 2px 0 0; font-size: 12px; color: var(--slate-500); }
+.transfer-form__message { margin-bottom: 16px; }
+
+.transfer-form__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.transfer-form__wide { grid-column: 1 / -1; }
+.transfers-page .transfer-form .fui-Dropdown { min-width: 0; }
+.transfers-page .transfer-form .mono input { font-family: var(--mono); }
+.transfers-page .transfer-form__amount input { font-size: 18px; }
+
+.transfer-form__footer { display: flex; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--slate-100); }
+
+.transfers-side { display: flex; flex-direction: column; gap: 12px; }
+.transfers-side h3 { margin: 0 0 12px; font-size: 14px; font-weight: 600; color: var(--slate-700); }
+
+.transfer-preview { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.transfer-preview h3 { margin-bottom: 0; }
+.transfer-preview__leg { padding: 12px; border-radius: 8px; border: 1px solid; }
+.transfer-preview__leg--out { background: #fef2f2; border-color: #fee2e2; color: #b91c1c; }
+.transfer-preview__leg--in { background: #ecfdf5; border-color: #d1fae5; color: #047857; }
+.transfer-preview__label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.transfer-preview__account { margin-top: 4px; color: var(--slate-700); }
+.transfer-preview__amount { font-family: var(--mono); font-weight: 600; }
+
+.transfer-result { padding: 16px; }
+.transfer-result ul { display: flex; flex-direction: column; gap: 6px; margin: 0; padding-left: 18px; font-size: 12px; color: var(--slate-500); }
+
+@media (max-width: 1100px) {
+  .transfers-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .transfers-page { padding: 70px 16px 32px; }
+  .transfers-header { flex-direction: column; align-items: stretch; }
+  .transfer-form__fields { grid-template-columns: 1fr; }
+}

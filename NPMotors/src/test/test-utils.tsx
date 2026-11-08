@@ -15,6 +15,7 @@ import { initialSalesInvoicesState, type SalesInvoicesState } from '../redux/sal
 import { initialBankAccountsState, type BankAccountsState } from '../redux/bankAccounts/bankAccounts.reducer'
 import { initialTransactionsState, type TransactionsState } from '../redux/transactions/transactions.reducer'
 import { initialStatementLinesState, type StatementLinesState } from '../redux/statementLines/statementLines.reducer'
+import { initialTransfersState, type TransfersState } from '../redux/transfers/transfers.reducer'
 
 // Builds a full RootState from each slice's initial state; tests override only what the scenario needs
 export const makeState = (
@@ -27,6 +28,7 @@ export const makeState = (
   bankAccountOverrides: Partial<BankAccountsState> = {},
   transactionOverrides: Partial<TransactionsState> = {},
   statementLineOverrides: Partial<StatementLinesState> = {},
+  transferOverrides: Partial<TransfersState> = {},
 ): RootState => ({
   customers: { ...initialCustomersState, ...overrides },
   vendors: { ...initialVendorsState, ...vendorOverrides },
@@ -37,6 +39,7 @@ export const makeState = (
   bankAccounts: { ...initialBankAccountsState, ...bankAccountOverrides },
   transactions: { ...initialTransactionsState, ...transactionOverrides },
   statementLines: { ...initialStatementLinesState, ...statementLineOverrides },
+  transfers: { ...initialTransfersState, ...transferOverrides },
 })
 
 // Shorthand for vendor tests: default customers slice, overridden vendors slice

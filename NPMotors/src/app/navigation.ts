@@ -1,5 +1,6 @@
 import {
   ArrowDownload20Regular,
+  ArrowRepeatAll20Regular,
   ArrowSwap20Regular,
   ArrowUpload20Regular,
   BuildingBank20Regular,
@@ -71,6 +72,7 @@ export const navigationGroups: NavigationGroup[] = [
       { label: 'Bank Statement', path: '/bank-statement', icon: DocumentText20Regular },
       { label: 'Bank Receipts', path: '/bank-receipt', icon: ArrowDownload20Regular },
       { label: 'Bank Payments', path: '/bank-payment', icon: ArrowUpload20Regular },
+      { label: 'Bank Transfers', path: '/bank-transfer', icon: ArrowRepeatAll20Regular },
       { label: 'Bank Reconciliation', path: '/bank-reconciliation', icon: Scales20Regular },
     ],
   },

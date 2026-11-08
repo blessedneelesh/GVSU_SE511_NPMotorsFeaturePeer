@@ -63,6 +63,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Transfer endpoints (Bank Transfers page), same API. Capitalised, so the /bank-transfer page route is unaffected.
+      '/Transfer': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   test: {

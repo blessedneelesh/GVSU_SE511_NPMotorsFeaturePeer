@@ -8,6 +8,7 @@ import salesInvoicesReducer from './salesInvoices/salesInvoices.reducer'
 import bankAccountsReducer from './bankAccounts/bankAccounts.reducer'
 import transactionsReducer from './transactions/transactions.reducer'
 import statementLinesReducer from './statementLines/statementLines.reducer'
+import transfersReducer from './transfers/transfers.reducer'
 
 export const rootReducer = combineReducers({
   customers: customersReducer,
@@ -19,6 +20,7 @@ export const rootReducer = combineReducers({
   bankAccounts: bankAccountsReducer,
   transactions: transactionsReducer,
   statementLines: statementLinesReducer,
+  transfers: transfersReducer,
 })
 
 export type RootState = ReturnType<typeof rootReducer>
