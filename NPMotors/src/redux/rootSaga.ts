@@ -8,7 +8,8 @@ import partsSaga from './parts/parts.saga'
 import salesInvoicesSaga from './salesInvoices/salesInvoices.saga'
 import bankAccountsSaga from './bankAccounts/bankAccounts.saga'
 import transactionsSaga from './transactions/transactions.saga'
+import statementLinesSaga from './statementLines/statementLines.saga'
 
 export default function* rootSaga(): SagaIterator {
-  yield all([fork(customersSaga), fork(vendorsSaga), fork(employeesSaga), fork(vehiclesSaga), fork(partsSaga), fork(salesInvoicesSaga), fork(bankAccountsSaga), fork(transactionsSaga)])
+  yield all([fork(customersSaga), fork(vendorsSaga), fork(employeesSaga), fork(vehiclesSaga), fork(partsSaga), fork(salesInvoicesSaga), fork(bankAccountsSaga), fork(transactionsSaga), fork(statementLinesSaga)])
 }

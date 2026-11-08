@@ -64,3 +64,8 @@ export const TRANSACTION_ENDPOINTS = {
   getAllTransactions: 'Transaction/GetAllTransactions',
   getTransactionById: 'Transaction/GetTransactionById',
 } as const
+
+// Also on the Customers API origin, so statement line requests reuse customerClient. The bank feed is read-only.
+export const STATEMENT_LINE_ENDPOINTS = {
+  getStatementLines: 'StatementLine/GetStatementLines',
+} as const
