@@ -97,9 +97,12 @@ export default function salesInvoicesReducer(
       return { ...state, options: action.payload, optionsStatus: 'success' }
     case SALES_INVOICE_ACTIONS.LOAD_OPTIONS_FAILURE:
       return { ...state, optionsStatus: 'error', optionsError: action.payload }
+    // takeLeading drops a save sent while another is in flight; ignore it here too so saveMode stays accurate
     case SALES_INVOICE_ACTIONS.CREATE:
+      if (state.saveStatus === 'loading') return state
       return { ...state, saveMode: 'draft', saveStatus: 'loading', saveError: null, fieldErrors: {} }
     case SALES_INVOICE_ACTIONS.POST:
+      if (state.saveStatus === 'loading') return state
       return { ...state, saveMode: 'post', saveStatus: 'loading', saveError: null, fieldErrors: {} }
     case SALES_INVOICE_ACTIONS.SAVE_SUCCESS:
       return { ...state, saveStatus: 'success' }

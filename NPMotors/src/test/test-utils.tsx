@@ -59,7 +59,8 @@ export function renderWithProviders(ui: ReactElement, { preloadedState = makeSta
     return next(action)
   }
   const store = createStore(rootReducer, preloadedState, applyMiddleware(recorder))
-  const user = userEvent.setup()
+  // No timer between keystrokes: the form tests type into many fields and time out when the full suite runs in parallel
+  const user = userEvent.setup({ delay: null })
 
   return {
     store,
