@@ -1,0 +1,103 @@
+/* Bank Statement screen — matches the Figma Make "Car Dealership Management System" design */
+.statement-lines-page {
+  --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-300: #cbd5e1; --slate-400: #94a3b8;
+  --slate-500: #64748b; --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b; --slate-900: #0f172a;
+  --gray-700: #374151; --accent: #2563eb; --green: #047857; --red: #dc2626;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  padding: 20px;
+  color: var(--slate-900);
+  font-size: 14px;
+}
+
+/* Shared primitives */
+.statement-lines-page .card { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; }
+.statement-lines-page .table-scroll { overflow-x: auto; }
+
+.statement-lines-page .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.statement-lines-page .badge-posted { background: #dcfce7; color: #15803d; }
+.statement-lines-page .badge-approved { background: #dbeafe; color: #1d4ed8; }
+.statement-lines-page .badge-pending { background: #fef9c3; color: #a16207; }
+
+.statement-lines-page .type-chip { display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--slate-100); color: var(--slate-600); font-size: 12px; font-weight: 500; white-space: nowrap; }
+.statement-lines-page .type-chip--green { background: #ecfdf5; color: #047857; }
+.statement-lines-page .type-chip--red { background: #fef2f2; color: #b91c1c; }
+.statement-lines-page .type-chip--blue { background: #eff6ff; color: #1d4ed8; }
+.statement-lines-page .type-chip--teal { background: #f0fdfa; color: #0f766e; }
+.statement-lines-page .type-chip--orange { background: #fff7ed; color: #c2410c; }
+.statement-lines-page .type-chip--violet { background: #f5f3ff; color: #6d28d9; }
+
+/* Fluent tables (override the global table styles from App.css); cell text helpers need the extra specificity */
+.statement-lines-page .data-table th, .statement-lines-page .data-table td { padding: 10px 12px; font-size: 13px; color: var(--gray-700); white-space: nowrap; }
+.statement-lines-page .data-table th { background: var(--slate-50); font-size: 11px; font-weight: 600; color: var(--slate-500); text-transform: uppercase; letter-spacing: .05em; }
+.statement-lines-page .data-table .num { justify-content: flex-end; text-align: right; font-family: var(--mono); }
+.statement-lines-page .data-table th.num { font-family: inherit; }
+.statement-lines-page .data-table .mono { font-family: var(--mono); }
+.statement-lines-page .data-table .text-xs { font-size: 12px; }
+.statement-lines-page .data-table .text-muted { color: var(--slate-500); }
+.statement-lines-page .data-table .text-faint { color: var(--slate-300); }
+.statement-lines-page .data-table .text-dark { color: var(--slate-800); }
+.statement-lines-page .data-table .text-accent { color: var(--accent); }
+.statement-lines-page .data-table .text-green { color: var(--green); }
+.statement-lines-page .data-table .text-red { color: var(--red); }
+.statement-lines-page .table-empty { text-align: center; color: var(--slate-400); padding: 24px 12px; }
+.statement-lines-page .is-refreshing { opacity: .55; transition: opacity .15s; }
+
+/* Text helpers */
+.statement-lines-page .mono { font-family: var(--mono); }
+.statement-lines-page .strong { font-weight: 600; }
+
+/* Header */
+.statement-lines-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.statement-lines-header h1 { margin: 0; font-size: 20px; font-weight: 600; color: var(--slate-900); }
+.statement-lines-header p { margin: 0; font-size: 14px; color: var(--slate-500); }
+.statement-lines-header__actions { display: flex; align-items: center; gap: 8px; }
+
+/* Account tabs */
+.statement-account-tabs { gap: 4px; margin-bottom: 20px; padding-bottom: 4px; overflow-x: auto; }
+.statement-lines-page .statement-account-tab { flex-shrink: 0; padding: 10px 16px; border: 1px solid var(--slate-200); border-radius: 8px; background: #fff; }
+.statement-lines-page .statement-account-tab::after, .statement-lines-page .statement-account-tab::before { display: none; }
+.statement-lines-page .statement-account-tab .fui-Tab__content { display: flex; flex-direction: column; align-items: flex-start; }
+.statement-lines-page .statement-account-tab[aria-selected='true'] { background: var(--accent); border-color: var(--accent); }
+.statement-account-tab__name { font-size: 14px; font-weight: 500; color: var(--slate-600); }
+.statement-account-tab__number { font-family: var(--mono); font-size: 12px; color: var(--slate-400); }
+.statement-account-tab[aria-selected='true'] .statement-account-tab__name { color: #fff; }
+.statement-account-tab[aria-selected='true'] .statement-account-tab__number { color: #bfdbfe; }
+
+/* Account summary */
+.statement-account-summary { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; padding: 16px 20px; background: var(--slate-900); border-color: var(--slate-900); }
+.statement-account-summary__icon { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 12px; background: rgba(59, 130, 246, .2); color: #93c5fd; }
+.statement-account-summary__name { font-size: 18px; font-weight: 700; color: #fff; }
+.statement-account-summary__meta { font-size: 14px; color: var(--slate-400); }
+.statement-account-summary__routing { margin-top: 2px; font-family: var(--mono); font-size: 12px; color: var(--slate-500); }
+.statement-account-summary__balance { margin-left: auto; text-align: right; }
+.statement-account-summary__label { margin-bottom: 4px; font-size: 12px; color: var(--slate-400); }
+.statement-account-summary__value { font-family: var(--mono); font-size: 24px; font-weight: 700; color: #fff; }
+
+/* Filters */
+.statement-lines-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; margin-bottom: 16px; }
+.statement-lines-page .statement-lines-filters .fui-Field { width: 180px; }
+.statement-lines-page .statement-lines-filters .fui-Dropdown { min-width: 0; }
+
+.statement-lines-message { margin-bottom: 16px; }
+.statement-lines-loading { display: flex; justify-content: center; padding: 48px 16px; }
+
+/* Table */
+.statement-lines-page .statement-lines-table { min-width: 1180px; }
+.statement-line-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.statement-line-badges { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+
+.statement-lines-page .data-table .statement-total-row td { background: var(--slate-900); color: #fff; font-weight: 600; }
+.statement-lines-page .data-table .statement-total-row .statement-total-row__in { color: #34d399; }
+.statement-lines-page .data-table .statement-total-row .statement-total-row__out { color: #f87171; }
+
+@media (max-width: 760px) {
+  .statement-lines-page { padding: 70px 16px 32px; }
+  .statement-lines-header { flex-direction: column; align-items: stretch; }
+  .statement-account-summary { flex-wrap: wrap; }
+  .statement-account-summary__balance { margin-left: 0; text-align: left; }
+  .statement-lines-page .statement-lines-filters .fui-Field { width: 100%; }
+}
+
+@media print {
+  .statement-lines-header__actions, .statement-lines-filters { display: none; }
+}

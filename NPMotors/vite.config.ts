@@ -57,6 +57,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Statement line endpoints (Bank Statement page), same API. Capitalised, so the /bank-statement page route is unaffected.
+      '/StatementLine': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   test: {

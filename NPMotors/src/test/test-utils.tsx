@@ -14,6 +14,7 @@ import { initialPartsState, type PartsState } from '../redux/parts/parts.reducer
 import { initialSalesInvoicesState, type SalesInvoicesState } from '../redux/salesInvoices/salesInvoices.reducer'
 import { initialBankAccountsState, type BankAccountsState } from '../redux/bankAccounts/bankAccounts.reducer'
 import { initialTransactionsState, type TransactionsState } from '../redux/transactions/transactions.reducer'
+import { initialStatementLinesState, type StatementLinesState } from '../redux/statementLines/statementLines.reducer'
 
 // Builds a full RootState from each slice's initial state; tests override only what the scenario needs
 export const makeState = (
@@ -25,6 +26,7 @@ export const makeState = (
   salesInvoiceOverrides: Partial<SalesInvoicesState> = {},
   bankAccountOverrides: Partial<BankAccountsState> = {},
   transactionOverrides: Partial<TransactionsState> = {},
+  statementLineOverrides: Partial<StatementLinesState> = {},
 ): RootState => ({
   customers: { ...initialCustomersState, ...overrides },
   vendors: { ...initialVendorsState, ...vendorOverrides },
@@ -34,6 +36,7 @@ export const makeState = (
   salesInvoices: { ...initialSalesInvoicesState, ...salesInvoiceOverrides },
   bankAccounts: { ...initialBankAccountsState, ...bankAccountOverrides },
   transactions: { ...initialTransactionsState, ...transactionOverrides },
+  statementLines: { ...initialStatementLinesState, ...statementLineOverrides },
 })
 
 // Shorthand for vendor tests: default customers slice, overridden vendors slice
@@ -59,6 +62,10 @@ export const makeBankAccountState = (overrides: Partial<BankAccountsState> = {})
 // Shorthand for transaction tests: every other slice at its default, overridden transactions slice
 export const makeTransactionState = (overrides: Partial<TransactionsState> = {}): RootState =>
   makeState({}, {}, {}, {}, {}, {}, {}, overrides)
+
+// Shorthand for statement line tests: every other slice at its default, overridden statement lines slice
+export const makeStatementLineState = (overrides: Partial<StatementLinesState> = {}): RootState =>
+  makeState({}, {}, {}, {}, {}, {}, {}, {}, overrides)
 
 interface RenderOptions {
   preloadedState?: RootState
