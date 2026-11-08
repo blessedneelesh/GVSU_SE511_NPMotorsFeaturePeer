@@ -1,5 +1,6 @@
 import {
   ArrowDownload20Regular,
+  ArrowSwap20Regular,
   ArrowUpload20Regular,
   BuildingBank20Regular,
   BuildingFactory20Regular,
@@ -66,6 +67,7 @@ export const navigationGroups: NavigationGroup[] = [
     section: 'Banking',
     items: [
       { label: 'Banks & Accounts', path: '/banks', icon: BuildingBank20Regular },
+      { label: 'Transactions', path: '/transactions', icon: ArrowSwap20Regular },
       { label: 'Bank Statement', path: '/bank-statement', icon: DocumentText20Regular },
       { label: 'Bank Receipts', path: '/bank-receipt', icon: ArrowDownload20Regular },
       { label: 'Bank Payments', path: '/bank-payment', icon: ArrowUpload20Regular },

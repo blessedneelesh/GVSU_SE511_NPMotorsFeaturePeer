@@ -58,3 +58,9 @@ export const BANK_ACCOUNT_ENDPOINTS = {
   getBankAccountById: 'BankAccount/GetBankAccountById',
   addBankAccount: 'BankAccount/AddBankAccount',
 } as const
+
+// Also on the Customers API origin, so transaction requests reuse customerClient. Transactions are read-only.
+export const TRANSACTION_ENDPOINTS = {
+  getAllTransactions: 'Transaction/GetAllTransactions',
+  getTransactionById: 'Transaction/GetTransactionById',
+} as const

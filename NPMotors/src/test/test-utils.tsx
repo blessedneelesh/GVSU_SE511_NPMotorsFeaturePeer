@@ -13,6 +13,7 @@ import { initialVehiclesState, type VehiclesState } from '../redux/vehicles/vehi
 import { initialPartsState, type PartsState } from '../redux/parts/parts.reducer'
 import { initialSalesInvoicesState, type SalesInvoicesState } from '../redux/salesInvoices/salesInvoices.reducer'
 import { initialBankAccountsState, type BankAccountsState } from '../redux/bankAccounts/bankAccounts.reducer'
+import { initialTransactionsState, type TransactionsState } from '../redux/transactions/transactions.reducer'
 
 // Builds a full RootState from each slice's initial state; tests override only what the scenario needs
 export const makeState = (
@@ -23,6 +24,7 @@ export const makeState = (
   partOverrides: Partial<PartsState> = {},
   salesInvoiceOverrides: Partial<SalesInvoicesState> = {},
   bankAccountOverrides: Partial<BankAccountsState> = {},
+  transactionOverrides: Partial<TransactionsState> = {},
 ): RootState => ({
   customers: { ...initialCustomersState, ...overrides },
   vendors: { ...initialVendorsState, ...vendorOverrides },
@@ -31,6 +33,7 @@ export const makeState = (
   parts: { ...initialPartsState, ...partOverrides },
   salesInvoices: { ...initialSalesInvoicesState, ...salesInvoiceOverrides },
   bankAccounts: { ...initialBankAccountsState, ...bankAccountOverrides },
+  transactions: { ...initialTransactionsState, ...transactionOverrides },
 })
 
 // Shorthand for vendor tests: default customers slice, overridden vendors slice
@@ -52,6 +55,10 @@ export const makeSalesInvoiceState = (overrides: Partial<SalesInvoicesState> = {
 // Shorthand for bank account tests: every other slice at its default, overridden bank accounts slice
 export const makeBankAccountState = (overrides: Partial<BankAccountsState> = {}): RootState =>
   makeState({}, {}, {}, {}, {}, {}, overrides)
+
+// Shorthand for transaction tests: every other slice at its default, overridden transactions slice
+export const makeTransactionState = (overrides: Partial<TransactionsState> = {}): RootState =>
+  makeState({}, {}, {}, {}, {}, {}, {}, overrides)
 
 interface RenderOptions {
   preloadedState?: RootState
