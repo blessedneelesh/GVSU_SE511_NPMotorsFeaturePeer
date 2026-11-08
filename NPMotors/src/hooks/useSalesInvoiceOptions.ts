@@ -36,7 +36,7 @@ export function useSalesInvoiceOptions(): UseSalesInvoiceOptionsResult {
     [options.employees],
   )
   const findCustomer = useCallback(
-    (customerId: string) => options.customers.find((customer) => customer.id === customerId),
+    (customerId: string) => (customerId ? options.customers.find((customer) => customer.id === customerId) : undefined),
     [options.customers],
   )
   const retry = useCallback(() => { dispatch(loadSalesInvoiceOptions()) }, [dispatch])
