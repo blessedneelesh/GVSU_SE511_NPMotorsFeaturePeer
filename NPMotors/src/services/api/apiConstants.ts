@@ -79,3 +79,8 @@ export const STATEMENT_LINE_ENDPOINTS = {
 export const TRANSFER_ENDPOINTS = {
   createTransfer: 'Transfer/CreateTransfer',
 } as const
+
+// Accounts receivable aging (Accounts Receivable page), on the Customers API origin. Read-only for now.
+export const AR_ENDPOINTS = {
+  getAllAr: 'Ar/GetAllAr',
+} as const

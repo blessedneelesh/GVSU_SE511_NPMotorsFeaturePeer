@@ -9,6 +9,7 @@ import bankAccountsReducer from './bankAccounts/bankAccounts.reducer'
 import transactionsReducer from './transactions/transactions.reducer'
 import statementLinesReducer from './statementLines/statementLines.reducer'
 import transfersReducer from './transfers/transfers.reducer'
+import receivablesReducer from './receivables/receivables.reducer'
 
 export const rootReducer = combineReducers({
   customers: customersReducer,
@@ -21,6 +22,7 @@ export const rootReducer = combineReducers({
   transactions: transactionsReducer,
   statementLines: statementLinesReducer,
   transfers: transfersReducer,
+  receivables: receivablesReducer,
 })
 
 export type RootState = ReturnType<typeof rootReducer>

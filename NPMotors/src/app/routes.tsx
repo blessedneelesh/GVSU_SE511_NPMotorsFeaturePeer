@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './AppShell'
 import { navigationItems } from './navigation'
+import { AccountsReceivablePage } from '../pages/AccountsReceivablePage/AccountsReceivablePage'
 import { BankAccountsPage } from '../pages/BankAccountsPage/BankAccountsPage'
 import { ComingSoonPage } from '../pages/ComingSoonPage/ComingSoonPage'
 import { CustomersPage } from '../pages/CustomersPage/CustomersPage'
@@ -15,7 +16,7 @@ import { SalesInvoicesPage } from '../pages/SalesInvoicesPage/SalesInvoicesPage'
 import { VehiclesPage } from '../pages/VehiclesPage/VehiclesPage'
 import { VendorsPage } from '../pages/VendorsPage/VendorsPage'
 
-const builtPaths = new Set(['/dashboard', '/customers', '/vendors', '/employees', '/vehicle-inventory', '/parts-inventory', '/sales-invoices', '/banks', '/transactions', '/bank-statement', '/bank-transfer'])
+const builtPaths = new Set(['/dashboard', '/customers', '/vendors', '/employees', '/vehicle-inventory', '/parts-inventory', '/sales-invoices', '/banks', '/transactions', '/bank-statement', '/bank-transfer', '/accounts-receivable'])
 
 export function AppRoutes() {
   return (
@@ -33,6 +34,7 @@ export function AppRoutes() {
         <Route path="/transactions" element={<TransactionsPage />} />
         <Route path="/bank-statement" element={<StatementLinesPage />} />
         <Route path="/bank-transfer" element={<TransfersPage />} />
+        <Route path="/accounts-receivable" element={<AccountsReceivablePage />} />
         {navigationItems
           .filter((item) => !builtPaths.has(item.path))
           .map((item) => <Route key={item.path} path={item.path} element={<ComingSoonPage title={item.label} />} />)}

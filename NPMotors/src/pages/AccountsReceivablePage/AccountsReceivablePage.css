@@ -1,0 +1,81 @@
+/* Accounts Receivable screen — matches the Figma Make "Car Dealership Management System" design */
+.receivables-page {
+  --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-300: #cbd5e1; --slate-400: #94a3b8;
+  --slate-500: #64748b; --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b; --slate-900: #0f172a;
+  --gray-700: #374151; --accent: #2563eb;
+  --amber: #d97706; --green: #047857; --red: #dc2626;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  padding: 20px;
+  color: var(--slate-900);
+  font-size: 14px;
+}
+
+/* Shared primitives */
+.receivables-page .card { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; }
+.receivables-page .table-scroll { overflow-x: auto; }
+
+.receivables-page .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.receivables-page .badge-paid { background: #dcfce7; color: #15803d; }
+.receivables-page .badge-overdue { background: #fee2e2; color: #b91c1c; }
+.receivables-page .badge-partial { background: #fef3c7; color: #b45309; }
+.receivables-page .badge-pending { background: #fef9c3; color: #a16207; }
+
+/* Fluent tables (override the global table styles from App.css); cell text helpers need the extra specificity */
+.receivables-page .data-table th, .receivables-page .data-table td { padding: 10px 12px; font-size: 13px; color: var(--gray-700); white-space: nowrap; }
+.receivables-page .data-table th { background: var(--slate-50); font-size: 11px; font-weight: 600; color: var(--slate-500); text-transform: uppercase; letter-spacing: .05em; }
+.receivables-page .data-table .num { justify-content: flex-end; text-align: right; font-family: var(--mono); }
+.receivables-page .data-table th.num { font-family: inherit; }
+.receivables-page .data-table .text-xs { font-size: 12px; }
+.receivables-page .data-table .text-secondary { color: var(--slate-700); }
+.receivables-page .data-table .text-muted { color: var(--slate-500); }
+.receivables-page .data-table .text-dark { color: var(--slate-800); }
+.receivables-page .data-table .text-link { color: var(--accent); }
+.receivables-page .data-table .text-amber { color: var(--amber); }
+.receivables-page .data-table .text-green { color: var(--green); }
+.receivables-page .data-table .text-red { color: var(--red); }
+.receivables-page .data-table .text-faint { color: var(--slate-400); }
+.receivables-page .table-empty { text-align: center; color: var(--slate-400); padding: 24px 12px; }
+.receivables-page .is-refreshing { opacity: .55; transition: opacity .15s; }
+
+/* Text helpers */
+.receivables-page .mono { font-family: var(--mono); }
+.receivables-page .strong { font-weight: 600; }
+.receivables-page .text-xs { font-size: 12px; }
+.receivables-page .text-link { color: var(--accent); }
+.receivables-page .text-faint { color: var(--slate-400); }
+
+/* List view */
+.receivables-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.receivables-header h1 { margin: 0; font-size: 20px; font-weight: 600; color: var(--slate-900); }
+.receivables-header p { margin: 0; font-size: 14px; color: var(--slate-500); }
+.receivables-header__actions { display: flex; gap: 8px; }
+
+.receivables-filters { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; margin-bottom: 16px; }
+.receivables-page .receivables-filters .fui-Field { width: 200px; }
+.receivables-page .receivables-filters .fui-Dropdown { min-width: 0; }
+/* Lines the Clear button up with the inputs, below the field labels */
+.receivables-filters__reset { padding-top: 26px; }
+
+.receivables-message { margin-bottom: 16px; }
+.receivables-loading { display: flex; justify-content: center; padding: 48px 16px; }
+
+.receivables-page .receivables-table { min-width: 860px; }
+
+.receivable-cell { display: flex; flex-direction: column; gap: 2px; }
+
+/* Page totals, as the design's "Total Outstanding" footer */
+.receivables-page .data-table .receivables-total-row td { background: var(--slate-50); font-weight: 600; color: var(--slate-600); }
+.receivables-page .data-table .receivables-total-row .num { color: var(--slate-800); }
+.receivables-page .data-table .receivables-total-row .text-green { color: var(--green); }
+.receivables-page .data-table .receivables-total-row .text-amber { color: var(--amber); font-weight: 700; }
+
+@media (max-width: 760px) {
+  .receivables-page { padding: 70px 16px 32px; }
+  .receivables-header { flex-direction: column; align-items: stretch; }
+  .receivables-page .receivables-filters .fui-Field { width: 100%; }
+  .receivables-filters__reset { padding-top: 0; }
+}
+
+@media print {
+  .receivables-header__actions, .receivables-filters { display: none; }
+}
