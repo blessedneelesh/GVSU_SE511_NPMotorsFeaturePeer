@@ -18,6 +18,8 @@ export const SALES_INVOICE_ACTIONS = {
   LOAD_OPTIONS_FAILURE: 'salesInvoices/loadOptionsFailure',
   CREATE: 'salesInvoices/create',
   POST: 'salesInvoices/post',
+  UPDATE: 'salesInvoices/update',
+  POST_DRAFT: 'salesInvoices/postDraft',
   SAVE_SUCCESS: 'salesInvoices/saveSuccess',
   SAVE_FAILURE: 'salesInvoices/saveFailure',
   RESET_SAVE: 'salesInvoices/resetSave',

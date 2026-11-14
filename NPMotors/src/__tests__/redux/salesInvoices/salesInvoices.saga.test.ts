@@ -20,6 +20,8 @@ import {
   loadSalesInvoicesFailure,
   loadSalesInvoicesSuccess,
   postSalesInvoice,
+  postSalesInvoiceDraft,
+  updateSalesInvoiceDraft,
   saveSalesInvoiceFailure,
   saveSalesInvoiceSuccess,
   selectSalesInvoice,
@@ -49,6 +51,8 @@ vi.mock('../../../services/salesInvoices/salesInvoices.api', () => ({
     addSalesInvoice: vi.fn(),
     getVehicle: vi.fn(),
     createAndPostSalesInvoice: vi.fn(),
+    updateDraft: vi.fn(),
+    postDraft: vi.fn(),
     cancelSalesInvoice: vi.fn(),
     getOptions: vi.fn(),
   },
@@ -87,7 +91,8 @@ describe('salesInvoicesSaga (root)', () => {
         SALES_INVOICE_ACTIONS.SET_SEARCH], loadSalesInvoicesWorker),
       takeLatest([SALES_INVOICE_ACTIONS.SELECT, SALES_INVOICE_ACTIONS.CLEAR_SELECTION], loadSalesInvoiceByIdWorker),
       takeLatest(SALES_INVOICE_ACTIONS.LOAD_OPTIONS, loadOptionsWorker),
-      takeLeading([SALES_INVOICE_ACTIONS.CREATE, SALES_INVOICE_ACTIONS.POST], saveSalesInvoiceWorker),
+      takeLeading([SALES_INVOICE_ACTIONS.CREATE, SALES_INVOICE_ACTIONS.POST, SALES_INVOICE_ACTIONS.UPDATE,
+        SALES_INVOICE_ACTIONS.POST_DRAFT], saveSalesInvoiceWorker),
       takeLeading(SALES_INVOICE_ACTIONS.CANCEL, cancelSalesInvoiceWorker),
     ]))
     expect(gen.next().done).toBe(true)
@@ -277,12 +282,16 @@ describe('loadOptionsWorker', () => {
 })
 
 describe('saveSalesInvoiceWorker', () => {
+  const draftRequest = { id: '8', values: salesInvoiceFormValues }
+
   it.each([
-    ['Save Draft', createSalesInvoice(salesInvoiceFormValues), salesInvoicesApi.addSalesInvoice],
-    ['Post Invoice', postSalesInvoice(salesInvoiceFormValues), salesInvoicesApi.createAndPostSalesInvoice],
-  ] as const)('%s calls its endpoint, dispatches success and then reloads the list', (_, action, endpoint) => {
+    ['Save Draft', createSalesInvoice(salesInvoiceFormValues), call(salesInvoicesApi.addSalesInvoice, salesInvoiceFormValues)],
+    ['Post Invoice', postSalesInvoice(salesInvoiceFormValues), call(salesInvoicesApi.createAndPostSalesInvoice, salesInvoiceFormValues)],
+    ['Save Changes', updateSalesInvoiceDraft(draftRequest), call(salesInvoicesApi.updateDraft, draftRequest)],
+    ['Post Invoice on a draft', postSalesInvoiceDraft(draftRequest), call(salesInvoicesApi.postDraft, draftRequest)],
+  ] as const)('%s calls its endpoint, dispatches success and then reloads the list', (_, action, endpointCall) => {
     const gen = saveSalesInvoiceWorker(action)
-    expect(gen.next().value).toStrictEqual(call(endpoint, salesInvoiceFormValues))
+    expect(gen.next().value).toStrictEqual(endpointCall)
     expect(gen.next().value).toStrictEqual(put(saveSalesInvoiceSuccess()))
     expect(gen.next().value).toStrictEqual(put(loadSalesInvoices()))
     expect(gen.next().done).toBe(true)
@@ -316,6 +325,24 @@ describe('saveSalesInvoiceWorker', () => {
     const err = httpError(502)
     expect(gen.throw(err).value).toStrictEqual(put(saveSalesInvoiceFailure({ message: getSalesInvoiceErrorMessage(err), fieldErrors: {} })))
     expect(gen.next().done).toBe(true)
+  })
+
+  it('says the draft no longer exists when UpdateDraft or PostInvoice answers 404', () => {
+    const gen = saveSalesInvoiceWorker(updateSalesInvoiceDraft({ id: '8', values: salesInvoiceFormValues }))
+    gen.next()
+    expect(gen.throw(httpError(404, { title: 'Not Found' })).value).toStrictEqual(put(saveSalesInvoiceFailure({
+      message: 'This sales invoice no longer exists.',
+      fieldErrors: {},
+    })))
+  })
+
+  it('shows PostInvoice\'s { errors: [message] } payment rules in the banner', () => {
+    const gen = saveSalesInvoiceWorker(postSalesInvoiceDraft({ id: '8', values: salesInvoiceFormValues }))
+    gen.next()
+    expect(gen.throw(httpError(400, { errors: ['A credit sale cannot receive an amount.'] })).value).toStrictEqual(put(saveSalesInvoiceFailure({
+      message: 'A credit sale cannot receive an amount.',
+      fieldErrors: {},
+    })))
   })
 
   it('falls back to the save message for an unexpected error', () => {

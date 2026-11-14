@@ -148,7 +148,7 @@ export function readHasNext(body: unknown): boolean | null {
   return typeof hasNext === 'boolean' ? hasNext : null
 }
 
-// Body of POST SalesInvoice/AddSalesInvoice (SalesInvoiceCreateDto). The API sets the sale
+// Body of POST SalesInvoice/AddSalesInvoice and PUT UpdateDraft (SalesInvoiceCreateDto). The API sets the sale
 // price from the vehicle, so it isn't sent. Ids are int64 and amounts are decimals in the range 0–999999999999.99.
 export interface SalesInvoiceCreateDto {
   customer_Id: number
@@ -183,9 +183,9 @@ export function toSalesInvoiceRequestDto(values: SalesInvoiceFormValues): SalesI
 export type PaymentConditionDto = 'paidInFull' | 'partialPayment' | 'credit'
 export type PaymentMethodDto = 'cash' | 'card' | 'transfer' | 'check'
 
-// Body of POST SalesInvoice/CreateAndPost (SalesInvoiceCreateAndPostRequest): SalesInvoiceCreateDto plus the payment.
+// Body of POST SalesInvoice/PostInvoice?id= (PostInvoiceRequest): the payment received when a draft is posted.
 // A credit sale sends amountReceived 0 and no method or account; any amount received needs both.
-export interface SalesInvoiceCreateAndPostDto extends SalesInvoiceCreateDto {
+export interface PostInvoiceDto {
   paymentCondition: PaymentConditionDto
   amountReceived: number
   paymentMethod: PaymentMethodDto | null
@@ -193,6 +193,9 @@ export interface SalesInvoiceCreateAndPostDto extends SalesInvoiceCreateDto {
   bankAccountId: number | null
   receiptDate: string | null
 }
+
+// Body of POST SalesInvoice/CreateAndPost (SalesInvoiceCreateAndPostRequest): SalesInvoiceCreateDto plus the payment
+export interface SalesInvoiceCreateAndPostDto extends SalesInvoiceCreateDto, PostInvoiceDto {}
 
 const PAYMENT_CONDITIONS: Record<SalesInvoicePaymentTerms, PaymentConditionDto> = {
   bank: 'paidInFull',
@@ -210,9 +213,12 @@ const PAYMENT_METHODS: Record<SalesInvoicePaymentTerms, PaymentMethodDto | null>
 }
 
 export function toSalesInvoiceCreateAndPostDto(values: SalesInvoiceFormValues): SalesInvoiceCreateAndPostDto {
+  return { ...toSalesInvoiceRequestDto(values), ...toPostInvoiceDto(values) }
+}
+
+export function toPostInvoiceDto(values: SalesInvoiceFormValues): PostInvoiceDto {
   const isCredit = values.paymentTerms === 'financing'
   return {
-    ...toSalesInvoiceRequestDto(values),
     paymentCondition: PAYMENT_CONDITIONS[values.paymentTerms],
     amountReceived: isCredit ? 0 : toAmount(values.amountReceived),
     paymentMethod: PAYMENT_METHODS[values.paymentTerms],

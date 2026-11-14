@@ -94,6 +94,12 @@ describe('salesInvoices actions', () => {
     expect(actions.postSalesInvoice(salesInvoiceFormValues)).toEqual({ type: SALES_INVOICE_ACTIONS.POST, payload: salesInvoiceFormValues })
   })
 
+  it('updateSalesInvoiceDraft and postSalesInvoiceDraft carry the draft id and form values', () => {
+    const request = { id: '8', values: salesInvoiceFormValues }
+    expect(actions.updateSalesInvoiceDraft(request)).toEqual({ type: SALES_INVOICE_ACTIONS.UPDATE, payload: request })
+    expect(actions.postSalesInvoiceDraft(request)).toEqual({ type: SALES_INVOICE_ACTIONS.POST_DRAFT, payload: request })
+  })
+
   it('saveSalesInvoiceFailure carries the message and field errors', () => {
     expect(actions.saveSalesInvoiceFailure(salesInvoiceSaveError))
       .toEqual({ type: SALES_INVOICE_ACTIONS.SAVE_FAILURE, payload: salesInvoiceSaveError })

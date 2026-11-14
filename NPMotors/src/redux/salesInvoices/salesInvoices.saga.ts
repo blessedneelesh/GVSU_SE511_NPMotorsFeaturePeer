@@ -25,6 +25,8 @@ import {
   loadSalesInvoicesFailure,
   loadSalesInvoicesSuccess,
   type postSalesInvoice,
+  type postSalesInvoiceDraft,
+  type updateSalesInvoiceDraft,
   saveSalesInvoiceFailure,
   saveSalesInvoiceSuccess,
   selectSalesInvoice,
@@ -94,13 +96,30 @@ function* loadOptionsWorker(): SagaIterator {
   }
 }
 
-type SaveSalesInvoiceAction = ReturnType<typeof createSalesInvoice> | ReturnType<typeof postSalesInvoice>
+type SaveSalesInvoiceAction =
+  | ReturnType<typeof createSalesInvoice>
+  | ReturnType<typeof postSalesInvoice>
+  | ReturnType<typeof updateSalesInvoiceDraft>
+  | ReturnType<typeof postSalesInvoiceDraft>
 
-// Save Draft sends the invoice to AddSalesInvoice; Post Invoice sends it plus the payment to CreateAndPost
+// Save Draft sends the invoice to AddSalesInvoice and Post Invoice sends it plus the payment to CreateAndPost; on an
+// existing draft, Save Changes calls UpdateDraft and Post Invoice saves the changes and then posts the draft
 function* saveSalesInvoiceWorker(action: SaveSalesInvoiceAction): SagaIterator {
-  const save = action.type === SALES_INVOICE_ACTIONS.POST ? salesInvoicesApi.createAndPostSalesInvoice : salesInvoicesApi.addSalesInvoice
   try {
-    yield call(save, action.payload)
+    switch (action.type) {
+      case SALES_INVOICE_ACTIONS.CREATE:
+        yield call(salesInvoicesApi.addSalesInvoice, action.payload)
+        break
+      case SALES_INVOICE_ACTIONS.POST:
+        yield call(salesInvoicesApi.createAndPostSalesInvoice, action.payload)
+        break
+      case SALES_INVOICE_ACTIONS.UPDATE:
+        yield call(salesInvoicesApi.updateDraft, action.payload)
+        break
+      case SALES_INVOICE_ACTIONS.POST_DRAFT:
+        yield call(salesInvoicesApi.postDraft, action.payload)
+        break
+    }
     yield put(saveSalesInvoiceSuccess())
     // Paging is server-side, so refetch the current page instead of inserting the row locally
     yield put(loadSalesInvoices())
@@ -144,7 +163,10 @@ export default function* salesInvoicesSaga(): SagaIterator {
     takeLatest(SALES_INVOICE_ACTIONS.LOAD_OPTIONS, loadOptionsWorker),
     // takeLeading ignores repeat submits while a save is in flight, so a double-click can't create two invoices.
     // Draft and post share one watcher, so clicking both buttons quickly also only saves once.
-    takeLeading([SALES_INVOICE_ACTIONS.CREATE, SALES_INVOICE_ACTIONS.POST], saveSalesInvoiceWorker),
+    takeLeading(
+      [SALES_INVOICE_ACTIONS.CREATE, SALES_INVOICE_ACTIONS.POST, SALES_INVOICE_ACTIONS.UPDATE, SALES_INVOICE_ACTIONS.POST_DRAFT],
+      saveSalesInvoiceWorker,
+    ),
     takeLeading(SALES_INVOICE_ACTIONS.CANCEL, cancelSalesInvoiceWorker),
   ])
 }

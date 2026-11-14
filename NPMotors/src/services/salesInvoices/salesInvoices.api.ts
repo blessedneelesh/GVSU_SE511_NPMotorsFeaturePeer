@@ -8,6 +8,7 @@ import { vehiclesApi } from '../vehicles/vehicles.api'
 import type {
   SalesInvoice,
   SalesInvoiceCancelRequest,
+  SalesInvoiceDraftRequest,
   SalesInvoiceFormValues,
   SalesInvoiceOptions,
   SalesInvoicePage,
@@ -18,6 +19,7 @@ import {
   mapSalesInvoice,
   mapSalesInvoiceCollection,
   readHasNext,
+  toPostInvoiceDto,
   toSalesInvoiceCancelDto,
   toSalesInvoiceCreateAndPostDto,
   toSalesInvoiceRequestDto,
@@ -71,6 +73,17 @@ async function createAndPostSalesInvoice(values: SalesInvoiceFormValues, signal?
   await customerClient.post(SALES_INVOICE_ENDPOINTS.createAndPost, toSalesInvoiceCreateAndPostDto(values), { signal })
 }
 
+async function updateDraft({ id, values }: SalesInvoiceDraftRequest, signal?: AbortSignal): Promise<void> {
+  await customerClient.put(SALES_INVOICE_ENDPOINTS.updateDraft, toSalesInvoiceRequestDto(values), { params: { id }, signal })
+}
+
+// "Post Invoice" on an existing draft: save the edits first, since PostInvoice posts the stored invoice and only takes
+// the payment. If posting is rejected, the edits are kept on the draft.
+async function postDraft(request: SalesInvoiceDraftRequest, signal?: AbortSignal): Promise<void> {
+  await updateDraft(request, signal)
+  await customerClient.post(SALES_INVOICE_ENDPOINTS.postInvoice, toPostInvoiceDto(request.values), { params: { id: request.id }, signal })
+}
+
 async function cancelSalesInvoice({ id, reason }: SalesInvoiceCancelRequest, signal?: AbortSignal): Promise<void> {
   await customerClient.post(SALES_INVOICE_ENDPOINTS.cancelSalesInvoice, toSalesInvoiceCancelDto(reason), { params: { id }, signal })
 }
@@ -104,6 +117,8 @@ export const salesInvoicesApi = {
   getVehicle,
   addSalesInvoice,
   createAndPostSalesInvoice,
+  updateDraft,
+  postDraft,
   cancelSalesInvoice,
   getOptions,
 }

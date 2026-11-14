@@ -248,6 +248,8 @@ describe('salesInvoicesReducer', () => {
     it.each([
       ['CREATE', actions.createSalesInvoice(salesInvoiceFormValues), 'draft'],
       ['POST', actions.postSalesInvoice(salesInvoiceFormValues), 'post'],
+      ['UPDATE', actions.updateSalesInvoiceDraft({ id: '8', values: salesInvoiceFormValues }), 'update'],
+      ['POST_DRAFT', actions.postSalesInvoiceDraft({ id: '8', values: salesInvoiceFormValues }), 'post'],
     ] as const)('%s records the save mode, starts saving and clears the errors', (_, action, saveMode) => {
       expect(salesInvoicesReducer(afterFailure(), action)).toEqual({
         ...initialSalesInvoicesState,
@@ -262,6 +264,8 @@ describe('salesInvoicesReducer', () => {
     it.each([
       ['CREATE', actions.createSalesInvoice(salesInvoiceFormValues)],
       ['POST', actions.postSalesInvoice(salesInvoiceFormValues)],
+      ['UPDATE', actions.updateSalesInvoiceDraft({ id: '8', values: salesInvoiceFormValues })],
+      ['POST_DRAFT', actions.postSalesInvoiceDraft({ id: '8', values: salesInvoiceFormValues })],
     ] as const)('%s is ignored while another save is in flight', (_, action) => {
       const state = frozen({ ...initialSalesInvoicesState, saveMode: 'draft', saveStatus: 'loading' })
       expect(salesInvoicesReducer(state, action)).toBe(state)

@@ -19,7 +19,7 @@ import {
   TableRow,
   Tooltip,
 } from '@fluentui/react-components'
-import { Add20Regular, DismissCircle20Regular, Eye20Regular } from '@fluentui/react-icons'
+import { Add20Regular, DismissCircle20Regular, Edit20Regular, Eye20Regular } from '@fluentui/react-icons'
 import { useSalesInvoiceDetail } from '../../hooks/useSalesInvoiceDetail'
 import { useSalesInvoiceMutations } from '../../hooks/useSalesInvoiceMutations'
 import { useSalesInvoiceOptions } from '../../hooks/useSalesInvoiceOptions'
@@ -88,16 +88,25 @@ export function SalesInvoicesPage() {
   const { saveMode, saveStatus, cancelStatus, resetSave, resetCancel } = useSalesInvoiceMutations()
   const { salespersonName } = useSalesInvoiceOptions()
   const [isFormOpen, setFormOpen] = useState(false)
+  // The draft the form edits; null for a new invoice
+  const [formDraft, setFormDraft] = useState<SalesInvoice | null>(null)
   const [cancelTarget, setCancelTarget] = useState<SalesInvoice | null>(null)
 
-  const openForm = () => {
+  // As in the design, a draft opens back in the form ("Edit INV-…"); posted and cancelled invoices open the detail view
+  const openForm = (draft: SalesInvoice | null = null) => {
     resetSave()
+    setFormDraft(draft)
     setFormOpen(true)
   }
   const closeForm = useCallback(() => {
     resetSave()
     setFormOpen(false)
+    setFormDraft(null)
   }, [resetSave])
+  const openInvoice = (invoice: SalesInvoice) => {
+    if (invoice.lifecycle === 'draft') openForm(invoice)
+    else openSalesInvoice(invoice.id)
+  }
 
   const openCancel = (invoice: SalesInvoice) => {
     resetCancel()
@@ -125,7 +134,7 @@ export function SalesInvoicesPage() {
 
   // The list hook stays mounted while the detail view or form is open, so its query and page are kept
   if (selectedId) return <SalesInvoiceDetail />
-  if (isFormOpen && !isSaved) return <SalesInvoiceForm onClose={closeForm} />
+  if (isFormOpen && !isSaved) return <SalesInvoiceForm draft={formDraft ?? undefined} onClose={closeForm} />
 
   const isLoading = listStatus === 'loading'
   const isInitialLoad = (isLoading || listStatus === 'idle') && salesInvoices.length === 0
@@ -141,14 +150,18 @@ export function SalesInvoicesPage() {
           <p>{salesInvoices.length} {salesInvoices.length === 1 ? 'invoice' : 'invoices'} on this page</p>
         </div>
         <div className="sales-invoices-header__actions">
-          <Button appearance="primary" icon={<Add20Regular />} onClick={openForm}>New Invoice</Button>
+          <Button appearance="primary" icon={<Add20Regular />} onClick={() => openForm()}>New Invoice</Button>
           <Button disabled={salesInvoices.length === 0} onClick={() => exportSalesInvoices(salesInvoices, salespersonName)}>Export</Button>
         </div>
       </header>
 
       {isSaved && (
         <MessageBar intent="success" className="sales-invoices-message">
-          <MessageBarBody>{saveMode === 'post' ? 'Invoice posted successfully.' : 'Draft saved successfully.'}</MessageBarBody>
+          <MessageBarBody>
+            {saveMode === 'post' ? 'Invoice posted successfully.'
+              : saveMode === 'update' ? (formDraft?.number ? `Draft ${formDraft.number} updated successfully.` : 'Draft updated successfully.')
+                : 'Draft saved successfully.'}
+          </MessageBarBody>
           <MessageBarActions>
             <Button appearance="transparent" size="small" onClick={closeForm}>Dismiss</Button>
           </MessageBarActions>
@@ -243,15 +256,20 @@ export function SalesInvoicesPage() {
                   return (
                     <TableRow key={invoice.id || invoice.number} className={isDraft ? 'is-draft' : undefined}>
                       <TableCell>
-                        <Link as="button" className="mono text-xs" disabled={!invoice.id} onClick={() => openSalesInvoice(invoice.id)}>
+                        <Link
+                          as="button"
+                          className={`mono text-xs ${isDraft ? 'draft-link' : ''}`}
+                          disabled={!invoice.id}
+                          onClick={() => openInvoice(invoice)}
+                        >
                           {invoice.number || '—'}
                         </Link>
                       </TableCell>
                       <TableCell className="text-xs text-muted">{invoice.invoiceDate || '—'}</TableCell>
-                      <TableCell className="strong text-secondary">{invoice.customerName || '—'}</TableCell>
+                      <TableCell className="strong text-secondary">{invoice.customerName || (isDraft ? 'Customer not selected' : '—')}</TableCell>
                       <TableCell>
                         <div className="vehicle-cell">
-                          <span>{invoice.vehicle || '—'}</span>
+                          <span>{invoice.vehicle || (isDraft ? 'Vehicle not selected' : '—')}</span>
                           <span className="mono text-xs text-faint">{invoice.vin ? shortVin(invoice.vin) : '—'}</span>
                         </div>
                       </TableCell>
@@ -270,16 +288,29 @@ export function SalesInvoicesPage() {
                       </TableCell>
                       <TableCell>
                         <div className="row-actions">
-                          <Tooltip content="View" relationship="label">
-                            <Button
-                              appearance="subtle"
-                              size="small"
-                              icon={<Eye20Regular />}
-                              aria-label={`View invoice ${invoice.number}`}
-                              disabled={!invoice.id}
-                              onClick={() => openSalesInvoice(invoice.id)}
-                            />
-                          </Tooltip>
+                          {isDraft ? (
+                            <Tooltip content="Edit draft" relationship="label">
+                              <Button
+                                appearance="subtle"
+                                size="small"
+                                icon={<Edit20Regular />}
+                                aria-label={`Edit draft ${invoice.number}`}
+                                disabled={!invoice.id}
+                                onClick={() => openForm(invoice)}
+                              />
+                            </Tooltip>
+                          ) : (
+                            <Tooltip content="View" relationship="label">
+                              <Button
+                                appearance="subtle"
+                                size="small"
+                                icon={<Eye20Regular />}
+                                aria-label={`View invoice ${invoice.number}`}
+                                disabled={!invoice.id}
+                                onClick={() => openSalesInvoice(invoice.id)}
+                              />
+                            </Tooltip>
+                          )}
                           {canCancel(invoice) && (
                             <Tooltip content="Cancel invoice" relationship="label">
                               <Button

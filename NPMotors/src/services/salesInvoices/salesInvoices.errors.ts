@@ -95,6 +95,8 @@ export function getSalesInvoiceFieldErrors(error: unknown): SalesInvoiceFieldErr
 
 // Validation errors go next to their fields; only errors no field can show become the banner message
 export function getSalesInvoiceSaveError(error: unknown): SalesInvoiceSaveError {
+  // UpdateDraft and PostInvoice answer a bare 404 when the draft has been deleted
+  if (axios.isAxiosError(error) && error.response?.status === 404) return { message: NOT_FOUND_MESSAGE, fieldErrors: {} }
   const fieldErrors = getSalesInvoiceFieldErrors(error)
   const message = Object.keys(fieldErrors).length ? '' : getSalesInvoiceErrorMessage(error, SAVE_FALLBACK_MESSAGE)
   return { message, fieldErrors }

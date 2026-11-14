@@ -1,6 +1,7 @@
 import type {
   SalesInvoice,
   SalesInvoiceCancelRequest,
+  SalesInvoiceDraftRequest,
   SalesInvoiceFormValues,
   SalesInvoiceOptions,
   SalesInvoicePage,
@@ -54,7 +55,13 @@ export const createSalesInvoice = (values: SalesInvoiceFormValues) => ({ type: S
 // "Post Invoice": CreateAndPost, which creates the invoice already posted and records the payment received
 export const postSalesInvoice = (values: SalesInvoiceFormValues) => ({ type: SALES_INVOICE_ACTIONS.POST, payload: values })
 
-export const saveSalesInvoiceSuccess = () => ({ type: SALES_INVOICE_ACTIONS.SAVE_SUCCESS })
+// "Save Changes" on an existing draft: UpdateDraft
+export const updateSalesInvoiceDraft = (request: SalesInvoiceDraftRequest) => ({ type: SALES_INVOICE_ACTIONS.UPDATE, payload: request })
+
+// "Post Invoice" on an existing draft: UpdateDraft, then PostInvoice with the payment
+export const postSalesInvoiceDraft = (request: SalesInvoiceDraftRequest) => ({ type: SALES_INVOICE_ACTIONS.POST_DRAFT, payload: request })
+
+export const saveSalesInvoiceSuccess =() => ({ type: SALES_INVOICE_ACTIONS.SAVE_SUCCESS })
 
 export const saveSalesInvoiceFailure = (error: SalesInvoiceSaveError) => ({ type: SALES_INVOICE_ACTIONS.SAVE_FAILURE, payload: error })
 
@@ -90,6 +97,8 @@ export type SalesInvoicesAction =
   | ReturnType<typeof loadSalesInvoiceOptionsFailure>
   | ReturnType<typeof createSalesInvoice>
   | ReturnType<typeof postSalesInvoice>
+  | ReturnType<typeof updateSalesInvoiceDraft>
+  | ReturnType<typeof postSalesInvoiceDraft>
   | ReturnType<typeof saveSalesInvoiceSuccess>
   | ReturnType<typeof saveSalesInvoiceFailure>
   | ReturnType<typeof resetSalesInvoiceSave>

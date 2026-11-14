@@ -90,8 +90,15 @@ export interface SalesInvoiceSaveError {
   fieldErrors: SalesInvoiceFieldErrors
 }
 
-// "Save Draft" calls AddSalesInvoice; "Post Invoice" calls CreateAndPost, which also records the payment
-export type SalesInvoiceSaveMode = 'draft' | 'post'
+// "Save Draft" calls AddSalesInvoice and "Post Invoice" CreateAndPost, which also records the payment. On an existing
+// draft, "Save Changes" calls UpdateDraft and "Post Invoice" saves the changes and then posts it (PostInvoice).
+export type SalesInvoiceSaveMode = 'draft' | 'update' | 'post'
+
+// Saving or posting an existing draft: its id plus the form's values
+export interface SalesInvoiceDraftRequest {
+  id: string
+  values: SalesInvoiceFormValues
+}
 
 export interface SalesInvoiceCancelRequest {
   id: string

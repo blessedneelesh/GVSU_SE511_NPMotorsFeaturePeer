@@ -108,8 +108,12 @@ export default function salesInvoicesReducer(
       if (state.saveStatus === 'loading') return state
       return { ...state, saveMode: 'draft', saveStatus: 'loading', saveError: null, fieldErrors: {} }
     case SALES_INVOICE_ACTIONS.POST:
+    case SALES_INVOICE_ACTIONS.POST_DRAFT:
       if (state.saveStatus === 'loading') return state
       return { ...state, saveMode: 'post', saveStatus: 'loading', saveError: null, fieldErrors: {} }
+    case SALES_INVOICE_ACTIONS.UPDATE:
+      if (state.saveStatus === 'loading') return state
+      return { ...state, saveMode: 'update', saveStatus: 'loading', saveError: null, fieldErrors: {} }
     case SALES_INVOICE_ACTIONS.SAVE_SUCCESS:
       return { ...state, saveStatus: 'success' }
     case SALES_INVOICE_ACTIONS.SAVE_FAILURE:

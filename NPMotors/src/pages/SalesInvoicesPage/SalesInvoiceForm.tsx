@@ -17,6 +17,7 @@ import { useSalesInvoiceMutations } from '../../hooks/useSalesInvoiceMutations'
 import { useSalesInvoiceOptions } from '../../hooks/useSalesInvoiceOptions'
 import type { BankAccount } from '../../types/bankAccounts'
 import type {
+  SalesInvoice,
   SalesInvoiceFieldErrors,
   SalesInvoiceFormField,
   SalesInvoiceFormValues,
@@ -90,25 +91,54 @@ function validatePayment(values: EditableValues, terms: SalesInvoicePaymentTerms
   return errors
 }
 
+// The draft's vehicle as the form needs it, for when it isn't in the available-vehicle list (e.g. past the first page)
+function draftVehicle(draft: SalesInvoice): Vehicle {
+  return {
+    id: draft.vehicleId,
+    vendorId: '',
+    vendorName: '',
+    vin: draft.vin,
+    make: draft.make,
+    model: draft.model,
+    year: 0,
+    title: draft.vehicle || 'Vehicle',
+    color: '',
+    purchaseDate: '',
+    warehouse: '',
+    purchasePrice: 0,
+    additionalCosts: 0,
+    totalCost: draft.vehicleTotalCost,
+    sellingPrice: draft.sellingPrice,
+    grossProfit: draft.sellingPrice - draft.vehicleTotalCost,
+    grossMargin: 0,
+    isAvailable: true,
+    status: 'available',
+  }
+}
+
+const initialValues = (draft: SalesInvoice | undefined): EditableValues => ({
+  customerId: draft?.customerId ?? '',
+  salespersonId: draft?.salespersonId ?? '',
+  vehicleId: draft?.vehicleId ?? '',
+  invoiceDate: draft?.invoiceDate || todayIso(),
+  dueDate: draft ? draft.dueDate : addDaysIso(DUE_IN_DAYS),
+  discount: draft && draft.discount > 0 ? draft.discount.toFixed(2) : '',
+  amountReceived: '',
+  bankAccountId: '',
+})
+
 interface SalesInvoiceFormProps {
+  // The draft being edited, as the design's "Edit INV-…" screen; undefined for a new invoice
+  draft?: SalesInvoice
   onClose: () => void
 }
 
-// The design's "New Sales Invoice" screen. Mounted only while open, so every opening starts from an empty form
-// and reloads the customers, salespeople and vehicles still available for sale.
-export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
-  const { saveMode, saveStatus, saveError, fieldErrors, saveDraft, post } = useSalesInvoiceMutations()
+// The design's "New Sales Invoice" screen, and "Edit INV-…" for a draft. Mounted only while open, so every opening
+// starts from an empty (or the draft's) form and reloads the customers, salespeople and vehicles still for sale.
+export function SalesInvoiceForm({ draft, onClose }: SalesInvoiceFormProps) {
+  const { saveMode, saveStatus, saveError, fieldErrors, saveDraft, post, updateDraft, postDraft } = useSalesInvoiceMutations()
   const { options, optionsStatus, optionsError, retry } = useSalesInvoiceOptions()
-  const [values, setValues] = useState<EditableValues>(() => ({
-    customerId: '',
-    salespersonId: '',
-    vehicleId: '',
-    invoiceDate: todayIso(),
-    dueDate: addDaysIso(DUE_IN_DAYS),
-    discount: '',
-    amountReceived: '',
-    bankAccountId: '',
-  }))
+  const [values, setValues] = useState<EditableValues>(() => initialValues(draft))
   const [paymentTerms, setPaymentTerms] = useState<SalesInvoicePaymentTerms>('financing')
   const [clientErrors, setClientErrors] = useState<SalesInvoiceFieldErrors>({})
   // Server errors stay in Redux until the next submit; hide each one as soon as its field is edited
@@ -117,9 +147,17 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
 
   const isSaving = saveStatus === 'loading'
   const optionsLoading = optionsStatus === 'loading' || optionsStatus === 'idle'
-  const activeCustomers = options.customers.filter((customer) => customer.status === 'Active')
+  // A draft keeps its own customer, salesperson and vehicle on offer even if they've since left the dropdowns' lists
+  const activeCustomers = options.customers.filter((customer) => customer.status === 'Active' || customer.id === draft?.customerId)
+  const draftSalesperson = draft && options.employees.find((employee) => employee.id === draft.salespersonId)
+  const salespeople = draftSalesperson && !options.salespeople.some((item) => item.id === draftSalesperson.id)
+    ? [...options.salespeople, draftSalesperson]
+    : options.salespeople
+  const vehicles = draft?.vehicleId && !options.vehicles.some((item) => item.id === draft.vehicleId)
+    ? [...options.vehicles, draftVehicle(draft)]
+    : options.vehicles
   const customer = options.customers.find((item) => item.id === values.customerId)
-  const vehicle = options.vehicles.find((item) => item.id === values.vehicleId)
+  const vehicle = vehicles.find((item) => item.id === values.vehicleId)
 
   // The API prices the invoice at the vehicle's selling price; the form shows the same figures before saving.
   // The discount is rounded to cents as it's sent, so a paid-in-full amount matches the API's total exactly.
@@ -174,7 +212,8 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
     event.preventDefault()
     if (!check(false)) return
     setEditedFields(new Set())
-    saveDraft(toFormValues())
+    if (draft) updateDraft(draft.id, toFormValues())
+    else saveDraft(toFormValues())
   }
 
   const handlePost = () => {
@@ -184,8 +223,11 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
   const confirmPost = () => {
     setConfirmOpen(false)
     setEditedFields(new Set())
-    post(toFormValues())
+    if (draft) postDraft(draft.id, toFormValues())
+    else post(toFormValues())
   }
+
+  const isSavingDraft = isSaving && (saveMode === 'draft' || saveMode === 'update')
 
   const dropdownField = (
     field: EditableField,
@@ -214,7 +256,7 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
       <nav className="sales-invoices-breadcrumb" aria-label="Breadcrumb">
         <button type="button" className="link-button" disabled={isSaving} onClick={onClose}>← Sales Invoices</button>
         <span aria-hidden="true">/</span>
-        <strong>New Sales Invoice</strong>
+        <strong>{draft ? `Edit ${draft.number || 'Draft'}` : 'New Sales Invoice'}</strong>
       </nav>
 
       <MessageBar intent="info" className="sales-invoices-message">
@@ -239,7 +281,9 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
       {bannerError && (
         <MessageBar intent="error" className="sales-invoices-message">
           <MessageBarBody>
-            <MessageBarTitle>{saveMode === 'post' ? "Couldn't post invoice" : "Couldn't save draft"}</MessageBarTitle>
+            <MessageBarTitle>
+              {saveMode === 'post' ? "Couldn't post invoice" : saveMode === 'update' ? "Couldn't save changes" : "Couldn't save draft"}
+            </MessageBarTitle>
             {bannerError}
           </MessageBarBody>
         </MessageBar>
@@ -251,8 +295,8 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
             <legend className="sales-invoice-form__title">Invoice Details</legend>
 
             <div className="form-grid form-grid--3">
-              <Field label="Invoice Number" hint="Assigned when saved">
-                <Input readOnly value="" placeholder="Auto-generated" className="readonly-input" />
+              <Field label="Invoice Number" hint={draft ? undefined : 'Assigned when saved'}>
+                <Input readOnly value={draft?.number ?? ''} placeholder="Auto-generated" className="readonly-input mono" />
               </Field>
               <Field label="Invoice Date" required validationState={errorFor('invoiceDate') ? 'error' : 'none'} validationMessage={errorFor('invoiceDate')}>
                 <Input type="date" value={values.invoiceDate} onChange={(_, data) => setField('invoiceDate', data.value)} />
@@ -264,15 +308,15 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
 
             <div className="form-grid form-grid--2">
               {dropdownField('customerId', 'Customer', 'Select customer...', activeCustomers.map((item) => ({ id: item.id, label: item.fullName })))}
-              {dropdownField('salespersonId', 'Salesperson', 'Select salesperson...', options.salespeople.map((item) => ({ id: item.id, label: item.fullName })))}
+              {dropdownField('salespersonId', 'Salesperson', 'Select salesperson...', salespeople.map((item) => ({ id: item.id, label: item.fullName })))}
             </div>
 
             <div>
               {dropdownField(
                 'vehicleId',
                 'Vehicle',
-                options.vehicles.length || optionsLoading ? 'Select available vehicle...' : 'No vehicles available for sale',
-                options.vehicles.map((item) => ({ id: item.id, label: vehicleLabel(item) })),
+                vehicles.length || optionsLoading ? 'Select available vehicle...' : 'No vehicles available for sale',
+                vehicles.map((item) => ({ id: item.id, label: vehicleLabel(item) })),
               )}
               {vehicle && <div className="sales-invoice-form__vin mono">VIN: {vehicle.vin}</div>}
             </div>
@@ -383,8 +427,8 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
         </div>
 
         <div className="sales-invoice-form__actions">
-          <Button type="submit" disabled={isSaving} icon={isSaving && saveMode === 'draft' ? <Spinner size="tiny" /> : undefined}>
-            {isSaving && saveMode === 'draft' ? 'Saving…' : 'Save Draft'}
+          <Button type="submit" disabled={isSaving} icon={isSavingDraft ? <Spinner size="tiny" /> : undefined}>
+            {isSavingDraft ? 'Saving…' : draft ? 'Save Changes' : 'Save Draft'}
           </Button>
           <Button appearance="primary" disabled={isSaving} onClick={handlePost} icon={isSaving && saveMode === 'post' ? <Spinner size="tiny" /> : undefined}>
             {isSaving && saveMode === 'post' ? 'Posting…' : 'Post Invoice'}

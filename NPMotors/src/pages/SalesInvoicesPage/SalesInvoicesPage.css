@@ -80,6 +80,7 @@
 
 .sales-invoices-page .sales-invoices-table { min-width: 1240px; }
 .sales-invoices-page .sales-invoices-table .is-draft { background: rgba(248, 250, 252, .6); }
+.sales-invoices-page .sales-invoices-table .is-draft .draft-link { color: var(--slate-600); }
 .vehicle-cell { display: flex; flex-direction: column; }
 .row-actions { display: flex; gap: 2px; }
 .sales-invoices-page .row-actions__danger { color: var(--red); }
