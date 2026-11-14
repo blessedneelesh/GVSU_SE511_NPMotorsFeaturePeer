@@ -15,6 +15,7 @@ import {
 import type { ReceivablesState } from '../../../redux/receivables/receivables.reducer'
 import {
   overdueReceivable,
+  paidReceivable,
   partialReceivable,
   receivableCustomerOptions,
   recentOverdueReceivable,
@@ -77,6 +78,15 @@ describe('AccountsReceivablePage', () => {
     expect(within(unpaidRow!).getByText('Unpaid')).toHaveClass('badge-pending')
   })
 
+  it('shows a settled invoice as Paid with no days overdue', () => {
+    renderLoaded([paidReceivable], withQuery({ status: 'paid' }))
+    const [, row] = within(getTable()).getAllByRole('row')
+    expect(within(row!).getByText('Paid')).toHaveClass('badge-paid')
+    expect(within(row!).queryByText('934d')).not.toBeInTheDocument()
+    expect(within(row!).getByText('—')).toHaveClass('text-faint')
+    expect(within(row!).getByText('$0')).toHaveClass('text-faint')
+  })
+
   it('does not repeat the sales invoice number when it matches the AR number', () => {
     renderLoaded([overdueReceivable])
     expect(screen.queryByText(/^for /)).not.toBeInTheDocument()
@@ -85,8 +95,8 @@ describe('AccountsReceivablePage', () => {
   it('falls back for missing fields', () => {
     renderLoaded([sparseReceivable])
     const [, row] = within(getTable()).getAllByRole('row')
-    // invoice number, customer and due date
-    expect(within(row!).getAllByText('—')).toHaveLength(3)
+    // invoice number, customer, due date, and days (a zero balance has no days overdue)
+    expect(within(row!).getAllByText('—')).toHaveLength(4)
   })
 
   it('uses the singular for a single invoice', () => {
@@ -147,10 +157,22 @@ describe('AccountsReceivablePage', () => {
 
       await user.click(filter)
       expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
-        'All Status', 'Overdue', 'Unpaid (not yet due)', 'Partial (not yet due)',
+        'All Status', 'Overdue', 'Unpaid (not yet due)', 'Partial (not yet due)', 'Paid',
       ])
       await user.click(screen.getByRole('option', { name: 'Overdue' }))
       expect(actions).toContainEqual(setReceivableStatusFilter('overdue'))
+    })
+
+    it('dispatches the paid filter', async () => {
+      const { actions, user } = renderLoaded([overdueReceivable])
+      await user.click(screen.getByRole('combobox', { name: 'Status' }))
+      await user.click(screen.getByRole('option', { name: 'Paid' }))
+      expect(actions).toContainEqual(setReceivableStatusFilter('paid'))
+    })
+
+    it('says no paid receivables when the paid filter finds nothing', () => {
+      renderLoaded([], withQuery({ status: 'paid' }))
+      expect(screen.getByText('No paid receivables found. Try clearing the filters.')).toBeInTheDocument()
     })
 
     it('offers every loaded customer and dispatches the chosen id', async () => {

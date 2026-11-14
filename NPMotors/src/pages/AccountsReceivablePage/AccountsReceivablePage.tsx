@@ -27,12 +27,14 @@ const pageSizeOptions = [5, 10, 25, 50]
 
 const ALL_CUSTOMERS = 'all'
 
-// The API's Status values; "unpaid" and "partial" only return invoices that aren't due yet
+// The API's Status values; "unpaid" and "partial" only return invoices that aren't due yet,
+// and settled invoices only come back under "paid" ("All Status" means every open invoice)
 const statusOptions: { value: ReceivableStatusFilter; label: string }[] = [
   { value: 'all', label: 'All Status' },
   { value: 'overdue', label: 'Overdue' },
   { value: 'unpaid', label: 'Unpaid (not yet due)' },
   { value: 'partial', label: 'Partial (not yet due)' },
+  { value: 'paid', label: 'Paid' },
 ]
 
 const isStatusFilter = (value: unknown): value is ReceivableStatusFilter =>
@@ -170,7 +172,10 @@ export function AccountsReceivablePage() {
                     <TableCell className="num text-secondary">{formatCurrency(receivable.amount)}</TableCell>
                     <TableCell className="num text-green">{formatCurrency(receivable.paid)}</TableCell>
                     <TableCell className={`num strong ${receivable.balance > 0 ? 'text-amber' : 'text-faint'}`}>{formatCurrency(receivable.balance)}</TableCell>
-                    <TableCell className={`text-xs strong ${daysClass(receivable.daysOverdue)}`}>{formatDays(receivable.daysOverdue)}</TableCell>
+                    {/* A settled invoice can't be overdue, though the API still counts days past its due date */}
+                    {receivable.balance > 0
+                      ? <TableCell className={`text-xs strong ${daysClass(receivable.daysOverdue)}`}>{formatDays(receivable.daysOverdue)}</TableCell>
+                      : <TableCell className="text-xs text-faint">—</TableCell>}
                     <TableCell>
                       <span className={`badge ${statusBadgeClass(receivable.agingStatus)}`}>{receivable.agingStatus}</span>
                     </TableCell>
@@ -181,7 +186,7 @@ export function AccountsReceivablePage() {
                     <TableCell colSpan={8} className="table-empty">
                       {query.pageNumber > 1
                         ? 'No more receivables on this page.'
-                        : <>No outstanding receivables found.{hasActiveFilters && ' Try clearing the filters.'}</>}
+                        : <>No {query.status === 'paid' ? 'paid' : 'outstanding'} receivables found.{hasActiveFilters && ' Try clearing the filters.'}</>}
                     </TableCell>
                   </TableRow>
                 )}

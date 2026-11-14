@@ -60,6 +60,21 @@ export const unpaidReceivable: Receivable = {
   agingStatus: 'Unpaid',
 }
 
+// Matches AR invoice 4 under Status=paid: settled, though still 934 days past its due date
+export const paidReceivable: Receivable = {
+  id: '4',
+  number: 'SI-0009',
+  customerId: '1',
+  customerName: 'John Smith',
+  invoiceNumber: 'SI-0009',
+  dueDate: '2024-04-24',
+  amount: 58742,
+  paid: 58742,
+  balance: 0,
+  daysOverdue: 934,
+  agingStatus: 'Paid',
+}
+
 // A row whose optional fields all came back empty
 export const sparseReceivable: Receivable = {
   id: '',

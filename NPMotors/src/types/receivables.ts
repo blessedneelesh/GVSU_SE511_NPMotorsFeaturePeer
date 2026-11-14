@@ -1,7 +1,7 @@
 // "Overdue" whenever the due date has passed, otherwise the AR invoice's own status
 export type ReceivableAgingStatus = 'Overdue' | 'Partial' | 'Unpaid' | 'Paid'
 
-// One open AR invoice from GetAllAr; the API only returns rows with a balance
+// One AR invoice from GetAllAr; only open ones (balance > 0) unless the Status filter is "paid"
 export interface Receivable {
   id: string
   // The AR invoice number (AR-…, or the legacy SI-/SVC- numbers)
@@ -20,8 +20,9 @@ export interface Receivable {
   agingStatus: ReceivableAgingStatus
 }
 
-// The API's Status values: overdue = past due; unpaid/partial = that status and not yet due
-export type ReceivableStatusFilter = 'all' | 'overdue' | 'unpaid' | 'partial'
+// The API's Status values: 'all' = every open invoice; overdue = past due; unpaid/partial = that status and not yet due;
+// paid = fully settled (balance 0), which every other value leaves out
+export type ReceivableStatusFilter = 'all' | 'overdue' | 'unpaid' | 'partial' | 'paid'
 
 // A customer id, or 'all' for every customer
 export type ReceivableCustomerFilter = string
