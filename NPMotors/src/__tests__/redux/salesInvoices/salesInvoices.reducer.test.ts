@@ -16,6 +16,7 @@ import {
   salesInvoicePage,
   salesInvoiceSaveError,
 } from '../../../test/fixtures/salesInvoices'
+import { availableVehicle } from '../../../test/fixtures/vehicles'
 
 // Freezes the state and its nested objects, so a reducer that mutates instead of copying throws
 const frozen = (state: SalesInvoicesState): SalesInvoicesState => {
@@ -30,7 +31,7 @@ const initial = () => frozen({
   ...initialSalesInvoicesState,
   query: { ...initialSalesInvoicesState.query },
   items: [],
-  options: { customers: [], employees: [], salespeople: [], vehicles: [] },
+  options: { customers: [], employees: [], salespeople: [], vehicles: [], bankAccounts: [] },
   fieldErrors: {},
 })
 
@@ -175,8 +176,28 @@ describe('salesInvoicesReducer', () => {
     })
 
     it('CLEAR_SELECTION resets every detail field', () => {
-      const state = frozen({ ...initialSalesInvoicesState, selectedId: '6', selected: postedInvoice, detailStatus: 'error', detailError: 'x' })
+      const state = frozen({
+        ...initialSalesInvoicesState,
+        selectedId: '6',
+        selected: postedInvoice,
+        selectedVehicle: availableVehicle,
+        detailStatus: 'error',
+        detailError: 'x',
+      })
       expect(salesInvoicesReducer(state, actions.clearSalesInvoiceSelection())).toEqual(initialSalesInvoicesState)
+    })
+
+    it('SELECT drops the previous invoice\'s vehicle', () => {
+      const state = frozen({ ...initialSalesInvoicesState, selectedId: '6', selected: postedInvoice, selectedVehicle: availableVehicle })
+      expect(salesInvoicesReducer(state, actions.selectSalesInvoice('7')).selectedVehicle).toBeNull()
+    })
+
+    it.each([
+      ['the loaded vehicle', availableVehicle],
+      ['null when it could not be loaded', null],
+    ])('LOAD_VEHICLE_SUCCESS stores %s', (_, vehicle) => {
+      const state = frozen({ ...initialSalesInvoicesState, selectedId: '6', selected: postedInvoice, detailStatus: 'success' })
+      expect(salesInvoicesReducer(state, actions.loadSalesInvoiceVehicleSuccess(vehicle))).toEqual({ ...state, selectedVehicle: vehicle })
     })
   })
 

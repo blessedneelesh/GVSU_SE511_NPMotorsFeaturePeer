@@ -15,7 +15,7 @@ export interface InvoiceTotals {
   total: number
 }
 
-const roundCents = (amount: number) => Math.round(amount * 100) / 100
+export const roundCents = (amount: number) => Math.round(amount * 100) / 100
 
 // Same arithmetic as the API: total = sale price + tax + fees − discount
 export function computeTotals(salePrice: number, discount: number): InvoiceTotals {

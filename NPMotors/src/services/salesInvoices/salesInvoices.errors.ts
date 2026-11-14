@@ -7,7 +7,7 @@ const DETAIL_FALLBACK_MESSAGE = 'This sales invoice could not be loaded. Please 
 const NOT_FOUND_MESSAGE = 'This sales invoice no longer exists.'
 const SAVE_FALLBACK_MESSAGE = 'The sales invoice could not be saved. Please try again.'
 const CANCEL_FALLBACK_MESSAGE = 'The sales invoice could not be cancelled. Please try again.'
-export const OPTIONS_FALLBACK_MESSAGE = 'Customers, salespeople and vehicles could not be loaded. Please try again.'
+export const OPTIONS_FALLBACK_MESSAGE = 'Customers, salespeople, vehicles and bank accounts could not be loaded. Please try again.'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -15,12 +15,17 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isNonEmptyString = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0
 
 // ASP.NET ProblemDetails: { title, detail, errors: { field: string[] } }. The sales invoice business rules
-// ("Customer is required.", "Customer does not exist.") answer 400 with { message } instead.
+// ("Customer is required.", "Customer does not exist.") answer 400 with { message } instead, and CreateAndPost's
+// payment rules ("A partial payment must be greater than zero…") answer 400 with { errors: [message] }.
 function readProblemDetails(body: unknown): string {
   if (isNonEmptyString(body)) return body.trim().startsWith('<') ? '' : body.trim()
   if (!isRecord(body)) return ''
 
   const { errors, detail, title, message } = body
+  if (Array.isArray(errors)) {
+    const messages = errors.filter(isNonEmptyString)
+    if (messages.length) return messages.join(' ')
+  }
   if (isRecord(errors)) {
     const messages = Object.values(errors)
       .flatMap((value) => (Array.isArray(value) ? value : [value]))
@@ -67,6 +72,8 @@ const FORM_FIELDS: readonly SalesInvoiceFormField[] = [
   'tax',
   'fees',
   'discount',
+  'amountReceived',
+  'bankAccountId',
 ]
 
 // ProblemDetails keys look like "Customer_Id", "Tax" or "$.invoice_Date"; match them to form fields ignoring case

@@ -12,6 +12,7 @@ export const SALES_INVOICE_ACTIONS = {
   CLEAR_SELECTION: 'salesInvoices/clearSelection',
   LOAD_BY_ID_SUCCESS: 'salesInvoices/loadByIdSuccess',
   LOAD_BY_ID_FAILURE: 'salesInvoices/loadByIdFailure',
+  LOAD_VEHICLE_SUCCESS: 'salesInvoices/loadVehicleSuccess',
   LOAD_OPTIONS: 'salesInvoices/loadOptions',
   LOAD_OPTIONS_SUCCESS: 'salesInvoices/loadOptionsSuccess',
   LOAD_OPTIONS_FAILURE: 'salesInvoices/loadOptionsFailure',

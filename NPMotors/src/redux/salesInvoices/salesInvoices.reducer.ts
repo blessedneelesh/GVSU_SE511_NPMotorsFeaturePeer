@@ -7,6 +7,7 @@ import type {
   SalesInvoiceQuery,
   SalesInvoiceSaveMode,
 } from '../../types/salesInvoices'
+import type { Vehicle } from '../../types/vehicles'
 import type { SalesInvoicesAction } from './salesInvoices.actions'
 import { SALES_INVOICE_ACTIONS } from './salesInvoices.constants'
 
@@ -18,6 +19,8 @@ export interface SalesInvoicesState {
   listError: string | null
   selectedId: string | null
   selected: SalesInvoice | null
+  // Loaded after the invoice; null until then, or when the lookup fails (the detail view falls back to the invoice)
+  selectedVehicle: Vehicle | null
   detailStatus: RequestStatus
   detailError: string | null
   options: SalesInvoiceOptions
@@ -40,9 +43,10 @@ export const initialSalesInvoicesState: SalesInvoicesState = {
   listError: null,
   selectedId: null,
   selected: null,
+  selectedVehicle: null,
   detailStatus: 'idle',
   detailError: null,
-  options: { customers: [], employees: [], salespeople: [], vehicles: [] },
+  options: { customers: [], employees: [], salespeople: [], vehicles: [], bankAccounts: [] },
   optionsStatus: 'idle',
   optionsError: null,
   saveMode: null,
@@ -84,13 +88,15 @@ export default function salesInvoicesReducer(
     case SALES_INVOICE_ACTIONS.SET_PAGE:
       return { ...state, listStatus: 'loading', listError: null, query: { ...state.query, pageNumber: Math.max(1, action.payload) } }
     case SALES_INVOICE_ACTIONS.SELECT:
-      return { ...state, selectedId: action.payload, selected: null, detailStatus: 'loading', detailError: null }
+      return { ...state, selectedId: action.payload, selected: null, selectedVehicle: null, detailStatus: 'loading', detailError: null }
     case SALES_INVOICE_ACTIONS.CLEAR_SELECTION:
-      return { ...state, selectedId: null, selected: null, detailStatus: 'idle', detailError: null }
+      return { ...state, selectedId: null, selected: null, selectedVehicle: null, detailStatus: 'idle', detailError: null }
     case SALES_INVOICE_ACTIONS.LOAD_BY_ID_SUCCESS:
       return { ...state, selected: action.payload, detailStatus: 'success' }
     case SALES_INVOICE_ACTIONS.LOAD_BY_ID_FAILURE:
       return { ...state, detailStatus: 'error', detailError: action.payload }
+    case SALES_INVOICE_ACTIONS.LOAD_VEHICLE_SUCCESS:
+      return { ...state, selectedVehicle: action.payload }
     case SALES_INVOICE_ACTIONS.LOAD_OPTIONS:
       return { ...state, optionsStatus: 'loading', optionsError: null }
     case SALES_INVOICE_ACTIONS.LOAD_OPTIONS_SUCCESS:

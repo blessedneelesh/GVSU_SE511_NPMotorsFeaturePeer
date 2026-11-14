@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import * as selectors from '../../../redux/salesInvoices/salesInvoices.selectors'
 import { makeSalesInvoiceState } from '../../../test/test-utils'
 import { postedInvoice, salesInvoiceOptions, salesInvoicePage } from '../../../test/fixtures/salesInvoices'
+import { availableVehicle } from '../../../test/fixtures/vehicles'
 
 const query = { pageNumber: 2, pageSize: 10, status: 'unpaid', fromDate: '2026-10-01', toDate: '2026-10-31', searchTerm: 'INV' } as const
 const fieldErrors = { discount: 'Discount is too large' }
@@ -15,6 +16,7 @@ const state = makeSalesInvoiceState({
   listError: 'list error',
   selectedId: '6',
   selected: postedInvoice,
+  selectedVehicle: availableVehicle,
   detailStatus: 'error',
   detailError: 'detail error',
   options: salesInvoiceOptions,
@@ -41,6 +43,7 @@ describe('salesInvoices selectors', () => {
     ['selectSalesInvoiceListError', selectors.selectSalesInvoiceListError, 'list error'],
     ['selectSelectedSalesInvoiceId', selectors.selectSelectedSalesInvoiceId, '6'],
     ['selectSelectedSalesInvoice', selectors.selectSelectedSalesInvoice, postedInvoice],
+    ['selectSelectedSalesInvoiceVehicle', selectors.selectSelectedSalesInvoiceVehicle, availableVehicle],
     ['selectSalesInvoiceDetailStatus', selectors.selectSalesInvoiceDetailStatus, 'error'],
     ['selectSalesInvoiceDetailError', selectors.selectSalesInvoiceDetailError, 'detail error'],
     ['selectSalesInvoiceOptions', selectors.selectSalesInvoiceOptions, salesInvoiceOptions],

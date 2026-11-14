@@ -8,6 +8,7 @@ import {
   salesInvoicePage,
   salesInvoiceSaveError,
 } from '../../../test/fixtures/salesInvoices'
+import { availableVehicle } from '../../../test/fixtures/vehicles'
 
 describe('salesInvoices actions', () => {
   describe('creators without a payload', () => {
@@ -68,6 +69,11 @@ describe('salesInvoices actions', () => {
 
   it('loadSalesInvoiceByIdFailure carries the message', () => {
     expect(actions.loadSalesInvoiceByIdFailure('Not found')).toEqual({ type: SALES_INVOICE_ACTIONS.LOAD_BY_ID_FAILURE, payload: 'Not found' })
+  })
+
+  it('loadSalesInvoiceVehicleSuccess carries the vehicle, or null', () => {
+    expect(actions.loadSalesInvoiceVehicleSuccess(availableVehicle)).toEqual({ type: SALES_INVOICE_ACTIONS.LOAD_VEHICLE_SUCCESS, payload: availableVehicle })
+    expect(actions.loadSalesInvoiceVehicleSuccess(null)).toEqual({ type: SALES_INVOICE_ACTIONS.LOAD_VEHICLE_SUCCESS, payload: null })
   })
 
   it('loadSalesInvoiceOptionsSuccess carries the options', () => {

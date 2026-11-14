@@ -41,13 +41,14 @@ export const PART_ENDPOINTS = {
 } as const
 
 // Also on the Customers API origin, so sales invoice requests reuse customerClient.
-// AddSalesInvoice saves a draft and PostSalesInvoice posts a new invoice; both take SalesInvoiceCreateDto.
+// AddSalesInvoice saves a draft (SalesInvoiceCreateDto). CreateAndPost adds and posts in one transaction and
+// records the payment received (SalesInvoiceCreateAndPostRequest: the same fields plus the payment ones).
 // CancelSalesInvoice takes ?id= and { reason }, and only accepts posted invoices with nothing paid.
 export const SALES_INVOICE_ENDPOINTS = {
   getAllSalesInvoices: 'SalesInvoice/GetAllSalesInvoices',
   getSalesInvoiceById: 'SalesInvoice/GetSalesInvoiceById',
   addSalesInvoice: 'SalesInvoice/AddSalesInvoice',
-  postSalesInvoice: 'SalesInvoice/PostSalesInvoice',
+  createAndPost: 'SalesInvoice/CreateAndPost',
   cancelSalesInvoice: 'SalesInvoice/CancelSalesInvoice',
 } as const
 

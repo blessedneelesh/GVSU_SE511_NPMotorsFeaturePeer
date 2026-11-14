@@ -259,6 +259,71 @@ describe('SalesInvoiceForm', () => {
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     })
 
+    it('starts on Financing, collecting nothing and asking for no deposit account', () => {
+      renderForm()
+      expect(screen.getByRole('radio', { name: 'Financing' })).toBeChecked()
+      expect(screen.queryByRole('combobox', { name: /Deposit To/ })).not.toBeInTheDocument()
+      expect(valueOf(sectionOf('Invoice Summary'), 'Paid on Invoice')).toHaveTextContent('$0.00')
+    })
+
+    it('collects the whole total on Bank terms and deposits it to the picked account', async () => {
+      const { actions, user } = renderForm()
+      await fillValidForm(user)
+      await user.click(screen.getByRole('radio', { name: 'Bank' }))
+
+      expect(valueOf(sectionOf('Invoice Summary'), 'Paid on Invoice')).toHaveTextContent('$33,120.00')
+      expect(valueOf(sectionOf('Invoice Summary'), 'Balance Due')).toHaveTextContent('$0.00')
+
+      await user.click(screen.getByRole('button', { name: 'Post Invoice' }))
+      expect(screen.getByText('Select the account the payment is deposited to')).toBeInTheDocument()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+      await pick(user, /^Deposit To/, 'Chase Bank — Operating Checking (****4521)')
+      await user.click(screen.getByRole('button', { name: 'Post Invoice' }))
+      const dialog = screen.getByRole('dialog')
+      expect(within(dialog).getByText('Received Now').nextElementSibling).toHaveTextContent('$33,120.00')
+      await user.click(within(dialog).getByRole('button', { name: 'Confirm & Post' }))
+
+      expect(saves(actions)).toEqual([
+        postSalesInvoice({ ...expectedValues(), paymentTerms: 'bank', amountReceived: '33120.00', bankAccountId: '1' }),
+      ])
+    })
+
+    it('requires a partial payment above zero and below the total', async () => {
+      const { actions, user } = renderForm()
+      await fillValidForm(user)
+      await user.click(screen.getByRole('radio', { name: 'Partial' }))
+      await pick(user, /^Deposit To/, 'Chase Bank — Operating Checking (****4521)')
+      const amount = screen.getByRole('spinbutton', { name: /Amount Received/ })
+
+      await user.click(screen.getByRole('button', { name: 'Post Invoice' }))
+      expect(screen.getByText('Enter the amount received')).toBeInTheDocument()
+
+      await user.type(amount, '33120')
+      await user.click(screen.getByRole('button', { name: 'Post Invoice' }))
+      expect(screen.getByText('Partial payment must be less than the invoice total.')).toBeInTheDocument()
+
+      await user.clear(amount)
+      await user.type(amount, '5000')
+      expect(valueOf(sectionOf('Invoice Summary'), 'Balance Due')).toHaveTextContent('$28,120.00')
+      await user.click(screen.getByRole('button', { name: 'Post Invoice' }))
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm & Post' }))
+
+      expect(saves(actions)).toEqual([
+        postSalesInvoice({ ...expectedValues(), paymentTerms: 'partial', amountReceived: '5000.00', bankAccountId: '1' }),
+      ])
+    })
+
+    it('does not check the payment for a draft, which records none', async () => {
+      const { actions, user } = renderForm()
+      await fillValidForm(user)
+      await user.click(screen.getByRole('radio', { name: 'Bank' }))
+      await user.click(screen.getByRole('button', { name: 'Save Draft' }))
+      expect(saves(actions)).toEqual([
+        createSalesInvoice({ ...expectedValues(), paymentTerms: 'bank', amountReceived: '33120.00', bankAccountId: '' }),
+      ])
+    })
+
     it('goes back to the form from the confirmation without posting', async () => {
       const { actions, user } = renderForm()
       await fillValidForm(user)

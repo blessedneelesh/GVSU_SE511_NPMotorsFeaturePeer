@@ -3,6 +3,7 @@ import type {
   SalesInvoiceFormValues,
   SalesInvoiceLifecycle,
   SalesInvoicePaymentStatus,
+  SalesInvoicePaymentTerms,
 } from '../../types/salesInvoices'
 
 // Accepted spellings per field: ASP.NET camelCase (invoice_Date), plain camelCase, PascalCase and snake_case
@@ -147,7 +148,7 @@ export function readHasNext(body: unknown): boolean | null {
   return typeof hasNext === 'boolean' ? hasNext : null
 }
 
-// Body of POST SalesInvoice/AddSalesInvoice and PostSalesInvoice (SalesInvoiceCreateDto). The API sets the sale
+// Body of POST SalesInvoice/AddSalesInvoice (SalesInvoiceCreateDto). The API sets the sale
 // price from the vehicle, so it isn't sent. Ids are int64 and amounts are decimals in the range 0–999999999999.99.
 export interface SalesInvoiceCreateDto {
   customer_Id: number
@@ -175,6 +176,50 @@ export function toSalesInvoiceRequestDto(values: SalesInvoiceFormValues): SalesI
     tax: toAmount(values.tax),
     fees: toAmount(values.fees),
     discount: toAmount(values.discount),
+  }
+}
+
+// The API's PaymentCondition and PaymentMethod enums, as its JsonStringEnumConverter (camelCase) reads them
+export type PaymentConditionDto = 'paidInFull' | 'partialPayment' | 'credit'
+export type PaymentMethodDto = 'cash' | 'card' | 'transfer' | 'check'
+
+// Body of POST SalesInvoice/CreateAndPost (SalesInvoiceCreateAndPostRequest): SalesInvoiceCreateDto plus the payment.
+// A credit sale sends amountReceived 0 and no method or account; any amount received needs both.
+export interface SalesInvoiceCreateAndPostDto extends SalesInvoiceCreateDto {
+  paymentCondition: PaymentConditionDto
+  amountReceived: number
+  paymentMethod: PaymentMethodDto | null
+  reference: string | null
+  bankAccountId: number | null
+  receiptDate: string | null
+}
+
+const PAYMENT_CONDITIONS: Record<SalesInvoicePaymentTerms, PaymentConditionDto> = {
+  bank: 'paidInFull',
+  cash: 'paidInFull',
+  financing: 'credit',
+  partial: 'partialPayment',
+}
+
+// The design's Partial option doesn't ask how the money came in; it's recorded as a transfer, as Bank is
+const PAYMENT_METHODS: Record<SalesInvoicePaymentTerms, PaymentMethodDto | null> = {
+  bank: 'transfer',
+  cash: 'cash',
+  financing: null,
+  partial: 'transfer',
+}
+
+export function toSalesInvoiceCreateAndPostDto(values: SalesInvoiceFormValues): SalesInvoiceCreateAndPostDto {
+  const isCredit = values.paymentTerms === 'financing'
+  return {
+    ...toSalesInvoiceRequestDto(values),
+    paymentCondition: PAYMENT_CONDITIONS[values.paymentTerms],
+    amountReceived: isCredit ? 0 : toAmount(values.amountReceived),
+    paymentMethod: PAYMENT_METHODS[values.paymentTerms],
+    reference: null,
+    bankAccountId: isCredit || !values.bankAccountId ? null : Number(values.bankAccountId),
+    // The payment is received on the invoice date
+    receiptDate: isCredit ? null : values.invoiceDate || null,
   }
 }
 

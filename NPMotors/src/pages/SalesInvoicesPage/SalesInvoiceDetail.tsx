@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactElement } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Button,
   MessageBar,
@@ -6,28 +7,63 @@ import {
   MessageBarBody,
   MessageBarTitle,
   Spinner,
+  Tab,
   Table,
   TableBody,
   TableCell,
   TableHeader,
   TableHeaderCell,
+  TabList,
   TableRow,
 } from '@fluentui/react-components'
+import {
+  DataTrending20Regular,
+  DocumentText20Regular,
+  Mail20Regular,
+  MoneyHand20Regular,
+  Person20Regular,
+  Print20Regular,
+  VehicleCarProfileLtr20Regular,
+} from '@fluentui/react-icons'
+import { useCustomerDetail } from '../../hooks/useCustomerDetail'
 import { useSalesInvoiceDetail } from '../../hooks/useSalesInvoiceDetail'
 import { useSalesInvoiceMutations } from '../../hooks/useSalesInvoiceMutations'
 import { useSalesInvoiceOptions } from '../../hooks/useSalesInvoiceOptions'
+import { useVehicleDetail } from '../../hooks/useVehicleDetail'
 import type { Customer } from '../../types/customers'
 import type { SalesInvoice } from '../../types/salesInvoices'
+import type { Vehicle } from '../../types/vehicles'
 import { CancelSalesInvoiceDialog } from './CancelSalesInvoiceDialog'
-import { canCancel, formatAmount, statusBadges, statusTitle } from './salesInvoiceMetrics'
+import { canCancel, formatAmount, statusBadges, statusTitle, TAX_RATE } from './salesInvoiceMetrics'
 
 const CANCELLED_BANNER_MS = 4000
 
+// Payments are taken on the Accounts Receivable screen, as in the design
+const RECEIVE_PAYMENT_PATH = '/accounts-receivable'
+
+// Posted invoices with money still owed can take a payment
+const canReceivePayment = (invoice: SalesInvoice) => invoice.lifecycle === 'posted' && invoice.balance > 0
+
+// "Send to Customer" opens the user's mail app with the invoice's summary, addressed to the customer
+function invoiceMailto(invoice: SalesInvoice, email: string): string {
+  const subject = `Sales Invoice ${invoice.number}`
+  const body = [
+    `Invoice: ${invoice.number}`,
+    `Vehicle: ${invoice.vehicle || '—'} (VIN ${invoice.vin || '—'})`,
+    `Total: ${formatAmount(invoice.total)}`,
+    `Balance due: ${formatAmount(invoice.balance)}${invoice.dueDate ? ` by ${invoice.dueDate}` : ''}`,
+  ].join('\n')
+  return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+}
+
 // Loads the selected invoice from GetSalesInvoiceById via Redux; the list page decides when it's shown
 export function SalesInvoiceDetail() {
-  const { salesInvoice, detailStatus, detailError, closeSalesInvoice, retry } = useSalesInvoiceDetail()
+  const navigate = useNavigate()
+  const { salesInvoice, vehicle, detailStatus, detailError, closeSalesInvoice, retry } = useSalesInvoiceDetail()
   const { salespersonName, findCustomer } = useSalesInvoiceOptions()
   const { cancelStatus, resetCancel } = useSalesInvoiceMutations()
+  const { openCustomer } = useCustomerDetail()
+  const { openVehicle } = useVehicleDetail()
   const [isCancelOpen, setCancelOpen] = useState(false)
 
   const openCancel = () => {
@@ -48,6 +84,16 @@ export function SalesInvoiceDetail() {
   }, [isCancelled, closeCancel])
 
   const isLoaded = detailStatus === 'success' && salesInvoice
+  const customer = salesInvoice ? findCustomer(salesInvoice.customerId) : undefined
+  const receivePayment = () => navigate(RECEIVE_PAYMENT_PATH)
+
+  // Related Records: the customer and vehicle pages open straight into the record's detail view
+  const related: RelatedLinks = {
+    openCustomer: (id) => { openCustomer(id); navigate('/customers') },
+    openVehicle: (id) => { openVehicle(id); navigate('/vehicle-inventory') },
+    openTransactions: () => navigate('/transactions'),
+    openProfitability: () => navigate('/vehicle-profitability'),
+  }
 
   return (
     <div className="sales-invoices-page">
@@ -57,8 +103,21 @@ export function SalesInvoiceDetail() {
           <span aria-hidden="true">/</span>
           <strong>{salesInvoice?.number || 'Sales Invoice'}</strong>
         </nav>
-        {isLoaded && canCancel(salesInvoice) && (
-          <Button className="danger-button" onClick={openCancel}>Cancel Invoice</Button>
+        {isLoaded && (
+          <div className="sales-invoice-detail__commands" role="toolbar" aria-label="Invoice actions">
+            {canReceivePayment(salesInvoice) && (
+              <Button appearance="primary" icon={<MoneyHand20Regular />} onClick={receivePayment}>Receive Payment</Button>
+            )}
+            <Button icon={<Print20Regular />} onClick={() => window.print()}>Print</Button>
+            {customer?.email ? (
+              <Button as="a" icon={<Mail20Regular />} href={invoiceMailto(salesInvoice, customer.email)}>Send to Customer</Button>
+            ) : (
+              <Button icon={<Mail20Regular />} disabled title="The customer has no email address">Send to Customer</Button>
+            )}
+            {canCancel(salesInvoice) && (
+              <Button className="danger-button" onClick={openCancel}>Cancel Invoice</Button>
+            )}
+          </div>
         )}
       </div>
 
@@ -92,8 +151,11 @@ export function SalesInvoiceDetail() {
       {isLoaded && (
         <SalesInvoiceProfile
           invoice={salesInvoice}
-          customer={findCustomer(salesInvoice.customerId)}
+          customer={customer}
+          vehicle={vehicle}
           salesperson={salespersonName(salesInvoice.salespersonId)}
+          onReceivePayment={receivePayment}
+          related={related}
         />
       )}
 
@@ -139,14 +201,25 @@ function StatusBanner({ invoice }: { invoice: SalesInvoice }) {
   )
 }
 
+interface RelatedLinks {
+  openCustomer: (id: string) => void
+  openVehicle: (id: string) => void
+  openTransactions: () => void
+  openProfitability: () => void
+}
+
 interface SalesInvoiceProfileProps {
   invoice: SalesInvoice
   // Undefined until the customers load, or when the customer is no longer returned; the invoice's name is shown then
   customer: Customer | undefined
+  // Null until the vehicle record loads, or when it can't be; the invoice's make, model and VIN are shown then
+  vehicle: Vehicle | null
   salesperson: string
+  onReceivePayment: () => void
+  related: RelatedLinks
 }
 
-function SalesInvoiceProfile({ invoice, customer, salesperson }: SalesInvoiceProfileProps) {
+function SalesInvoiceProfile({ invoice, customer, vehicle, salesperson, onReceivePayment, related }: SalesInvoiceProfileProps) {
   const grossProfit = invoice.salePrice - invoice.vehicleTotalCost
   const margin = invoice.salePrice > 0 ? ((grossProfit / invoice.salePrice) * 100).toFixed(1) : '0.0'
   const subtotal = invoice.salePrice - invoice.discount + invoice.fees
@@ -179,10 +252,11 @@ function SalesInvoiceProfile({ invoice, customer, salesperson }: SalesInvoicePro
                 </div>
                 <div>
                   <h4>Vehicle</h4>
-                  <div className="strong">{invoice.vehicle || '—'}</div>
+                  <div className="strong">{vehicle?.title || invoice.vehicle || '—'}</div>
                   <div className="text-muted">
                     <span className="text-secondary">VIN:</span> <span className="mono text-xs">{invoice.vin || '—'}</span>
                   </div>
+                  {vehicle?.color && <div className="text-muted">Color: {vehicle.color}</div>}
                 </div>
                 <div>
                   <h4>Invoice Details</h4>
@@ -239,7 +313,7 @@ function SalesInvoiceProfile({ invoice, customer, salesperson }: SalesInvoicePro
                       <TableCell className="num">{formatAmount(subtotal)}</TableCell>
                     </TableRow>
                     <TableRow className="line-items__total-row">
-                      <TableCell colSpan={3} className="num text-muted">Sales Tax</TableCell>
+                      <TableCell colSpan={3} className="num text-muted">Sales Tax ({TAX_RATE * 100}%)</TableCell>
                       <TableCell className="num">{formatAmount(invoice.tax)}</TableCell>
                     </TableRow>
                     <TableRow className="line-items__total-row line-items__grand-total">
@@ -263,6 +337,8 @@ function SalesInvoiceProfile({ invoice, customer, salesperson }: SalesInvoicePro
               </div>
             </div>
           </section>
+
+          <InvoiceTabs invoice={invoice} customer={customer} vehicle={vehicle} onReceivePayment={onReceivePayment} />
         </div>
 
         <aside className="sales-invoice-detail__aside">
@@ -296,8 +372,168 @@ function SalesInvoiceProfile({ invoice, customer, salesperson }: SalesInvoicePro
               </div>
             </dl>
           </section>
+
+          <section className="card summary-card">
+            <h3>Related Records</h3>
+            <ul className="related-records">
+              <RelatedRecord
+                icon={<Person20Regular />}
+                label="Customer Profile"
+                sub={customer?.fullName || invoice.customerName || '—'}
+                onClick={invoice.customerId ? () => related.openCustomer(invoice.customerId) : undefined}
+              />
+              <RelatedRecord
+                icon={<VehicleCarProfileLtr20Regular />}
+                label="Vehicle Record"
+                sub={vehicle?.title || invoice.vehicle || '—'}
+                onClick={invoice.vehicleId ? () => related.openVehicle(invoice.vehicleId) : undefined}
+              />
+              {invoice.lifecycle !== 'draft' && (
+                <RelatedRecord icon={<DocumentText20Regular />} label="GL Entries" sub="Posted transactions" onClick={related.openTransactions} />
+              )}
+              <RelatedRecord icon={<DataTrending20Regular />} label="Vehicle Profitability" sub={`Margin ${margin}%`} onClick={related.openProfitability} />
+            </ul>
+          </section>
         </aside>
       </div>
+    </>
+  )
+}
+
+interface RelatedRecordProps {
+  icon: ReactElement
+  label: string
+  sub: string
+  // Undefined when the invoice has no id to open the record by
+  onClick: (() => void) | undefined
+}
+
+function RelatedRecord({ icon, label, sub, onClick }: RelatedRecordProps) {
+  return (
+    <li>
+      <button type="button" className="related-record" disabled={!onClick} onClick={onClick}>
+        <span className="related-record__icon" aria-hidden="true">{icon}</span>
+        <span>
+          <span className="related-record__label">{label}</span>
+          <span className="related-record__sub">{sub}</span>
+        </span>
+      </button>
+    </li>
+  )
+}
+
+type InvoiceTab = 'details' | 'payments'
+const isInvoiceTab = (value: unknown): value is InvoiceTab => value === 'details' || value === 'payments'
+
+interface InvoiceTabsProps {
+  invoice: SalesInvoice
+  customer: Customer | undefined
+  vehicle: Vehicle | null
+  onReceivePayment: () => void
+}
+
+// The design's "Vehicle Details" / "Payment History" card under the invoice
+function InvoiceTabs({ invoice, customer, vehicle, onReceivePayment }: InvoiceTabsProps) {
+  const [tab, setTab] = useState<InvoiceTab>('details')
+
+  return (
+    <section className="card invoice-tabs">
+      <TabList
+        className="invoice-tabs__list"
+        selectedValue={tab}
+        onTabSelect={(_, data) => { if (isInvoiceTab(data.value)) setTab(data.value) }}
+      >
+        <Tab value="details">Vehicle Details</Tab>
+        <Tab value="payments">Payment History</Tab>
+      </TabList>
+
+      <div className="invoice-tabs__panel" role="tabpanel" aria-label={tab === 'details' ? 'Vehicle Details' : 'Payment History'}>
+        {tab === 'details'
+          ? <VehicleDetailsPanel invoice={invoice} customer={customer} vehicle={vehicle} />
+          : <PaymentHistoryPanel invoice={invoice} onReceivePayment={onReceivePayment} />}
+      </div>
+    </section>
+  )
+}
+
+function VehicleDetailsPanel({ invoice, customer, vehicle }: Omit<InvoiceTabsProps, 'onReceivePayment'>) {
+  const vehicleRows: [string, string][] = [
+    ['Make', vehicle?.make || invoice.make],
+    ['Model', vehicle?.model || invoice.model],
+    ['Year', vehicle?.year ? String(vehicle.year) : ''],
+    ['Color', vehicle?.color ?? ''],
+    ['VIN', vehicle?.vin || invoice.vin],
+    ['Warehouse', vehicle?.warehouse ?? ''],
+  ]
+  const customerRows: [string, string][] = [
+    ['Name', customer?.fullName || invoice.customerName],
+    ['Phone', customer?.phone ?? ''],
+    ['Email', customer?.email ?? ''],
+    ['Address', [customer?.address, customer?.city].filter(Boolean).join(', ')],
+    ['Customer ID', invoice.customerId],
+  ]
+
+  return (
+    <div className="detail-columns">
+      <div>
+        <h4>Vehicle Information</h4>
+        <dl className="detail-list">
+          {vehicleRows.map(([label, value]) => (
+            <div key={label}><dt>{label}</dt><dd className={label === 'VIN' ? 'mono text-xs' : undefined}>{value || '—'}</dd></div>
+          ))}
+        </dl>
+      </div>
+      <div>
+        <h4>Customer</h4>
+        <dl className="detail-list">
+          {customerRows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || '—'}</dd></div>)}
+        </dl>
+      </div>
+    </div>
+  )
+}
+
+// The API has no per-invoice receipt list yet (GetPaymentHistory needs the AR invoice id, which GetSalesInvoiceById
+// doesn't return), so, as the design does without recorded transactions, the amount paid is one row on the invoice date
+function PaymentHistoryPanel({ invoice, onReceivePayment }: { invoice: SalesInvoice; onReceivePayment: () => void }) {
+  if (invoice.paid <= 0) {
+    return (
+      <div className="payment-history__empty">
+        <MoneyHand20Regular aria-hidden="true" />
+        <div>No payments received yet</div>
+        {canReceivePayment(invoice) && <Button appearance="primary" onClick={onReceivePayment}>Receive Payment</Button>}
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div className="table-scroll">
+        <Table aria-label={`Payments for ${invoice.number}`} className="data-table payment-history-table">
+          <TableHeader>
+            <TableRow>
+              <TableHeaderCell>Date</TableHeaderCell>
+              <TableHeaderCell>Method</TableHeaderCell>
+              <TableHeaderCell>Reference</TableHeaderCell>
+              <TableHeaderCell className="num">Amount</TableHeaderCell>
+              <TableHeaderCell>Note</TableHeaderCell>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell className="text-secondary">{invoice.invoiceDate || '—'}</TableCell>
+              <TableCell><span className="method-chip">Recorded payment</span></TableCell>
+              <TableCell className="mono text-xs">—</TableCell>
+              <TableCell className="num strong text-green">{formatAmount(invoice.paid)}</TableCell>
+              <TableCell className="text-xs text-muted">Payment recorded with invoice</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+      <dl className="summary-list payment-history__totals">
+        <div><dt>Total Paid</dt><dd className="strong text-green">{formatAmount(invoice.paid)}</dd></div>
+        {invoice.balance > 0 && <div className="summary-list__strong"><dt className="text-amber">Balance Remaining</dt><dd className="text-amber">{formatAmount(invoice.balance)}</dd></div>}
+      </dl>
     </>
   )
 }

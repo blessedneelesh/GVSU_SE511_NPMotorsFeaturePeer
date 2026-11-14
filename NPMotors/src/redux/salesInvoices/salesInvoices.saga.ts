@@ -9,6 +9,7 @@ import {
   OPTIONS_FALLBACK_MESSAGE,
 } from '../../services/salesInvoices/salesInvoices.errors'
 import type { SalesInvoice, SalesInvoiceOptions, SalesInvoicePage, SalesInvoiceQuery } from '../../types/salesInvoices'
+import type { Vehicle } from '../../types/vehicles'
 import {
   type cancelSalesInvoice,
   cancelSalesInvoiceFailure,
@@ -17,6 +18,7 @@ import {
   type createSalesInvoice,
   loadSalesInvoiceByIdFailure,
   loadSalesInvoiceByIdSuccess,
+  loadSalesInvoiceVehicleSuccess,
   loadSalesInvoiceOptionsFailure,
   loadSalesInvoiceOptionsSuccess,
   loadSalesInvoices,
@@ -53,11 +55,25 @@ function* loadSalesInvoiceByIdWorker(action: SalesInvoiceDetailAction): SagaIter
   if (action.type !== SALES_INVOICE_ACTIONS.SELECT) return
   const controller = new AbortController()
   try {
-    const invoice: SalesInvoice = yield call(salesInvoicesApi.getSalesInvoiceById, action.payload, controller.signal)
+    let invoice: SalesInvoice
+    try {
+      invoice = yield call(salesInvoicesApi.getSalesInvoiceById, action.payload, controller.signal)
+    } catch (error) {
+      const message = getSalesInvoiceDetailErrorMessage(error)
+      if (message) yield put(loadSalesInvoiceByIdFailure(message))
+      return
+    }
     yield put(loadSalesInvoiceByIdSuccess(invoice))
-  } catch (error) {
-    const message = getSalesInvoiceDetailErrorMessage(error)
-    if (message) yield put(loadSalesInvoiceByIdFailure(message))
+
+    // The invoice is already showing; the vehicle record only adds its year, color and warehouse, so a failed
+    // lookup leaves those out instead of failing the whole view
+    if (!invoice.vehicleId) return
+    try {
+      const vehicle: Vehicle = yield call(salesInvoicesApi.getVehicle, invoice.vehicleId, controller.signal)
+      yield put(loadSalesInvoiceVehicleSuccess(vehicle))
+    } catch (error) {
+      if (getSalesInvoiceErrorMessage(error)) yield put(loadSalesInvoiceVehicleSuccess(null))
+    }
   } finally {
     const wasCancelled: boolean = yield cancelled()
     if (wasCancelled) controller.abort()
@@ -80,9 +96,9 @@ function* loadOptionsWorker(): SagaIterator {
 
 type SaveSalesInvoiceAction = ReturnType<typeof createSalesInvoice> | ReturnType<typeof postSalesInvoice>
 
-// Save Draft and Post Invoice send the same body to different endpoints
+// Save Draft sends the invoice to AddSalesInvoice; Post Invoice sends it plus the payment to CreateAndPost
 function* saveSalesInvoiceWorker(action: SaveSalesInvoiceAction): SagaIterator {
-  const save = action.type === SALES_INVOICE_ACTIONS.POST ? salesInvoicesApi.postSalesInvoice : salesInvoicesApi.addSalesInvoice
+  const save = action.type === SALES_INVOICE_ACTIONS.POST ? salesInvoicesApi.createAndPostSalesInvoice : salesInvoicesApi.addSalesInvoice
   try {
     yield call(save, action.payload)
     yield put(saveSalesInvoiceSuccess())

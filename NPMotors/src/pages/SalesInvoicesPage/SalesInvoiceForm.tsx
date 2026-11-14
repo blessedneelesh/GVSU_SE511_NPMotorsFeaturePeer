@@ -9,18 +9,36 @@ import {
   MessageBarBody,
   MessageBarTitle,
   Option,
+  Radio,
+  RadioGroup,
   Spinner,
 } from '@fluentui/react-components'
 import { useSalesInvoiceMutations } from '../../hooks/useSalesInvoiceMutations'
 import { useSalesInvoiceOptions } from '../../hooks/useSalesInvoiceOptions'
-import type { SalesInvoiceFieldErrors, SalesInvoiceFormField, SalesInvoiceFormValues } from '../../types/salesInvoices'
+import type { BankAccount } from '../../types/bankAccounts'
+import type {
+  SalesInvoiceFieldErrors,
+  SalesInvoiceFormField,
+  SalesInvoiceFormValues,
+  SalesInvoicePaymentTerms,
+} from '../../types/salesInvoices'
 import type { Vehicle } from '../../types/vehicles'
 import { PostSalesInvoiceDialog } from './PostSalesInvoiceDialog'
-import { addDaysIso, computeTotals, formatAmount, TAX_RATE, todayIso } from './salesInvoiceMetrics'
+import { addDaysIso, computeTotals, formatAmount, roundCents, TAX_RATE, todayIso } from './salesInvoiceMetrics'
 
-// Tax and fees aren't typed; they're computed from the vehicle when the form is submitted
-type EditableField = Exclude<SalesInvoiceFormField, 'tax' | 'fees'>
+// Tax and fees aren't typed; they're computed from the vehicle when the form is submitted. The payment terms are a
+// radio choice, kept in their own state.
+type EditableField = Exclude<SalesInvoiceFormField, 'tax' | 'fees' | 'paymentTerms'>
 type EditableValues = Pick<SalesInvoiceFormValues, EditableField>
+
+// The design's Payment Method options, in its order; it starts on Financing (nothing collected now)
+const PAYMENT_TERMS: { value: SalesInvoicePaymentTerms; label: string }[] = [
+  { value: 'bank', label: 'Bank' },
+  { value: 'cash', label: 'Cash' },
+  { value: 'financing', label: 'Financing' },
+  { value: 'partial', label: 'Partial' },
+]
+const isPaymentTerms = (value: string): value is SalesInvoicePaymentTerms => PAYMENT_TERMS.some((terms) => terms.value === value)
 
 // The design defaults the due date to a month after the invoice date
 const DUE_IN_DAYS = 30
@@ -36,6 +54,9 @@ const REQUIRED_MESSAGES: Partial<Record<EditableField, string>> = {
 
 const vehicleLabel = (vehicle: Vehicle) =>
   `${vehicle.title}${vehicle.color ? ` — ${vehicle.color}` : ''} (VIN: ...${vehicle.vin.slice(-6)})`
+
+const accountLabel = (account: BankAccount) =>
+  `${[account.bankName, account.name].filter(Boolean).join(' — ')}${account.accountNumber ? ` (${account.accountNumber})` : ''}`
 
 // Drafts and posted invoices need the same fields: the API rejects a draft without customer, salesperson or vehicle
 function validate(values: EditableValues, salePrice: number): SalesInvoiceFieldErrors {
@@ -56,6 +77,19 @@ function validate(values: EditableValues, salePrice: number): SalesInvoiceFieldE
   return errors
 }
 
+// Posting also records the payment; CreateAndPost's rules: a partial payment is more than zero and less than the
+// total, and any amount received needs an account to deposit it to
+function validatePayment(values: EditableValues, terms: SalesInvoicePaymentTerms, total: number): SalesInvoiceFieldErrors {
+  const errors: SalesInvoiceFieldErrors = {}
+  if (terms === 'partial') {
+    const amount = Number(values.amountReceived.trim())
+    if (!values.amountReceived.trim() || !Number.isFinite(amount) || amount <= 0) errors.amountReceived = 'Enter the amount received'
+    else if (amount >= total) errors.amountReceived = 'Partial payment must be less than the invoice total.'
+  }
+  if (terms !== 'financing' && !values.bankAccountId) errors.bankAccountId = 'Select the account the payment is deposited to'
+  return errors
+}
+
 interface SalesInvoiceFormProps {
   onClose: () => void
 }
@@ -72,7 +106,10 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
     invoiceDate: todayIso(),
     dueDate: addDaysIso(DUE_IN_DAYS),
     discount: '',
+    amountReceived: '',
+    bankAccountId: '',
   }))
+  const [paymentTerms, setPaymentTerms] = useState<SalesInvoicePaymentTerms>('financing')
   const [clientErrors, setClientErrors] = useState<SalesInvoiceFieldErrors>({})
   // Server errors stay in Redux until the next submit; hide each one as soon as its field is edited
   const [editedFields, setEditedFields] = useState<ReadonlySet<SalesInvoiceFormField>>(new Set())
@@ -84,12 +121,21 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
   const customer = options.customers.find((item) => item.id === values.customerId)
   const vehicle = options.vehicles.find((item) => item.id === values.vehicleId)
 
-  // The API prices the invoice at the vehicle's selling price; the form shows the same figures before saving
+  // The API prices the invoice at the vehicle's selling price; the form shows the same figures before saving.
+  // The discount is rounded to cents as it's sent, so a paid-in-full amount matches the API's total exactly.
   const salePrice = vehicle?.sellingPrice ?? 0
-  const discount = Number(values.discount) > 0 ? Number(values.discount) : 0
+  const discount = Number(values.discount) > 0 ? roundCents(Number(values.discount)) : 0
   const totals = computeTotals(salePrice, discount)
   const cogs = vehicle?.totalCost ?? 0
   const profit = totals.subtotal - cogs
+
+  const partialAmount = Number(values.amountReceived) > 0 ? roundCents(Number(values.amountReceived)) : 0
+  const amountPaid =
+    paymentTerms === 'bank' || paymentTerms === 'cash' ? totals.total
+      : paymentTerms === 'partial' ? Math.min(partialAmount, totals.total)
+        : 0
+  const balance = Math.max(0, roundCents(totals.total - amountPaid))
+  const needsDepositAccount = paymentTerms !== 'financing'
 
   const errorFor = (field: SalesInvoiceFormField) => clientErrors[field] ?? (editedFields.has(field) ? undefined : fieldErrors[field])
   // Tax and fees have no input, so their server errors go in the banner
@@ -101,24 +147,38 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
     setEditedFields((current) => new Set(current).add(field))
   }
 
-  const toFormValues = (): SalesInvoiceFormValues => ({ ...values, tax: totals.tax.toFixed(2), fees: totals.fees.toFixed(2) })
+  const changePaymentTerms = (value: string) => {
+    if (!isPaymentTerms(value)) return
+    setPaymentTerms(value)
+    setClientErrors((current) => ({ ...current, amountReceived: undefined, bankAccountId: undefined }))
+    setEditedFields((current) => new Set(current).add('amountReceived').add('bankAccountId'))
+  }
 
-  // Returns true when the form can be sent
-  const check = () => {
-    const errors = validate(values, salePrice)
+  const toFormValues = (): SalesInvoiceFormValues => ({
+    ...values,
+    tax: totals.tax.toFixed(2),
+    fees: totals.fees.toFixed(2),
+    paymentTerms,
+    amountReceived: amountPaid.toFixed(2),
+    bankAccountId: needsDepositAccount ? values.bankAccountId : '',
+  })
+
+  // Returns true when the form can be sent; a draft records no payment, so only posting checks it
+  const check = (withPayment: boolean) => {
+    const errors = { ...validate(values, salePrice), ...(withPayment ? validatePayment(values, paymentTerms, totals.total) : {}) }
     setClientErrors(errors)
     return Object.keys(errors).length === 0
   }
 
   const handleSaveDraft = (event: FormEvent) => {
     event.preventDefault()
-    if (!check()) return
+    if (!check(false)) return
     setEditedFields(new Set())
     saveDraft(toFormValues())
   }
 
   const handlePost = () => {
-    if (check()) setConfirmOpen(true)
+    if (check(true)) setConfirmOpen(true)
   }
 
   const confirmPost = () => {
@@ -233,6 +293,41 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
                 />
               </Field>
             </div>
+
+            <Field label="Payment Method" hint={paymentTerms === 'financing' ? 'Nothing is collected now; the balance goes to Accounts Receivable' : undefined}>
+              <RadioGroup
+                layout="horizontal"
+                className="payment-terms"
+                value={paymentTerms}
+                onChange={(_, data) => changePaymentTerms(data.value)}
+              >
+                {PAYMENT_TERMS.map((terms) => (
+                  <Radio key={terms.value} value={terms.value} label={terms.label} className="payment-terms__option" />
+                ))}
+              </RadioGroup>
+            </Field>
+
+            {paymentTerms === 'partial' && (
+              <Field label="Amount Received" required validationState={errorFor('amountReceived') ? 'error' : 'none'} validationMessage={errorFor('amountReceived')}>
+                <Input
+                  type="number"
+                  className="mono"
+                  min={0}
+                  step="0.01"
+                  value={values.amountReceived}
+                  placeholder="0.00"
+                  onChange={(_, data) => setField('amountReceived', data.value)}
+                />
+              </Field>
+            )}
+
+            {needsDepositAccount &&
+              dropdownField(
+                'bankAccountId',
+                'Deposit To',
+                options.bankAccounts.length || optionsLoading ? 'Select account...' : 'No active bank accounts',
+                options.bankAccounts.map((item) => ({ id: item.id, label: accountLabel(item) })),
+              )}
           </fieldset>
 
           <aside className="sales-invoice-form__aside">
@@ -245,7 +340,8 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
                 <div><dt>Tax ({TAX_RATE * 100}%)</dt><dd>{formatAmount(totals.tax)}</dd></div>
                 <div><dt>Fees</dt><dd>{formatAmount(totals.fees)}</dd></div>
                 <div className="summary-list__total"><dt>Total</dt><dd className="text-blue">{formatAmount(totals.total)}</dd></div>
-                <div className="summary-list__strong"><dt>Balance Due</dt><dd className="text-amber">{formatAmount(totals.total)}</dd></div>
+                <div><dt>Paid on Invoice</dt><dd className="text-green">{formatAmount(amountPaid)}</dd></div>
+                <div className="summary-list__strong"><dt>Balance Due</dt><dd className="text-amber">{formatAmount(balance)}</dd></div>
               </dl>
             </section>
 
@@ -302,6 +398,7 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
           customerName={customer?.fullName ?? ''}
           vehicle={vehicle?.title ?? ''}
           total={totals.total}
+          amountReceived={amountPaid}
           onConfirm={confirmPost}
           onClose={() => setConfirmOpen(false)}
         />

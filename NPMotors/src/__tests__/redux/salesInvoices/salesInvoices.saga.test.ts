@@ -12,6 +12,7 @@ import {
   createSalesInvoice,
   loadSalesInvoiceByIdFailure,
   loadSalesInvoiceByIdSuccess,
+  loadSalesInvoiceVehicleSuccess,
   loadSalesInvoiceOptions,
   loadSalesInvoiceOptionsFailure,
   loadSalesInvoiceOptionsSuccess,
@@ -36,7 +37,9 @@ import {
   salesInvoiceFormValues,
   salesInvoiceOptions,
   salesInvoicePage,
+  sparseInvoice,
 } from '../../../test/fixtures/salesInvoices'
+import { availableVehicle } from '../../../test/fixtures/vehicles'
 import type { SalesInvoice, SalesInvoiceOptions, SalesInvoicePage, SalesInvoiceQuery } from '../../../types/salesInvoices'
 
 vi.mock('../../../services/salesInvoices/salesInvoices.api', () => ({
@@ -44,7 +47,8 @@ vi.mock('../../../services/salesInvoices/salesInvoices.api', () => ({
     getSalesInvoices: vi.fn(),
     getSalesInvoiceById: vi.fn(),
     addSalesInvoice: vi.fn(),
-    postSalesInvoice: vi.fn(),
+    getVehicle: vi.fn(),
+    createAndPostSalesInvoice: vi.fn(),
     cancelSalesInvoice: vi.fn(),
     getOptions: vi.fn(),
   },
@@ -154,12 +158,47 @@ describe('loadSalesInvoiceByIdWorker', () => {
     expect(gen.next().done).toBe(true)
   })
 
-  it('dispatches the loaded invoice', () => {
+  // Steps past the invoice to the vehicle lookup, which shares the invoice's abort signal
+  const startVehicleLookup = () => {
     const { gen, signal } = startLookup()
     expect(gen.next(postedInvoice).value).toStrictEqual(put(loadSalesInvoiceByIdSuccess(postedInvoice)))
+    expect(gen.next().value).toEqual(call(salesInvoicesApi.getVehicle, '24', signal))
+    return { gen, signal }
+  }
+
+  it('dispatches the loaded invoice, then its vehicle record', () => {
+    const { gen, signal } = startVehicleLookup()
+    expect(gen.next(availableVehicle).value).toStrictEqual(put(loadSalesInvoiceVehicleSuccess(availableVehicle)))
     expect(gen.next().value).toStrictEqual(cancelled())
     expect(gen.next(false).done).toBe(true)
     expect(signal.aborted).toBe(false)
+  })
+
+  it('clears the vehicle when its lookup fails, leaving the invoice showing', () => {
+    const { gen } = startVehicleLookup()
+    expect(gen.throw(httpError(404)).value).toStrictEqual(put(loadSalesInvoiceVehicleSuccess(null)))
+    expect(gen.next().value).toStrictEqual(cancelled())
+    expect(gen.next(false).done).toBe(true)
+  })
+
+  it('dispatches nothing when the vehicle lookup was cancelled', () => {
+    const { gen } = startVehicleLookup()
+    expect(gen.throw(canceled()).value).toStrictEqual(cancelled())
+    expect(gen.next(false).done).toBe(true)
+  })
+
+  it('aborts the vehicle lookup when takeLatest cancels the worker', () => {
+    const { gen, signal } = startVehicleLookup()
+    expect(gen.return(undefined).value).toStrictEqual(cancelled())
+    expect(gen.next(true).done).toBe(true)
+    expect(signal.aborted).toBe(true)
+  })
+
+  it('skips the vehicle lookup for an invoice without a vehicle id', () => {
+    const { gen } = startLookup()
+    expect(gen.next(sparseInvoice).value).toStrictEqual(put(loadSalesInvoiceByIdSuccess(sparseInvoice)))
+    expect(gen.next().value).toStrictEqual(cancelled())
+    expect(gen.next(false).done).toBe(true)
   })
 
   it('dispatches the not-found message when the invoice is gone', () => {
@@ -240,7 +279,7 @@ describe('loadOptionsWorker', () => {
 describe('saveSalesInvoiceWorker', () => {
   it.each([
     ['Save Draft', createSalesInvoice(salesInvoiceFormValues), salesInvoicesApi.addSalesInvoice],
-    ['Post Invoice', postSalesInvoice(salesInvoiceFormValues), salesInvoicesApi.postSalesInvoice],
+    ['Post Invoice', postSalesInvoice(salesInvoiceFormValues), salesInvoicesApi.createAndPostSalesInvoice],
   ] as const)('%s calls its endpoint, dispatches success and then reloads the list', (_, action, endpoint) => {
     const gen = saveSalesInvoiceWorker(action)
     expect(gen.next().value).toStrictEqual(call(endpoint, salesInvoiceFormValues))
@@ -362,8 +401,9 @@ describe('salesInvoicesSaga (running)', () => {
   beforeEach(() => {
     vi.mocked(salesInvoicesApi.getSalesInvoices).mockResolvedValue(salesInvoicePage)
     vi.mocked(salesInvoicesApi.getSalesInvoiceById).mockResolvedValue(postedInvoice)
+    vi.mocked(salesInvoicesApi.getVehicle).mockResolvedValue(availableVehicle)
     vi.mocked(salesInvoicesApi.addSalesInvoice).mockResolvedValue(undefined)
-    vi.mocked(salesInvoicesApi.postSalesInvoice).mockResolvedValue(undefined)
+    vi.mocked(salesInvoicesApi.createAndPostSalesInvoice).mockResolvedValue(undefined)
     vi.mocked(salesInvoicesApi.cancelSalesInvoice).mockResolvedValue(undefined)
     vi.mocked(salesInvoicesApi.getOptions).mockResolvedValue(salesInvoiceOptions)
     const saga = createSagaMiddleware()
@@ -388,7 +428,7 @@ describe('salesInvoicesSaga (running)', () => {
     save.resolve(undefined)
     await vi.waitFor(() => expect(store.getState().salesInvoices.saveStatus).toBe('success'))
     expect(salesInvoicesApi.addSalesInvoice).toHaveBeenCalledTimes(1)
-    expect(salesInvoicesApi.postSalesInvoice).not.toHaveBeenCalled()
+    expect(salesInvoicesApi.createAndPostSalesInvoice).not.toHaveBeenCalled()
     expect(store.getState().salesInvoices.saveMode).toBe('draft')
   })
 
@@ -398,7 +438,7 @@ describe('salesInvoicesSaga (running)', () => {
     await vi.waitFor(() => expect(store.getState().salesInvoices.listStatus).toBe('success'))
     expect(store.getState().salesInvoices.saveStatus).toBe('success')
     expect(store.getState().salesInvoices.saveMode).toBe('post')
-    expect(salesInvoicesApi.postSalesInvoice).toHaveBeenCalledWith(salesInvoiceFormValues)
+    expect(salesInvoicesApi.createAndPostSalesInvoice).toHaveBeenCalledWith(salesInvoiceFormValues)
     expect(salesInvoicesApi.getSalesInvoices).toHaveBeenCalledTimes(1)
   })
 
@@ -482,7 +522,7 @@ describe('salesInvoicesSaga (running)', () => {
     expect(vi.mocked(salesInvoicesApi.getOptions).mock.calls[0]?.[0]?.aborted).toBe(true)
 
     await vi.waitFor(() => expect(store.getState().salesInvoices.optionsStatus).toBe('success'))
-    first.resolve({ customers: [], employees: [], salespeople: [], vehicles: [] })
+    first.resolve({ customers: [], employees: [], salespeople: [], vehicles: [], bankAccounts: [] })
     await flush()
     expect(store.getState().salesInvoices.options).toEqual(salesInvoiceOptions)
   })

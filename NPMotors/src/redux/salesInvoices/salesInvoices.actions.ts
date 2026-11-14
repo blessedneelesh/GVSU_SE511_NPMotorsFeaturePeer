@@ -7,6 +7,7 @@ import type {
   SalesInvoiceSaveError,
   SalesInvoiceStatusFilter,
 } from '../../types/salesInvoices'
+import type { Vehicle } from '../../types/vehicles'
 import { SALES_INVOICE_ACTIONS } from './salesInvoices.constants'
 
 export const loadSalesInvoices = () => ({ type: SALES_INVOICE_ACTIONS.LOAD })
@@ -37,6 +38,9 @@ export const loadSalesInvoiceByIdSuccess = (invoice: SalesInvoice) => ({ type: S
 
 export const loadSalesInvoiceByIdFailure = (message: string) => ({ type: SALES_INVOICE_ACTIONS.LOAD_BY_ID_FAILURE, payload: message })
 
+// The selected invoice's vehicle record (year, color, warehouse), or null when it couldn't be loaded
+export const loadSalesInvoiceVehicleSuccess = (vehicle: Vehicle | null) => ({ type: SALES_INVOICE_ACTIONS.LOAD_VEHICLE_SUCCESS, payload: vehicle })
+
 // Customers, employees and available vehicles for the form's dropdowns and the table's salesperson names
 export const loadSalesInvoiceOptions = () => ({ type: SALES_INVOICE_ACTIONS.LOAD_OPTIONS })
 
@@ -47,7 +51,7 @@ export const loadSalesInvoiceOptionsFailure = (message: string) => ({ type: SALE
 // "Save Draft": AddSalesInvoice
 export const createSalesInvoice = (values: SalesInvoiceFormValues) => ({ type: SALES_INVOICE_ACTIONS.CREATE, payload: values })
 
-// "Post Invoice": PostSalesInvoice, which creates the invoice already posted
+// "Post Invoice": CreateAndPost, which creates the invoice already posted and records the payment received
 export const postSalesInvoice = (values: SalesInvoiceFormValues) => ({ type: SALES_INVOICE_ACTIONS.POST, payload: values })
 
 export const saveSalesInvoiceSuccess = () => ({ type: SALES_INVOICE_ACTIONS.SAVE_SUCCESS })
@@ -80,6 +84,7 @@ export type SalesInvoicesAction =
   | ReturnType<typeof clearSalesInvoiceSelection>
   | ReturnType<typeof loadSalesInvoiceByIdSuccess>
   | ReturnType<typeof loadSalesInvoiceByIdFailure>
+  | ReturnType<typeof loadSalesInvoiceVehicleSuccess>
   | ReturnType<typeof loadSalesInvoiceOptions>
   | ReturnType<typeof loadSalesInvoiceOptionsSuccess>
   | ReturnType<typeof loadSalesInvoiceOptionsFailure>
