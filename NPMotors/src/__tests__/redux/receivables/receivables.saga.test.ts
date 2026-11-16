@@ -4,6 +4,9 @@ import createSagaMiddleware, { type SagaIterator, type Task } from 'redux-saga'
 import { all, call, cancelled, put, select, takeLatest } from 'redux-saga/effects'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  clearReceivableSelection,
+  loadReceivableByIdFailure,
+  loadReceivableByIdSuccess,
   loadReceivableCustomerOptions,
   loadReceivableCustomerOptionsFailure,
   loadReceivableCustomerOptionsSuccess,
@@ -11,6 +14,7 @@ import {
   loadReceivablesFailure,
   loadReceivablesSuccess,
   resetReceivableFilters,
+  selectReceivable,
   setReceivableAsOfDate,
   setReceivableStatusFilter,
 } from '../../../redux/receivables/receivables.actions'
@@ -20,11 +24,11 @@ import { selectReceivableQuery } from '../../../redux/receivables/receivables.se
 import { rootReducer } from '../../../redux/rootReducer'
 import { receivablesApi } from '../../../services/receivables/receivables.api'
 import { getReceivableErrorMessage } from '../../../services/receivables/receivables.errors'
-import { overdueReceivable, partialReceivable, receivableCustomerOptions, receivablePage } from '../../../test/fixtures/receivables'
-import type { ReceivablePage, ReceivableQuery } from '../../../types/receivables'
+import { overdueReceivable, partialReceivable, receivableCustomerOptions, receivableDetail, receivablePage } from '../../../test/fixtures/receivables'
+import type { ReceivableDetail, ReceivablePage, ReceivableQuery } from '../../../types/receivables'
 
 vi.mock('../../../services/receivables/receivables.api', () => ({
-  receivablesApi: { getReceivables: vi.fn(), getCustomerOptions: vi.fn() },
+  receivablesApi: { getReceivables: vi.fn(), getReceivableById: vi.fn(), getCustomerOptions: vi.fn() },
 }))
 
 // The workers aren't exported; take them from the watchers in the root saga's all([...]) effect
@@ -37,7 +41,8 @@ const workerAt = (index: number): Worker => {
   return effect.payload.args[1]
 }
 const loadReceivablesWorker = workerAt(0)
-const loadCustomerOptionsWorker = workerAt(1)
+const loadReceivableByIdWorker = workerAt(1)
+const loadCustomerOptionsWorker = workerAt(2)
 
 // The error helpers check axios.isAxiosError / axios.isCancel, so failures must be real axios errors
 const httpError = (status: number, data?: unknown) =>
@@ -48,12 +53,13 @@ const canceled = () => new CanceledError()
 const query: ReceivableQuery = { pageNumber: 2, pageSize: 10, status: 'overdue', customerId: '7', asOfDate: '' }
 
 describe('receivablesSaga (root)', () => {
-  it('starts the two watchers with the right patterns and effects', () => {
+  it('starts the three watchers with the right patterns and effects', () => {
     const gen = receivablesSaga()
     expect(gen.next().value).toStrictEqual(all([
       takeLatest([RECEIVABLE_ACTIONS.LOAD, RECEIVABLE_ACTIONS.SET_STATUS_FILTER, RECEIVABLE_ACTIONS.SET_CUSTOMER_FILTER,
         RECEIVABLE_ACTIONS.SET_AS_OF_DATE, RECEIVABLE_ACTIONS.RESET_FILTERS,
         RECEIVABLE_ACTIONS.SET_PAGE, RECEIVABLE_ACTIONS.SET_PAGE_SIZE], loadReceivablesWorker),
+      takeLatest([RECEIVABLE_ACTIONS.SELECT, RECEIVABLE_ACTIONS.CLEAR_SELECTION], loadReceivableByIdWorker),
       takeLatest(RECEIVABLE_ACTIONS.LOAD_CUSTOMER_OPTIONS, loadCustomerOptionsWorker),
     ]))
     expect(gen.next().done).toBe(true)
@@ -109,6 +115,52 @@ describe('loadReceivablesWorker', () => {
     const step = gen.return(undefined)
     expect(step.value).toStrictEqual(cancelled())
     expect(step.done).toBe(false)
+    expect(gen.next(true).done).toBe(true)
+    expect(signal.aborted).toBe(true)
+  })
+})
+
+describe('loadReceivableByIdWorker', () => {
+  const startDetail = () => {
+    const gen = loadReceivableByIdWorker(selectReceivable('2471'))
+    const effect = gen.next().value
+    expect(effect).toEqual(call(receivablesApi.getReceivableById, '2471', expect.any(AbortSignal)))
+    return { gen, signal: effect.payload.args[1] as AbortSignal }
+  }
+
+  it('does nothing on CLEAR_SELECTION', () => {
+    expect(loadReceivableByIdWorker(clearReceivableSelection()).next().done).toBe(true)
+  })
+
+  it('dispatches the loaded record', () => {
+    const { gen, signal } = startDetail()
+    expect(gen.next(receivableDetail).value).toStrictEqual(put(loadReceivableByIdSuccess(receivableDetail)))
+    expect(gen.next().value).toStrictEqual(cancelled())
+    expect(gen.next(false).done).toBe(true)
+    expect(signal.aborted).toBe(false)
+  })
+
+  it('says the record no longer exists on a 404', () => {
+    const { gen } = startDetail()
+    expect(gen.throw(httpError(404, { title: 'Not Found', status: 404 })).value)
+      .toStrictEqual(put(loadReceivableByIdFailure('This receivable no longer exists.')))
+  })
+
+  it('falls back to the detail message when the error has no detail', () => {
+    const { gen } = startDetail()
+    expect(gen.throw(httpError(400)).value)
+      .toStrictEqual(put(loadReceivableByIdFailure('This receivable could not be loaded. Please try again.')))
+  })
+
+  it('dispatches nothing when the request was cancelled', () => {
+    const { gen } = startDetail()
+    expect(gen.throw(canceled()).value).toStrictEqual(cancelled())
+    expect(gen.next(false).done).toBe(true)
+  })
+
+  it('aborts the request when takeLatest cancels the worker', () => {
+    const { gen, signal } = startDetail()
+    expect(gen.return(undefined).value).toStrictEqual(cancelled())
     expect(gen.next(true).done).toBe(true)
     expect(signal.aborted).toBe(true)
   })
@@ -216,6 +268,28 @@ describe('receivablesSaga (running)', () => {
 
     await vi.waitFor(() => expect(store.getState().receivables.customerOptionsStatus).toBe('success'))
     expect(store.getState().receivables.customerOptions).toEqual(receivableCustomerOptions)
+  })
+
+  it('closing the detail cancels its lookup, so a late response is ignored', async () => {
+    const pending = deferred<ReceivableDetail>()
+    vi.mocked(receivablesApi.getReceivableById).mockReturnValueOnce(pending.promise)
+
+    store.dispatch(selectReceivable('2471'))
+    store.dispatch(clearReceivableSelection())
+    expect(vi.mocked(receivablesApi.getReceivableById).mock.calls[0]?.[1]?.aborted).toBe(true)
+
+    pending.resolve(receivableDetail)
+    await flush()
+    expect(store.getState().receivables).toMatchObject({ selectedId: null, selected: null, detailStatus: 'idle' })
+  })
+
+  it('loads the selected record', async () => {
+    vi.mocked(receivablesApi.getReceivableById).mockResolvedValueOnce(receivableDetail)
+
+    store.dispatch(selectReceivable('2471'))
+
+    await vi.waitFor(() => expect(store.getState().receivables.detailStatus).toBe('success'))
+    expect(store.getState().receivables.selected).toEqual(receivableDetail)
   })
 
   it('stores the error message when the list fails to load', async () => {

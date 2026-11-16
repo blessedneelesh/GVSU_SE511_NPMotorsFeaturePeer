@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as selectors from '../../../redux/receivables/receivables.selectors'
 import { makeReceivableState } from '../../../test/test-utils'
-import { receivableCustomerOptions, receivablePage } from '../../../test/fixtures/receivables'
+import { receivableCustomerOptions, receivableDetail, receivablePage } from '../../../test/fixtures/receivables'
 
 const query = { pageNumber: 2, pageSize: 10, status: 'overdue', customerId: '7', asOfDate: '2024-04-01' } as const
 
@@ -12,6 +12,10 @@ const state = makeReceivableState({
   query,
   listStatus: 'success',
   listError: 'list error',
+  selectedId: '2471',
+  selected: receivableDetail,
+  detailStatus: 'success',
+  detailError: 'detail error',
   customerOptions: receivableCustomerOptions,
   customerOptionsStatus: 'error',
   customerOptionsError: 'options error',
@@ -28,6 +32,10 @@ describe('receivables selectors', () => {
     ['selectReceivableQuery', selectors.selectReceivableQuery, query],
     ['selectReceivableListStatus', selectors.selectReceivableListStatus, 'success'],
     ['selectReceivableListError', selectors.selectReceivableListError, 'list error'],
+    ['selectSelectedReceivableId', selectors.selectSelectedReceivableId, '2471'],
+    ['selectSelectedReceivable', selectors.selectSelectedReceivable, receivableDetail],
+    ['selectReceivableDetailStatus', selectors.selectReceivableDetailStatus, 'success'],
+    ['selectReceivableDetailError', selectors.selectReceivableDetailError, 'detail error'],
     ['selectReceivableCustomerOptions', selectors.selectReceivableCustomerOptions, receivableCustomerOptions],
     ['selectReceivableCustomerOptionsStatus', selectors.selectReceivableCustomerOptionsStatus, 'error'],
     ['selectReceivableCustomerOptionsError', selectors.selectReceivableCustomerOptionsError, 'options error'],

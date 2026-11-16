@@ -2,6 +2,8 @@ import axios from 'axios'
 
 const UNREACHABLE_MESSAGE = 'Accounts receivable service is unreachable. Is the API running on https://localhost:7003?'
 const FALLBACK_MESSAGE = 'Receivables could not be loaded. Please try again.'
+const DETAIL_FALLBACK_MESSAGE = 'This receivable could not be loaded. Please try again.'
+const NOT_FOUND_MESSAGE = 'This receivable no longer exists.'
 export const CUSTOMER_OPTIONS_FALLBACK_MESSAGE = 'Customers could not be loaded. Please try again.'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -37,4 +39,10 @@ export function getReceivableErrorMessage(error: unknown, fallback: string = FAL
   if (status !== undefined && ((status >= 502 && status <= 504) || (status === 500 && !data))) return UNREACHABLE_MESSAGE
 
   return readProblemDetails(data) || fallback
+}
+
+// GetArById answers 404 with a bare "Not Found" ProblemDetails; show something friendlier
+export function getReceivableDetailErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error) && error.response?.status === 404) return NOT_FOUND_MESSAGE
+  return getReceivableErrorMessage(error, DETAIL_FALLBACK_MESSAGE)
 }

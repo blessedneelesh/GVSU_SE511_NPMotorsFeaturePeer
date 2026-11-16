@@ -1,8 +1,8 @@
 import { AR_ENDPOINTS } from '../api/apiConstants'
 import { customerClient } from '../api/customerClient'
 import { customersApi } from '../customers/customers.api'
-import type { ReceivableCustomerOption, ReceivablePage, ReceivableQuery } from '../../types/receivables'
-import { mapReceivableCollection, readHasNext, toReceivableCustomerOptions } from './receivables.mappers'
+import type { ReceivableCustomerOption, ReceivableDetail, ReceivablePage, ReceivableQuery } from '../../types/receivables'
+import { mapReceivableCollection, mapReceivableDetail, readHasNext, toReceivableCustomerOptions } from './receivables.mappers'
 
 interface ReceivableQueryParams {
   PageNumber: number
@@ -27,9 +27,14 @@ async function getReceivables(query: ReceivableQuery, signal?: AbortSignal): Pro
   return { items, hasNext: readHasNext(data) ?? items.length === query.pageSize }
 }
 
+async function getReceivableById(id: string, signal?: AbortSignal): Promise<ReceivableDetail> {
+  const { data } = await customerClient.get<unknown>(AR_ENDPOINTS.getArById, { params: { id }, signal })
+  return mapReceivableDetail(data)
+}
+
 async function getCustomerOptions(signal?: AbortSignal): Promise<ReceivableCustomerOption[]> {
   const page = await customersApi.getCustomers({ pageNumber: 1, pageSize: CUSTOMER_OPTIONS_PAGE_SIZE, status: 'all', searchTerm: '' }, signal)
   return toReceivableCustomerOptions(page.items)
 }
 
-export const receivablesApi = { getReceivables, getCustomerOptions }
+export const receivablesApi = { getReceivables, getReceivableById, getCustomerOptions }

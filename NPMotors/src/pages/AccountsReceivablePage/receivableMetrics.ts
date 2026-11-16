@@ -18,6 +18,21 @@ export const daysClass = (days: number) => (days <= 0 ? 'text-green' : days > 30
 
 export const formatDays = (days: number) => (days > 0 ? `${days}d` : 'Current')
 
+// The detail view shows cents, as the design does
+const exactCurrency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 })
+export const formatCurrencyExact = (value: number) => exactCurrency.format(value)
+
+// Share of the invoice collected, 0–100
+export const paidPercent = (paid: number, amount: number) => (amount > 0 ? Math.min(Math.max((paid / amount) * 100, 0), 100) : 0)
+
+// The design's aging buckets: current, 1–30, 31–60, 61–90, 90+ days
+export const agingClass = (days: number) =>
+  days <= 0 ? 'aging-current' : days <= 30 ? 'aging-30' : days <= 60 ? 'aging-60' : days <= 90 ? 'aging-90' : 'aging-90-plus'
+
+// "Lisa Anderson" -> "LA"
+export const getNameInitials = (name: string) =>
+  name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('') || '?'
+
 export interface ReceivableTotals {
   amount: number
   paid: number

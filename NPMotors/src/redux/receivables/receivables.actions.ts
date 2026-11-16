@@ -1,6 +1,7 @@
 import type {
   ReceivableCustomerFilter,
   ReceivableCustomerOption,
+  ReceivableDetail,
   ReceivablePage,
   ReceivableStatusFilter,
 } from '../../types/receivables'
@@ -26,6 +27,16 @@ export const setReceivablePage = (pageNumber: number) => ({ type: RECEIVABLE_ACT
 
 export const setReceivablePageSize = (pageSize: number) => ({ type: RECEIVABLE_ACTIONS.SET_PAGE_SIZE, payload: pageSize })
 
+// Opens the detail view and loads the AR invoice from GetArById
+export const selectReceivable = (id: string) => ({ type: RECEIVABLE_ACTIONS.SELECT, payload: id })
+
+// Closes the detail view; also cancels an in-flight lookup
+export const clearReceivableSelection = () => ({ type: RECEIVABLE_ACTIONS.CLEAR_SELECTION })
+
+export const loadReceivableByIdSuccess = (receivable: ReceivableDetail) => ({ type: RECEIVABLE_ACTIONS.LOAD_BY_ID_SUCCESS, payload: receivable })
+
+export const loadReceivableByIdFailure = (message: string) => ({ type: RECEIVABLE_ACTIONS.LOAD_BY_ID_FAILURE, payload: message })
+
 // The customers offered in the customer filter
 export const loadReceivableCustomerOptions = () => ({ type: RECEIVABLE_ACTIONS.LOAD_CUSTOMER_OPTIONS })
 
@@ -43,6 +54,10 @@ export type ReceivablesAction =
   | ReturnType<typeof resetReceivableFilters>
   | ReturnType<typeof setReceivablePage>
   | ReturnType<typeof setReceivablePageSize>
+  | ReturnType<typeof selectReceivable>
+  | ReturnType<typeof clearReceivableSelection>
+  | ReturnType<typeof loadReceivableByIdSuccess>
+  | ReturnType<typeof loadReceivableByIdFailure>
   | ReturnType<typeof loadReceivableCustomerOptions>
   | ReturnType<typeof loadReceivableCustomerOptionsSuccess>
   | ReturnType<typeof loadReceivableCustomerOptionsFailure>

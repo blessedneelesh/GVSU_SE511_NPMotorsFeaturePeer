@@ -1,13 +1,21 @@
 import { all, call, cancelled, put, select, takeLatest } from 'redux-saga/effects'
 import type { SagaIterator } from 'redux-saga'
 import { receivablesApi } from '../../services/receivables/receivables.api'
-import { CUSTOMER_OPTIONS_FALLBACK_MESSAGE, getReceivableErrorMessage } from '../../services/receivables/receivables.errors'
-import type { ReceivableCustomerOption, ReceivablePage, ReceivableQuery } from '../../types/receivables'
 import {
+  CUSTOMER_OPTIONS_FALLBACK_MESSAGE,
+  getReceivableDetailErrorMessage,
+  getReceivableErrorMessage,
+} from '../../services/receivables/receivables.errors'
+import type { ReceivableCustomerOption, ReceivableDetail, ReceivablePage, ReceivableQuery } from '../../types/receivables'
+import {
+  type clearReceivableSelection,
+  loadReceivableByIdFailure,
+  loadReceivableByIdSuccess,
   loadReceivableCustomerOptionsFailure,
   loadReceivableCustomerOptionsSuccess,
   loadReceivablesFailure,
   loadReceivablesSuccess,
+  type selectReceivable,
 } from './receivables.actions'
 import { RECEIVABLE_ACTIONS } from './receivables.constants'
 import { selectReceivableQuery } from './receivables.selectors'
@@ -23,6 +31,24 @@ function* loadReceivablesWorker(): SagaIterator {
     if (message) yield put(loadReceivablesFailure(message))
   } finally {
     // takeLatest cancels superseded workers; abort their HTTP request too
+    const wasCancelled: boolean = yield cancelled()
+    if (wasCancelled) controller.abort()
+  }
+}
+
+type ReceivableDetailAction = ReturnType<typeof selectReceivable> | ReturnType<typeof clearReceivableSelection>
+
+function* loadReceivableByIdWorker(action: ReceivableDetailAction): SagaIterator {
+  // CLEAR_SELECTION only exists to make takeLatest cancel an in-flight lookup
+  if (action.type !== RECEIVABLE_ACTIONS.SELECT) return
+  const controller = new AbortController()
+  try {
+    const receivable: ReceivableDetail = yield call(receivablesApi.getReceivableById, action.payload, controller.signal)
+    yield put(loadReceivableByIdSuccess(receivable))
+  } catch (error) {
+    const message = getReceivableDetailErrorMessage(error)
+    if (message) yield put(loadReceivableByIdFailure(message))
+  } finally {
     const wasCancelled: boolean = yield cancelled()
     if (wasCancelled) controller.abort()
   }
@@ -56,6 +82,8 @@ export default function* receivablesSaga(): SagaIterator {
       ],
       loadReceivablesWorker,
     ),
+    // Leaving the detail view cancels an in-flight lookup, so a late response can't fill a closed view
+    takeLatest([RECEIVABLE_ACTIONS.SELECT, RECEIVABLE_ACTIONS.CLEAR_SELECTION], loadReceivableByIdWorker),
     takeLatest(RECEIVABLE_ACTIONS.LOAD_CUSTOMER_OPTIONS, loadCustomerOptionsWorker),
   ])
 }

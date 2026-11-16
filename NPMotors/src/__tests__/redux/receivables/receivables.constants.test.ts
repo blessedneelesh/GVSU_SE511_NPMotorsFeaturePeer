@@ -12,6 +12,10 @@ describe('RECEIVABLE_ACTIONS', () => {
     ['RESET_FILTERS', 'receivables/resetFilters'],
     ['SET_PAGE', 'receivables/setPage'],
     ['SET_PAGE_SIZE', 'receivables/setPageSize'],
+    ['SELECT', 'receivables/select'],
+    ['CLEAR_SELECTION', 'receivables/clearSelection'],
+    ['LOAD_BY_ID_SUCCESS', 'receivables/loadByIdSuccess'],
+    ['LOAD_BY_ID_FAILURE', 'receivables/loadByIdFailure'],
     ['LOAD_CUSTOMER_OPTIONS', 'receivables/loadCustomerOptions'],
     ['LOAD_CUSTOMER_OPTIONS_SUCCESS', 'receivables/loadCustomerOptionsSuccess'],
     ['LOAD_CUSTOMER_OPTIONS_FAILURE', 'receivables/loadCustomerOptionsFailure'],
@@ -19,8 +23,8 @@ describe('RECEIVABLE_ACTIONS', () => {
     expect(RECEIVABLE_ACTIONS[key]).toBe(value)
   })
 
-  it('has 12 action types', () => {
-    expect(Object.keys(RECEIVABLE_ACTIONS)).toHaveLength(12)
+  it('has 16 action types', () => {
+    expect(Object.keys(RECEIVABLE_ACTIONS)).toHaveLength(16)
   })
 
   it('has unique values', () => {

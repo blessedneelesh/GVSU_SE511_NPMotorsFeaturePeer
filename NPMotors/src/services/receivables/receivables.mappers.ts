@@ -1,20 +1,27 @@
 import type { Customer } from '../../types/customers'
-import type { Receivable, ReceivableAgingStatus, ReceivableCustomerOption } from '../../types/receivables'
+import type { Receivable, ReceivableAgingStatus, ReceivableCustomerOption, ReceivableDetail } from '../../types/receivables'
 
-// Accepted spellings per field: the API's snake-ish camelCase first, then camelCase and PascalCase
+// Accepted spellings per field: the API's snake-ish camelCase first, then camelCase and PascalCase.
+// GetAllAr and GetArById name some fields differently (customer_Name vs customer, days_Overdue vs days), so both are listed.
 const DTO_FIELDS = {
   id: ['id', 'Id', 'arInvoiceId', 'ArInvoiceId'],
+  invoiceId: ['invoiceId', 'InvoiceId', 'invoice_Id', 'Invoice_Id'],
   number: ['number', 'Number'],
   customerId: ['customerId', 'CustomerId', 'customer_Id', 'Customer_Id'],
-  customerName: ['customer_Name', 'customerName', 'CustomerName', 'Customer_Name'],
+  customerName: ['customer_Name', 'customer', 'customerName', 'CustomerName', 'Customer_Name', 'Customer'],
   invoiceNumber: ['invoice_Number', 'invoiceNumber', 'InvoiceNumber', 'Invoice_Number'],
+  date: ['date', 'Date', 'invoice_Date', 'invoiceDate', 'InvoiceDate', 'Invoice_Date'],
   dueDate: ['due_Date', 'dueDate', 'DueDate', 'Due_Date'],
   amount: ['amount', 'Amount'],
   paid: ['paid', 'Paid'],
   balance: ['balance', 'Balance'],
+  invoiceTotal: ['invoice_Total', 'invoiceTotal', 'InvoiceTotal', 'Invoice_Total'],
   status: ['status', 'Status'],
-  daysOverdue: ['days_Overdue', 'daysOverdue', 'DaysOverdue', 'Days_Overdue'],
+  daysOverdue: ['days_Overdue', 'days', 'daysOverdue', 'DaysOverdue', 'Days_Overdue', 'Days'],
   agingStatus: ['aging_Status', 'agingStatus', 'AgingStatus', 'Aging_Status'],
+  phone: ['phone', 'Phone'],
+  email: ['email', 'Email'],
+  address: ['address', 'Address'],
 } as const
 
 type DtoField = keyof typeof DTO_FIELDS
@@ -60,11 +67,21 @@ export function normalizeAgingStatus(value: unknown): ReceivableAgingStatus {
 // "2024-03-22T00:00:00" -> "2024-03-22"; the time is always midnight
 const toDateOnly = (value: string) => value.slice(0, 10)
 
+const readDays = (dto: ReceivableDto) => Math.max(0, Math.trunc(readNumber(dto, 'daysOverdue')))
+
+// aging_Status when the API sends it; otherwise derived the way GetAllAr does:
+// a paid invoice stays Paid, anything else past due is Overdue, else the AR status
+function readAgingStatus(dto: ReceivableDto, daysOverdue: number): ReceivableAgingStatus {
+  const agingStatus = readField(dto, 'agingStatus')
+  if (agingStatus !== undefined) return normalizeAgingStatus(agingStatus)
+  const status = normalizeAgingStatus(readField(dto, 'status'))
+  return status !== 'Paid' && daysOverdue > 0 ? 'Overdue' : status
+}
+
 export function mapReceivable(raw: unknown): Receivable {
   const dto: ReceivableDto = isRecord(raw) ? raw : {}
-  const daysOverdue = Math.max(0, Math.trunc(readNumber(dto, 'daysOverdue')))
-  // If aging_Status is missing, derive it from the days and the AR status
-  const agingStatus = readField(dto, 'agingStatus') ?? (daysOverdue > 0 ? 'overdue' : readField(dto, 'status'))
+  const daysOverdue = readDays(dto)
+  const agingStatus = readAgingStatus(dto, daysOverdue)
 
   return {
     id: readString(dto, 'id'),
@@ -77,7 +94,31 @@ export function mapReceivable(raw: unknown): Receivable {
     paid: readNumber(dto, 'paid'),
     balance: readNumber(dto, 'balance'),
     daysOverdue,
-    agingStatus: normalizeAgingStatus(agingStatus),
+    agingStatus,
+  }
+}
+
+// GetArById returns a bare object (no envelope); 404 when the id is unknown
+export function mapReceivableDetail(raw: unknown): ReceivableDetail {
+  const dto: ReceivableDto = isRecord(raw) ? raw : {}
+  const daysOverdue = readDays(dto)
+
+  return {
+    id: readString(dto, 'id'),
+    invoiceId: readString(dto, 'invoiceId'),
+    number: readString(dto, 'number'),
+    customerName: readString(dto, 'customerName'),
+    date: toDateOnly(readString(dto, 'date')),
+    dueDate: toDateOnly(readString(dto, 'dueDate')),
+    amount: readNumber(dto, 'amount'),
+    paid: readNumber(dto, 'paid'),
+    balance: readNumber(dto, 'balance'),
+    invoiceTotal: readNumber(dto, 'invoiceTotal'),
+    daysOverdue,
+    agingStatus: readAgingStatus(dto, daysOverdue),
+    phone: readString(dto, 'phone'),
+    email: readString(dto, 'email'),
+    address: readString(dto, 'address'),
   }
 }
 

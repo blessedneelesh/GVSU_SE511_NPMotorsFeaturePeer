@@ -20,6 +20,28 @@ export interface Receivable {
   agingStatus: ReceivableAgingStatus
 }
 
+// One AR invoice from GetArById: the list row's money fields plus the issue date and the customer's contact details
+export interface ReceivableDetail {
+  id: string
+  // The sales invoice's id (not its number; GetArById doesn't return the number)
+  invoiceId: string
+  number: string
+  customerName: string
+  // YYYY-MM-DD; the AR invoice and its sales invoice share this date
+  date: string
+  // YYYY-MM-DD
+  dueDate: string
+  amount: number
+  paid: number
+  balance: number
+  invoiceTotal: number
+  daysOverdue: number
+  agingStatus: ReceivableAgingStatus
+  phone: string
+  email: string
+  address: string
+}
+
 // The API's Status values: 'all' = every open invoice; overdue = past due; unpaid/partial = that status and not yet due;
 // paid = fully settled (balance 0), which every other value leaves out
 export type ReceivableStatusFilter = 'all' | 'overdue' | 'unpaid' | 'partial' | 'paid'

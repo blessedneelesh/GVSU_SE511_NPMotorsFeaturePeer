@@ -1,6 +1,6 @@
 import type { UnknownAction } from 'redux'
 import type { RequestStatus } from '../../types/common'
-import type { Receivable, ReceivableCustomerOption, ReceivableQuery } from '../../types/receivables'
+import type { Receivable, ReceivableCustomerOption, ReceivableDetail, ReceivableQuery } from '../../types/receivables'
 import type { ReceivablesAction } from './receivables.actions'
 import { RECEIVABLE_ACTIONS } from './receivables.constants'
 
@@ -10,6 +10,10 @@ export interface ReceivablesState {
   query: ReceivableQuery
   listStatus: RequestStatus
   listError: string | null
+  selectedId: string | null
+  selected: ReceivableDetail | null
+  detailStatus: RequestStatus
+  detailError: string | null
   customerOptions: ReceivableCustomerOption[]
   customerOptionsStatus: RequestStatus
   customerOptionsError: string | null
@@ -21,6 +25,10 @@ export const initialReceivablesState: ReceivablesState = {
   query: { pageNumber: 1, pageSize: 5, status: 'all', customerId: 'all', asOfDate: '' },
   listStatus: 'idle',
   listError: null,
+  selectedId: null,
+  selected: null,
+  detailStatus: 'idle',
+  detailError: null,
   customerOptions: [],
   customerOptionsStatus: 'idle',
   customerOptionsError: null,
@@ -58,6 +66,14 @@ export default function receivablesReducer(state: ReceivablesState = initialRece
       return { ...state, listStatus: 'loading', listError: null, query: { ...state.query, pageSize: action.payload, pageNumber: 1 } }
     case RECEIVABLE_ACTIONS.SET_PAGE:
       return { ...state, listStatus: 'loading', listError: null, query: { ...state.query, pageNumber: Math.max(1, action.payload) } }
+    case RECEIVABLE_ACTIONS.SELECT:
+      return { ...state, selectedId: action.payload, selected: null, detailStatus: 'loading', detailError: null }
+    case RECEIVABLE_ACTIONS.CLEAR_SELECTION:
+      return { ...state, selectedId: null, selected: null, detailStatus: 'idle', detailError: null }
+    case RECEIVABLE_ACTIONS.LOAD_BY_ID_SUCCESS:
+      return { ...state, selected: action.payload, detailStatus: 'success' }
+    case RECEIVABLE_ACTIONS.LOAD_BY_ID_FAILURE:
+      return { ...state, detailStatus: 'error', detailError: action.payload }
     case RECEIVABLE_ACTIONS.LOAD_CUSTOMER_OPTIONS:
       return { ...state, customerOptionsStatus: 'loading', customerOptionsError: null }
     case RECEIVABLE_ACTIONS.LOAD_CUSTOMER_OPTIONS_SUCCESS:

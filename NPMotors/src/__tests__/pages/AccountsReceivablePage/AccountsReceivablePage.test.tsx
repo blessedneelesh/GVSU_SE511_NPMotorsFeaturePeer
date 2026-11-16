@@ -7,6 +7,7 @@ import {
   loadReceivablesFailure,
   loadReceivablesSuccess,
   resetReceivableFilters,
+  selectReceivable,
   setReceivableAsOfDate,
   setReceivableCustomerFilter,
   setReceivablePage,
@@ -18,6 +19,7 @@ import {
   paidReceivable,
   partialReceivable,
   receivableCustomerOptions,
+  receivableDetail,
   recentOverdueReceivable,
   sparseReceivable,
   unpaidReceivable,
@@ -60,7 +62,7 @@ describe('AccountsReceivablePage', () => {
     expect(within(table).getAllByRole('row')).toHaveLength(6)
 
     const [, overdueRow, recentRow, partialRow, unpaidRow] = within(table).getAllByRole('row')
-    expect(within(overdueRow!).getByText('SI-0005')).toHaveClass('mono', 'text-link')
+    expect(within(overdueRow!).getByRole('button', { name: 'SI-0005' })).toHaveClass('receivable-link')
     expect(within(overdueRow!).getByText('David Taylor')).toBeInTheDocument()
     expect(within(overdueRow!).getByText('2024-03-22')).toBeInTheDocument()
     expect(within(overdueRow!).getAllByText('$18,400')).toHaveLength(2)
@@ -97,6 +99,20 @@ describe('AccountsReceivablePage', () => {
     const [, row] = within(getTable()).getAllByRole('row')
     // invoice number, customer, due date, and days (a zero balance has no days overdue)
     expect(within(row!).getAllByText('—')).toHaveLength(4)
+    // Without an id there's nothing to open
+    expect(within(row!).getByRole('button', { name: '—' })).toBeDisabled()
+  })
+
+  it('opens the detail view from the invoice number', async () => {
+    const { actions, user } = renderLoaded([overdueReceivable, partialReceivable])
+    await user.click(screen.getByRole('button', { name: 'AR-003975' }))
+    expect(actions).toContainEqual(selectReceivable('3975'))
+  })
+
+  it('shows the detail instead of the list while a receivable is selected', () => {
+    renderLoaded([overdueReceivable], { selectedId: '2471', selected: receivableDetail, detailStatus: 'success' })
+    expect(screen.queryByRole('table', { name: 'Accounts receivable' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'AR-002471' })).toBeInTheDocument()
   })
 
   it('uses the singular for a single invoice', () => {

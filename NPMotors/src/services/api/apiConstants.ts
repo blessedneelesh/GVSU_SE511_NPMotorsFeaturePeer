@@ -83,4 +83,6 @@ export const TRANSFER_ENDPOINTS = {
 // Accounts receivable aging (Accounts Receivable page), on the Customers API origin. Read-only for now.
 export const AR_ENDPOINTS = {
   getAllAr: 'Ar/GetAllAr',
+  // ?id=…
+  getArById: 'Ar/GetArById',
 } as const

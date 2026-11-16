@@ -3,6 +3,7 @@ import {
   Dropdown,
   Field,
   Input,
+  Link,
   MessageBar,
   MessageBarActions,
   MessageBarBody,
@@ -17,10 +18,12 @@ import {
   TableRow,
 } from '@fluentui/react-components'
 import { useReceivableCustomerOptions } from '../../hooks/useReceivableCustomerOptions'
+import { useReceivableDetail } from '../../hooks/useReceivableDetail'
 import { useReceivables } from '../../hooks/useReceivables'
 import type { Receivable, ReceivableStatusFilter } from '../../types/receivables'
 import { daysClass, formatCurrency, formatDays, statusBadgeClass, sumPage } from './receivableMetrics'
 import { TablePagination } from '../../components/TablePagination/TablePagination'
+import { ReceivableDetail } from './ReceivableDetail'
 import './AccountsReceivablePage.css'
 
 const pageSizeOptions = [5, 10, 25, 50]
@@ -69,6 +72,10 @@ export function AccountsReceivablePage() {
     retry,
   } = useReceivables()
   const { customerOptions } = useReceivableCustomerOptions()
+  const { selectedId, openReceivable } = useReceivableDetail()
+
+  // The list hook stays mounted, so the filters and page survive the round trip
+  if (selectedId) return <ReceivableDetail />
 
   const isLoading = listStatus === 'loading'
   const isInitialLoad = (isLoading || listStatus === 'idle') && receivables.length === 0
@@ -161,7 +168,9 @@ export function AccountsReceivablePage() {
                   <TableRow key={receivable.id || `${receivable.number}-${receivable.dueDate}`}>
                     <TableCell>
                       <div className="receivable-cell">
-                        <span className="mono text-xs text-link">{receivable.number || '—'}</span>
+                        <Link as="button" className="receivable-link" disabled={!receivable.id} onClick={() => openReceivable(receivable.id)}>
+                          {receivable.number || '—'}
+                        </Link>
                         {receivable.invoiceNumber && receivable.invoiceNumber !== receivable.number && (
                           <span className="text-xs text-faint">for {receivable.invoiceNumber}</span>
                         )}
