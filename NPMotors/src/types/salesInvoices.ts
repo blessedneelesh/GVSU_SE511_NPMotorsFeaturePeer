@@ -41,6 +41,8 @@ export interface SalesInvoice {
   lifecycle: SalesInvoiceLifecycle
   paymentStatus: SalesInvoicePaymentStatus | null
   cancelReason: string
+  // The invoice's Accounts Receivable record, which payments are posted against; '' for drafts and cancelled invoices
+  arInvoiceId: string
 }
 
 export interface SalesInvoiceQuery {

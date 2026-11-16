@@ -33,6 +33,7 @@ const DTO_FIELDS = {
   lifecycle: ['lifecycle', 'Lifecycle'],
   paymentStatus: ['payment_Status', 'paymentStatus', 'PaymentStatus', 'Payment_Status', 'payment_status'],
   cancelReason: ['cancel_Reason', 'cancelReason', 'CancelReason', 'Cancel_Reason', 'cancel_reason'],
+  arInvoiceId: ['ar_Invoice_Id', 'arInvoiceId', 'ArInvoiceId', 'Ar_Invoice_Id', 'ar_invoice_id'],
 } as const
 
 type DtoField = keyof typeof DTO_FIELDS
@@ -119,6 +120,7 @@ export function mapSalesInvoice(raw: unknown): SalesInvoice {
     lifecycle: normalizeLifecycle(readField(dto, 'lifecycle')),
     paymentStatus: normalizePaymentStatus(readField(dto, 'paymentStatus')),
     cancelReason: readString(dto, 'cancelReason'),
+    arInvoiceId: readString(dto, 'arInvoiceId'),
   }
 }
 

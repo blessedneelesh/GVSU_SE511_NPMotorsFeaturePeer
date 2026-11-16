@@ -22,19 +22,3 @@ export const selectReceiptPayments = createSelector([selectReceiptState], (recei
 export const selectReceiptPaymentHistoryStatus = createSelector([selectReceiptState], (receipts) => receipts.paymentHistoryStatus)
 
 export const selectReceiptPaymentHistoryError = createSelector([selectReceiptState], (receipts) => receipts.paymentHistoryError)
-
-export const selectSalesInvoicePaymentsId = createSelector([selectReceiptState], (receipts) => receipts.salesInvoicePaymentsId)
-
-export const selectSalesInvoicePayments = createSelector([selectReceiptState], (receipts) => receipts.salesInvoicePayments)
-
-export const selectSalesInvoicePaymentsStatus = createSelector([selectReceiptState], (receipts) => receipts.salesInvoicePaymentsStatus)
-
-export const selectSalesInvoicePaymentsError = createSelector([selectReceiptState], (receipts) => receipts.salesInvoicePaymentsError)
-
-export const selectArLookupSalesInvoiceId = createSelector([selectReceiptState], (receipts) => receipts.arLookupSalesInvoiceId)
-
-export const selectArLookupArInvoiceId = createSelector([selectReceiptState], (receipts) => receipts.arLookupArInvoiceId)
-
-export const selectArLookupStatus = createSelector([selectReceiptState], (receipts) => receipts.arLookupStatus)
-
-export const selectArLookupError = createSelector([selectReceiptState], (receipts) => receipts.arLookupError)

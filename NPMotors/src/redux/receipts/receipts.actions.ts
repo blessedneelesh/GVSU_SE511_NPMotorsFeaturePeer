@@ -3,9 +3,6 @@ import type {
   ReceiptBankAccountOption,
   ReceiptPaymentHistory,
   ReceiptSaveError,
-  SalesInvoiceArLookup,
-  SalesInvoicePayments,
-  SalesInvoicePaymentsRequest,
 } from '../../types/receipts'
 import { RECEIPT_ACTIONS } from './receipts.constants'
 
@@ -35,26 +32,6 @@ export const loadPaymentHistoryFailure = (message: string) => ({ type: RECEIPT_A
 // Leaving the invoice: cancels an in-flight load and forgets its payments
 export const clearPaymentHistory = () => ({ type: RECEIPT_ACTIONS.CLEAR_PAYMENT_HISTORY })
 
-// The receipts of a sales invoice, for its Payment History tab
-export const loadSalesInvoicePayments = (request: SalesInvoicePaymentsRequest) => ({ type: RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS, payload: request })
-
-export const loadSalesInvoicePaymentsSuccess = (result: SalesInvoicePayments) => ({ type: RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS_SUCCESS, payload: result })
-
-export const loadSalesInvoicePaymentsFailure = (message: string) => ({ type: RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS_FAILURE, payload: message })
-
-// Leaving the tab: cancels an in-flight load and forgets the payments
-export const clearSalesInvoicePayments = () => ({ type: RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_PAYMENTS })
-
-// The AR invoice to post a sales invoice's payment against
-export const findSalesInvoiceAr = (request: SalesInvoicePaymentsRequest) => ({ type: RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR, payload: request })
-
-export const findSalesInvoiceArSuccess = (lookup: SalesInvoiceArLookup) => ({ type: RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR_SUCCESS, payload: lookup })
-
-export const findSalesInvoiceArFailure = (message: string) => ({ type: RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR_FAILURE, payload: message })
-
-// Closing the payment dialog: cancels an in-flight lookup and forgets the result
-export const clearSalesInvoiceAr = () => ({ type: RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_AR })
-
 export type ReceiptsAction =
   | ReturnType<typeof loadReceiptBankAccountOptions>
   | ReturnType<typeof loadReceiptBankAccountOptionsSuccess>
@@ -67,11 +44,3 @@ export type ReceiptsAction =
   | ReturnType<typeof loadPaymentHistorySuccess>
   | ReturnType<typeof loadPaymentHistoryFailure>
   | ReturnType<typeof clearPaymentHistory>
-  | ReturnType<typeof loadSalesInvoicePayments>
-  | ReturnType<typeof loadSalesInvoicePaymentsSuccess>
-  | ReturnType<typeof loadSalesInvoicePaymentsFailure>
-  | ReturnType<typeof clearSalesInvoicePayments>
-  | ReturnType<typeof findSalesInvoiceAr>
-  | ReturnType<typeof findSalesInvoiceArSuccess>
-  | ReturnType<typeof findSalesInvoiceArFailure>
-  | ReturnType<typeof clearSalesInvoiceAr>

@@ -10,12 +10,4 @@ export const RECEIPT_ACTIONS = {
   LOAD_PAYMENT_HISTORY_SUCCESS: 'receipts/loadPaymentHistorySuccess',
   LOAD_PAYMENT_HISTORY_FAILURE: 'receipts/loadPaymentHistoryFailure',
   CLEAR_PAYMENT_HISTORY: 'receipts/clearPaymentHistory',
-  LOAD_SALES_INVOICE_PAYMENTS: 'receipts/loadSalesInvoicePayments',
-  LOAD_SALES_INVOICE_PAYMENTS_SUCCESS: 'receipts/loadSalesInvoicePaymentsSuccess',
-  LOAD_SALES_INVOICE_PAYMENTS_FAILURE: 'receipts/loadSalesInvoicePaymentsFailure',
-  CLEAR_SALES_INVOICE_PAYMENTS: 'receipts/clearSalesInvoicePayments',
-  FIND_SALES_INVOICE_AR: 'receipts/findSalesInvoiceAr',
-  FIND_SALES_INVOICE_AR_SUCCESS: 'receipts/findSalesInvoiceArSuccess',
-  FIND_SALES_INVOICE_AR_FAILURE: 'receipts/findSalesInvoiceArFailure',
-  CLEAR_SALES_INVOICE_AR: 'receipts/clearSalesInvoiceAr',
 } as const

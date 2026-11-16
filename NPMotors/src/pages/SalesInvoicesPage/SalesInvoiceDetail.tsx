@@ -30,21 +30,37 @@ import { useSalesInvoiceDetail } from '../../hooks/useSalesInvoiceDetail'
 import { useSalesInvoiceMutations } from '../../hooks/useSalesInvoiceMutations'
 import { useSalesInvoiceOptions } from '../../hooks/useSalesInvoiceOptions'
 import { useReceiptMutations } from '../../hooks/useReceiptMutations'
-import { useSalesInvoicePayments } from '../../hooks/useSalesInvoicePayments'
+import { useReceiptPaymentHistory } from '../../hooks/useReceiptPaymentHistory'
 import { useVehicleDetail } from '../../hooks/useVehicleDetail'
 import type { Customer } from '../../types/customers'
-import type { ReceiptPayment } from '../../types/receipts'
+import type { ReceiptPayment, ReceiptTarget } from '../../types/receipts'
+import type { ReceivableAgingStatus } from '../../types/receivables'
 import type { SalesInvoice } from '../../types/salesInvoices'
 import type { Vehicle } from '../../types/vehicles'
 import { paymentMethodLabel, sortPaymentsOldestFirst } from '../AccountsReceivablePage/receivableMetrics'
+import { ReceivePaymentDialog } from '../AccountsReceivablePage/ReceivePaymentDialog'
+import '../AccountsReceivablePage/ReceivePaymentDialog.css'
 import { CancelSalesInvoiceDialog } from './CancelSalesInvoiceDialog'
-import { SalesInvoiceReceivePaymentDialog } from './SalesInvoiceReceivePaymentDialog'
 import { canCancel, formatAmount, statusBadges, statusTitle, TAX_RATE } from './salesInvoiceMetrics'
 
 const CANCELLED_BANNER_MS = 4000
 
 // Posted invoices with money still owed can take a payment
-const canReceivePayment = (invoice: SalesInvoice) => invoice.lifecycle === 'posted' && invoice.balance > 0
+// Payments are posted against the invoice's AR record, so there must be one
+const canReceivePayment = (invoice: SalesInvoice) => invoice.lifecycle === 'posted' && invoice.balance > 0 && invoice.arInvoiceId !== ''
+
+const AGING_STATUS = { paid: 'Paid', partial: 'Partial', unpaid: 'Unpaid' } as const satisfies Record<string, ReceivableAgingStatus>
+
+// The payment form posts to the AR invoice, but is checked against, and shown with, the sales invoice's own figures
+const toReceiptTarget = (invoice: SalesInvoice): ReceiptTarget => ({
+  id: invoice.arInvoiceId,
+  number: invoice.number,
+  customerName: invoice.customerName,
+  amount: invoice.total,
+  paid: invoice.paid,
+  balance: invoice.balance,
+  agingStatus: AGING_STATUS[invoice.paymentStatus ?? 'unpaid'],
+})
 
 // "Send to Customer" opens the user's mail app with the invoice's summary, addressed to the customer
 function invoiceMailto(invoice: SalesInvoice, email: string): string {
@@ -174,7 +190,7 @@ export function SalesInvoiceDetail() {
       )}
 
       {isCancelOpen && !isCancelled && salesInvoice && <CancelSalesInvoiceDialog invoice={salesInvoice} onClose={closeCancel} />}
-      {receiving && <SalesInvoiceReceivePaymentDialog invoice={receiving} onClose={closeReceive} />}
+      {receiving && <ReceivePaymentDialog invoice={toReceiptTarget(receiving)} onClose={closeReceive} />}
     </div>
   )
 }
@@ -508,13 +524,13 @@ function VehicleDetailsPanel({ invoice, customer, vehicle }: Omit<InvoiceTabsPro
   )
 }
 
-// Receipts from GetPaymentHistory, newest first. Only invoices with money paid are looked up; when no receipts are
-// found (no receivable, or the payment was taken with the invoice), the design's fallback shows the amount paid as one row.
+// Receipts from GetPaymentHistory of the invoice's AR record, newest first. Only invoices with money paid are looked
+// up; when there are no receipts (no AR record, or the payment was taken with the invoice), the design's fallback
+// shows the amount paid as one row.
 function PaymentHistoryPanel({ invoice, onReceivePayment }: { invoice: SalesInvoice; onReceivePayment: () => void }) {
   const hasPaid = invoice.paid > 0
-  const { payments, paymentsStatus, paymentsError, retry } = useSalesInvoicePayments(
-    hasPaid ? { salesInvoiceId: invoice.id, customerId: invoice.customerId, invoiceNumber: invoice.number } : null,
-  )
+  const arInvoiceId = hasPaid && invoice.arInvoiceId ? invoice.arInvoiceId : null
+  const { payments, paymentHistoryStatus: paymentsStatus, paymentHistoryError: paymentsError, retry } = useReceiptPaymentHistory(arInvoiceId)
   const newestFirst = sortPaymentsOldestFirst(payments).reverse()
 
   if (!hasPaid) {
@@ -541,7 +557,7 @@ function PaymentHistoryPanel({ invoice, onReceivePayment }: { invoice: SalesInvo
     )
   }
 
-  if (paymentsStatus !== 'success' && newestFirst.length === 0) {
+  if (arInvoiceId && paymentsStatus !== 'success' && newestFirst.length === 0) {
     return (
       <div className="payment-history__empty">
         <Spinner size="small" label="Loading payments…" />

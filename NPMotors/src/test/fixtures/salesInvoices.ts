@@ -10,7 +10,7 @@ import { customer, sparseCustomer } from './customers'
 import { employee } from './employees'
 import { availableVehicle } from './vehicles'
 
-// Posted with nothing paid, so it can be cancelled. Sold to customer C001 by salesperson 12;
+// Posted with nothing paid, so it can be cancelled; its AR invoice is 4006. Sold to customer C001 by salesperson 12;
 // 30,250 + 8% tax (2,420) + 450 fees = 33,120
 export const postedInvoice: SalesInvoice = {
   id: '6',
@@ -38,9 +38,10 @@ export const postedInvoice: SalesInvoice = {
   lifecycle: 'posted',
   paymentStatus: 'unpaid',
   cancelReason: '',
+  arInvoiceId: '4006',
 }
 
-// Partly paid, with a discount, by a salesperson who isn't in the employees list (shows "Employee #1");
+// Partly paid (AR invoice 4003), with a discount, by a salesperson who isn't in the employees list (shows "Employee #1");
 // 44,500 + 3,560 tax + 450 fees − 500 discount = 48,010, of which 10,000 is paid
 export const partialInvoice: SalesInvoice = {
   id: '3',
@@ -68,9 +69,10 @@ export const partialInvoice: SalesInvoice = {
   lifecycle: 'posted',
   paymentStatus: 'partial',
   cancelReason: '',
+  arInvoiceId: '4003',
 }
 
-// Not posted: no payment status, and paid/balance show '—' in the table
+// Not posted: no payment status, no AR invoice, and paid/balance show '—' in the table
 export const draftInvoice: SalesInvoice = {
   ...postedInvoice,
   id: '8',
@@ -80,6 +82,7 @@ export const draftInvoice: SalesInvoice = {
   vehicleStatus: 'reserved',
   lifecycle: 'draft',
   paymentStatus: null,
+  arInvoiceId: '',
 }
 
 export const cancelledInvoice: SalesInvoice = {
@@ -90,6 +93,7 @@ export const cancelledInvoice: SalesInvoice = {
   lifecycle: 'cancelled',
   paymentStatus: null,
   cancelReason: 'Customer financing fell through',
+  arInvoiceId: '',
 }
 
 // Optional fields empty and no id: exercises the '—' fallbacks and the disabled links
@@ -119,6 +123,7 @@ export const sparseInvoice: SalesInvoice = {
   lifecycle: 'posted',
   paymentStatus: 'paid',
   cancelReason: '',
+  arInvoiceId: '',
 }
 
 export const salesInvoicePage: SalesInvoicePage = {
