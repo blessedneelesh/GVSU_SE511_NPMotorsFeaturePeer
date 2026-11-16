@@ -17,6 +17,7 @@ import { initialTransactionsState, type TransactionsState } from '../redux/trans
 import { initialStatementLinesState, type StatementLinesState } from '../redux/statementLines/statementLines.reducer'
 import { initialTransfersState, type TransfersState } from '../redux/transfers/transfers.reducer'
 import { initialReceivablesState, type ReceivablesState } from '../redux/receivables/receivables.reducer'
+import { initialReceiptsState, type ReceiptsState } from '../redux/receipts/receipts.reducer'
 
 // Builds a full RootState from each slice's initial state; tests override only what the scenario needs
 export const makeState = (
@@ -31,6 +32,7 @@ export const makeState = (
   statementLineOverrides: Partial<StatementLinesState> = {},
   transferOverrides: Partial<TransfersState> = {},
   receivableOverrides: Partial<ReceivablesState> = {},
+  receiptOverrides: Partial<ReceiptsState> = {},
 ): RootState => ({
   customers: { ...initialCustomersState, ...overrides },
   vendors: { ...initialVendorsState, ...vendorOverrides },
@@ -43,6 +45,7 @@ export const makeState = (
   statementLines: { ...initialStatementLinesState, ...statementLineOverrides },
   transfers: { ...initialTransfersState, ...transferOverrides },
   receivables: { ...initialReceivablesState, ...receivableOverrides },
+  receipts: { ...initialReceiptsState, ...receiptOverrides },
 })
 
 // Shorthand for vendor tests: default customers slice, overridden vendors slice
@@ -80,6 +83,10 @@ export const makeTransferState = (overrides: Partial<TransfersState> = {}): Root
 // Shorthand for accounts receivable tests: every other slice at its default, overridden receivables slice
 export const makeReceivableState = (overrides: Partial<ReceivablesState> = {}): RootState =>
   makeState({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, overrides)
+
+// Shorthand for receive-payment tests: an overridden receivables slice (the invoice being paid) and receipts slice
+export const makeReceiptState = (overrides: Partial<ReceiptsState> = {}, receivableOverrides: Partial<ReceivablesState> = {}): RootState =>
+  makeState({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, receivableOverrides, overrides)
 
 interface RenderOptions {
   preloadedState?: RootState

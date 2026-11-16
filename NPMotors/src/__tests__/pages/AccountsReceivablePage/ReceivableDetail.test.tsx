@@ -1,7 +1,8 @@
-import { screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { ReceivableDetail } from '../../../pages/AccountsReceivablePage/ReceivableDetail'
 import { clearReceivableSelection, selectReceivable } from '../../../redux/receivables/receivables.actions'
+import { resetReceiptSave } from '../../../redux/receipts/receipts.actions'
 import {
   currentReceivableDetail,
   paidReceivableDetail,
@@ -92,6 +93,37 @@ describe('ReceivableDetail', () => {
     expect(screen.getByText('— · Issued — · Due —')).toBeInTheDocument()
     expect(screen.getByText('?')).toBeInTheDocument()
     expect(screen.getByText('0% collected')).toBeInTheDocument()
+  })
+
+  it('offers Receive Payment on an invoice with a balance and opens the dialog', async () => {
+    const { actions, user } = renderLoaded(receivableDetail)
+    const buttons = screen.getAllByRole('button', { name: 'Receive Payment' })
+    // In the header and in the Summary card
+    expect(buttons).toHaveLength(2)
+
+    await user.click(buttons[0]!)
+    expect(actions).toContainEqual(resetReceiptSave())
+    const dialog = screen.getByRole('dialog', { name: 'Receive Payment' })
+    expect(within(dialog).getByText('AR-002471 · Jennifer Brown')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['a not-yet-due unpaid invoice', currentReceivableDetail, 2],
+    ['a paid invoice', paidReceivableDetail, 0],
+    ['an "unpaid" invoice with nothing left to pay', { ...currentReceivableDetail, balance: 0 }, 0],
+  ])('shows %s with %i Receive Payment buttons', (_, detail, count) => {
+    renderLoaded(detail)
+    expect(screen.queryAllByRole('button', { name: 'Receive Payment' })).toHaveLength(count)
+  })
+
+  it('keeps the dialog open while the invoice reloads after a payment', async () => {
+    const { store, user } = renderLoaded(receivableDetail)
+    await user.click(screen.getAllByRole('button', { name: 'Receive Payment' })[0]!)
+
+    // What the saga does after a successful payment: reload the open invoice
+    act(() => { store.dispatch(selectReceivable('2471')) })
+    expect(screen.getByText('Loading receivable…')).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Receive Payment' })).toBeInTheDocument()
   })
 
   it('goes back to the list from the breadcrumb', async () => {

@@ -33,6 +33,11 @@ export const agingClass = (days: number) =>
 export const getNameInitials = (name: string) =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('') || '?'
 
+// Unpaid, Partial and Overdue invoices can all take a payment. It's decided by the money, not the badge: a Paid invoice
+// never can, and neither can one whose balance is already 0 (the API has rows stored as "unpaid" with nothing due).
+export const canReceivePayment = (invoice: { balance: number; agingStatus: ReceivableAgingStatus }) =>
+  invoice.balance > 0 && invoice.agingStatus !== 'Paid'
+
 export interface ReceivableTotals {
   amount: number
   paid: number

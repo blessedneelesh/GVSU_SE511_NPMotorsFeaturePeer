@@ -75,6 +75,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Receipt endpoints (Receive Payment on Accounts Receivable), same API. Capitalised with a trailing slash; no page route starts with "/Receipt/".
+      '/Receipt/': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   test: {

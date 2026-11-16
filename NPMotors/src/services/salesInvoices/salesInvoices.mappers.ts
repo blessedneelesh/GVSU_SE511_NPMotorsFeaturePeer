@@ -1,3 +1,4 @@
+import type { PaymentMethod } from '../../types/common'
 import type {
   SalesInvoice,
   SalesInvoiceFormValues,
@@ -181,7 +182,7 @@ export function toSalesInvoiceRequestDto(values: SalesInvoiceFormValues): SalesI
 
 // The API's PaymentCondition and PaymentMethod enums, as its JsonStringEnumConverter (camelCase) reads them
 export type PaymentConditionDto = 'paidInFull' | 'partialPayment' | 'credit'
-export type PaymentMethodDto = 'cash' | 'card' | 'transfer' | 'check'
+export type PaymentMethodDto = PaymentMethod
 
 // Body of POST SalesInvoice/PostInvoice?id= (PostInvoiceRequest): the payment received when a draft is posted.
 // A credit sale sends amountReceived 0 and no method or account; any amount received needs both.

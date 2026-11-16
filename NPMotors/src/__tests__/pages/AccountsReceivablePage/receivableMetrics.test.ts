@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   agingClass,
+  canReceivePayment,
   daysClass,
   formatCurrency,
   formatCurrencyExact,
@@ -55,6 +56,18 @@ describe('receivableMetrics', () => {
     expect(getNameInitials('  cher ')).toBe('C')
     expect(getNameInitials('Mary Ann de Vries')).toBe('MA')
     expect(getNameInitials('')).toBe('?')
+  })
+
+  it.each([
+    ['an unpaid invoice', 100, 'Unpaid', true],
+    ['a partly paid invoice', 100, 'Partial', true],
+    ['an overdue invoice', 100, 'Overdue', true],
+    ['a paid invoice', 0, 'Paid', false],
+    ['a paid invoice that still shows a balance', 100, 'Paid', false],
+    ['an "unpaid" invoice with nothing left to pay', 0, 'Unpaid', false],
+    ['an overpaid invoice', -50, 'Overdue', false],
+  ] as const)('can receive a payment against %s: %s', (_, balance, agingStatus, expected) => {
+    expect(canReceivePayment({ balance, agingStatus })).toBe(expected)
   })
 
   it('sums the page', () => {

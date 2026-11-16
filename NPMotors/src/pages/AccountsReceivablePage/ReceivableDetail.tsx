@@ -11,11 +11,15 @@ import { CheckmarkCircle16Regular, Clock16Regular, Document16Regular, Warning16R
 import type { ReactElement } from 'react'
 import { useReceivableDetail } from '../../hooks/useReceivableDetail'
 import type { ReceivableDetail as ReceivableDetailData } from '../../types/receivables'
-import { agingClass, formatCurrencyExact, getNameInitials, paidPercent, statusBadgeClass } from './receivableMetrics'
+import { agingClass, canReceivePayment, formatCurrencyExact, getNameInitials, paidPercent, statusBadgeClass } from './receivableMetrics'
+import { ReceivePaymentDialog } from './ReceivePaymentDialog'
+import { useReceivePaymentDialog } from './useReceivePaymentDialog'
 
 // Loads the selected AR invoice from GetArById via Redux; the list page decides when it's shown
 export function ReceivableDetail() {
   const { receivable, detailStatus, detailError, closeReceivable, retry } = useReceivableDetail()
+  // Kept here, not in the profile: a payment refetches the invoice, which unmounts the profile while it loads
+  const { receiving, openReceive, closeReceive } = useReceivePaymentDialog()
 
   return (
     <div className="receivables-page">
@@ -43,7 +47,9 @@ export function ReceivableDetail() {
         </section>
       )}
 
-      {detailStatus === 'success' && receivable && <ReceivableProfile receivable={receivable} />}
+      {detailStatus === 'success' && receivable && <ReceivableProfile receivable={receivable} onReceive={() => openReceive(receivable)} />}
+
+      {receiving && <ReceivePaymentDialog invoice={receiving} onClose={closeReceive} />}
     </div>
   )
 }
@@ -55,8 +61,14 @@ interface TimelineStep {
   done: boolean
 }
 
-function ReceivableProfile({ receivable }: { receivable: ReceivableDetailData }) {
+interface ReceivableProfileProps {
+  receivable: ReceivableDetailData
+  onReceive: () => void
+}
+
+function ReceivableProfile({ receivable, onReceive }: ReceivableProfileProps) {
   const isSettled = receivable.balance <= 0
+  const canReceive = canReceivePayment(receivable)
   const isOverdue = !isSettled && receivable.daysOverdue > 0
   const percent = paidPercent(receivable.paid, receivable.amount)
   const dash = (value: string) => value || '—'
@@ -85,6 +97,7 @@ function ReceivableProfile({ receivable }: { receivable: ReceivableDetailData })
           </div>
           <div className="receivable-hero__actions">
             <span className={`badge ${statusBadgeClass(receivable.agingStatus)}`}>{receivable.agingStatus}</span>
+            {canReceive && <Button appearance="primary" disabled={!receivable.id} onClick={onReceive}>Receive Payment</Button>}
             <Button onClick={() => window.print()}>Print</Button>
           </div>
         </div>
@@ -158,6 +171,11 @@ function ReceivableProfile({ receivable }: { receivable: ReceivableDetailData })
               <div><dt>Paid</dt><dd className="text-green">{formatCurrencyExact(receivable.paid)}</dd></div>
               <div className="receivable-summary__total"><dt>Balance Due</dt><dd>{formatCurrencyExact(receivable.balance)}</dd></div>
             </dl>
+            {canReceive && (
+              <Button appearance="primary" className="receivable-summary__receive" disabled={!receivable.id} onClick={onReceive}>
+                Receive Payment
+              </Button>
+            )}
           </section>
         </aside>
       </div>

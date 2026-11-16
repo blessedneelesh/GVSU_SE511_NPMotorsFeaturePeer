@@ -21,9 +21,11 @@ import { useReceivableCustomerOptions } from '../../hooks/useReceivableCustomerO
 import { useReceivableDetail } from '../../hooks/useReceivableDetail'
 import { useReceivables } from '../../hooks/useReceivables'
 import type { Receivable, ReceivableStatusFilter } from '../../types/receivables'
-import { daysClass, formatCurrency, formatDays, statusBadgeClass, sumPage } from './receivableMetrics'
+import { canReceivePayment, daysClass, formatCurrency, formatDays, statusBadgeClass, sumPage } from './receivableMetrics'
 import { TablePagination } from '../../components/TablePagination/TablePagination'
 import { ReceivableDetail } from './ReceivableDetail'
+import { ReceivePaymentDialog } from './ReceivePaymentDialog'
+import { useReceivePaymentDialog } from './useReceivePaymentDialog'
 import './AccountsReceivablePage.css'
 
 const pageSizeOptions = [5, 10, 25, 50]
@@ -73,6 +75,7 @@ export function AccountsReceivablePage() {
   } = useReceivables()
   const { customerOptions } = useReceivableCustomerOptions()
   const { selectedId, openReceivable } = useReceivableDetail()
+  const { receiving, openReceive, closeReceive } = useReceivePaymentDialog()
 
   // The list hook stays mounted, so the filters and page survive the round trip
   if (selectedId) return <ReceivableDetail />
@@ -161,6 +164,7 @@ export function AccountsReceivablePage() {
                   <TableHeaderCell className="num">Balance</TableHeaderCell>
                   <TableHeaderCell>Days</TableHeaderCell>
                   <TableHeaderCell>Status</TableHeaderCell>
+                  <TableHeaderCell className="receivable-actions">Actions</TableHeaderCell>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -188,11 +192,24 @@ export function AccountsReceivablePage() {
                     <TableCell>
                       <span className={`badge ${statusBadgeClass(receivable.agingStatus)}`}>{receivable.agingStatus}</span>
                     </TableCell>
+                    <TableCell className="receivable-actions">
+                      {/* Paid invoices, and any with nothing left to pay, can't take a payment */}
+                      {canReceivePayment(receivable) && receivable.id && (
+                        <Button
+                          size="small"
+                          appearance="subtle"
+                          aria-label={`Receive payment for ${receivable.number || 'this invoice'}`}
+                          onClick={() => openReceive(receivable)}
+                        >
+                          Receive
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
                 {receivables.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="table-empty">
+                    <TableCell colSpan={9} className="table-empty">
                       {query.pageNumber > 1
                         ? 'No more receivables on this page.'
                         : <>No {query.status === 'paid' ? 'paid' : 'outstanding'} receivables found.{hasActiveFilters && ' Try clearing the filters.'}</>}
@@ -207,7 +224,7 @@ export function AccountsReceivablePage() {
                     <TableCell className="num">{formatCurrency(pageTotals.amount)}</TableCell>
                     <TableCell className="num text-green">{formatCurrency(pageTotals.paid)}</TableCell>
                     <TableCell className="num text-amber">{formatCurrency(pageTotals.balance)}</TableCell>
-                    <TableCell colSpan={2} />
+                    <TableCell colSpan={3} />
                   </TableRow>
                 )}
               </TableBody>
@@ -226,6 +243,8 @@ export function AccountsReceivablePage() {
           />
         </section>
       )}
+
+      {receiving && <ReceivePaymentDialog invoice={receiving} onClose={closeReceive} />}
     </div>
   )
 }
