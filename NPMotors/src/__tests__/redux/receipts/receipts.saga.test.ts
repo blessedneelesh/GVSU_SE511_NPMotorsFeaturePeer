@@ -12,6 +12,10 @@ import {
   loadReceiptBankAccountOptionsFailure,
   loadReceiptBankAccountOptionsSuccess,
   clearSalesInvoicePayments,
+  clearSalesInvoiceAr,
+  findSalesInvoiceAr,
+  findSalesInvoiceArFailure,
+  findSalesInvoiceArSuccess,
   loadSalesInvoicePayments,
   loadSalesInvoicePaymentsFailure,
   loadSalesInvoicePaymentsSuccess,
@@ -23,12 +27,15 @@ import { RECEIPT_ACTIONS } from '../../../redux/receipts/receipts.constants'
 import receiptsSaga from '../../../redux/receipts/receipts.saga'
 import { loadReceivables, selectReceivable } from '../../../redux/receivables/receivables.actions'
 import { selectSelectedReceivableId } from '../../../redux/receivables/receivables.selectors'
+import { selectArLookupArInvoiceId, selectArLookupSalesInvoiceId } from '../../../redux/receipts/receipts.selectors'
+import { loadSalesInvoices, selectSalesInvoice } from '../../../redux/salesInvoices/salesInvoices.actions'
+import { selectSelectedSalesInvoiceId } from '../../../redux/salesInvoices/salesInvoices.selectors'
 import { rootReducer } from '../../../redux/rootReducer'
 import { receiptsApi } from '../../../services/receipts/receipts.api'
 import { receiptBankAccountOptions, receiptFormValues, receiptPayments } from '../../../test/fixtures/receipts'
 
 vi.mock('../../../services/receipts/receipts.api', () => ({
-  receiptsApi: { getBankAccountOptions: vi.fn(), recordArPayment: vi.fn(), getPaymentHistory: vi.fn(), getSalesInvoicePayments: vi.fn() },
+  receiptsApi: { getBankAccountOptions: vi.fn(), recordArPayment: vi.fn(), getPaymentHistory: vi.fn(), getSalesInvoicePayments: vi.fn(), findArInvoiceId: vi.fn() },
 }))
 
 // The workers aren't exported; take them from the watchers in the root saga's all([...]) effect
@@ -44,6 +51,7 @@ const loadBankAccountOptionsWorker = workerAt(0)
 const recordArPaymentWorker = workerAt(1)
 const loadPaymentHistoryWorker = workerAt(2)
 const loadSalesInvoicePaymentsWorker = workerAt(3)
+const findSalesInvoiceArWorker = workerAt(4)
 
 // The error helpers check axios.isAxiosError / axios.isCancel, so failures must be real axios errors
 const httpError = (status: number, data?: unknown) =>
@@ -60,6 +68,7 @@ describe('receiptsSaga (root)', () => {
       takeLeading(RECEIPT_ACTIONS.RECORD_AR_PAYMENT, recordArPaymentWorker),
       takeLatest([RECEIPT_ACTIONS.LOAD_PAYMENT_HISTORY, RECEIPT_ACTIONS.CLEAR_PAYMENT_HISTORY], loadPaymentHistoryWorker),
       takeLatest([RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS, RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_PAYMENTS], loadSalesInvoicePaymentsWorker),
+      takeLatest([RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR, RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_AR], findSalesInvoiceArWorker),
     ]))
     expect(gen.next().done).toBe(true)
   })
@@ -115,7 +124,10 @@ describe('recordArPaymentWorker', () => {
     expect(gen.next().value).toStrictEqual(select(selectSelectedReceivableId))
     expect(gen.next('2471').value).toStrictEqual(put(selectReceivable('2471')))
     expect(gen.next().value).toStrictEqual(put(loadPaymentHistory('2471')))
-    expect(gen.next().done).toBe(true)
+    expect(gen.next().value).toStrictEqual(select(selectSelectedSalesInvoiceId))
+    expect(gen.next(null).value).toStrictEqual(select(selectArLookupSalesInvoiceId))
+    expect(gen.next(null).value).toStrictEqual(select(selectArLookupArInvoiceId))
+    expect(gen.next(null).done).toBe(true)
   })
 
   it('only refetches the list when no invoice, or another one, is open', () => {
@@ -124,8 +136,41 @@ describe('recordArPaymentWorker', () => {
       gen.next()
       gen.next()
       expect(gen.next().value).toStrictEqual(select(selectSelectedReceivableId))
-      expect(gen.next(selectedId).done).toBe(true)
+      expect(gen.next(selectedId).value).toStrictEqual(select(selectSelectedSalesInvoiceId))
+      gen.next(null)
+      gen.next(null)
+      expect(gen.next(null).done).toBe(true)
     }
+  })
+
+  // Steps to the sales invoice check of a payment taken while no AR invoice is open
+  const toSalesInvoiceCheck = () => {
+    const gen = startRecord()
+    gen.next()
+    gen.next()
+    gen.next()
+    expect(gen.next(null).value).toStrictEqual(select(selectSelectedSalesInvoiceId))
+    return gen
+  }
+
+  it('reloads the open sales invoice when the payment was taken from it', () => {
+    const gen = toSalesInvoiceCheck()
+    gen.next('6')
+    gen.next('6')
+    expect(gen.next('2471').value).toStrictEqual(put(loadSalesInvoices()))
+    expect(gen.next().value).toStrictEqual(put(selectSalesInvoice('6')))
+    expect(gen.next().done).toBe(true)
+  })
+
+  it.each([
+    ['another sales invoice was looked up', '6', '7', '2471'],
+    ['the lookup found another AR invoice', '6', '6', '9999'],
+    ['no sales invoice is open', null, '6', '2471'],
+  ])('leaves the sales invoices alone when %s', (_, selectedId, lookupSalesInvoiceId, lookupArInvoiceId) => {
+    const gen = toSalesInvoiceCheck()
+    gen.next(selectedId)
+    gen.next(lookupSalesInvoiceId)
+    expect(gen.next(lookupArInvoiceId).done).toBe(true)
   })
 
   it('puts field errors next to their fields', () => {
@@ -218,6 +263,38 @@ describe('loadSalesInvoicePaymentsWorker', () => {
 
   it('aborts the requests when the tab closes', () => {
     const { gen, signal } = startPayments()
+    expect(gen.return(undefined).value).toStrictEqual(cancelled())
+    expect(gen.next(true).done).toBe(true)
+    expect(signal.aborted).toBe(true)
+  })
+})
+
+describe('findSalesInvoiceArWorker', () => {
+  const lookup = { salesInvoiceId: '6', customerId: 'C001', invoiceNumber: 'INV-2026-0006' }
+  const startLookup = () => {
+    const gen = findSalesInvoiceArWorker(findSalesInvoiceAr(lookup))
+    const effect = gen.next().value
+    expect(effect).toEqual(call(receiptsApi.findArInvoiceId, lookup, expect.any(AbortSignal)))
+    return { gen, signal: effect.payload.args[1] as AbortSignal }
+  }
+
+  it('dispatches the AR id found for the sales invoice, or null', () => {
+    expect(startLookup().gen.next('2471').value).toStrictEqual(put(findSalesInvoiceArSuccess({ salesInvoiceId: '6', arInvoiceId: '2471' })))
+    expect(startLookup().gen.next(null).value).toStrictEqual(put(findSalesInvoiceArSuccess({ salesInvoiceId: '6', arInvoiceId: null })))
+  })
+
+  it('does nothing on CLEAR_SALES_INVOICE_AR', () => {
+    expect(findSalesInvoiceArWorker(clearSalesInvoiceAr()).next().done).toBe(true)
+  })
+
+  it('falls back to the lookup message when the error has no detail', () => {
+    const { gen } = startLookup()
+    expect(gen.throw(httpError(400)).value)
+      .toStrictEqual(put(findSalesInvoiceArFailure('The receivable for this invoice could not be loaded. Please try again.')))
+  })
+
+  it('aborts the lookup when the dialog closes', () => {
+    const { gen, signal } = startLookup()
     expect(gen.return(undefined).value).toStrictEqual(cancelled())
     expect(gen.next(true).done).toBe(true)
     expect(signal.aborted).toBe(true)

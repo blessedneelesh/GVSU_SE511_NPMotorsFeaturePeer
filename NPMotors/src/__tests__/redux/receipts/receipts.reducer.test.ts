@@ -144,4 +144,32 @@ describe('receiptsReducer', () => {
       })
     })
   })
+
+  describe('sales invoice AR lookup', () => {
+    const lookup = { salesInvoiceId: '6', customerId: 'C001', invoiceNumber: 'INV-2026-0006' }
+    const found: ReceiptsState = { ...initialReceiptsState, arLookupSalesInvoiceId: '6', arLookupArInvoiceId: '2471', arLookupStatus: 'success' }
+
+    it('FIND_SALES_INVOICE_AR starts a fresh lookup', () => {
+      expect(receiptsReducer({ ...found, arLookupError: 'old' }, actions.findSalesInvoiceAr(lookup)))
+        .toMatchObject({ arLookupSalesInvoiceId: '6', arLookupArInvoiceId: null, arLookupStatus: 'loading', arLookupError: null })
+    })
+
+    it('FIND_SALES_INVOICE_AR_SUCCESS stores the AR id, or null, and ignores another invoice\'s answer', () => {
+      const loading = receiptsReducer(initialReceiptsState, actions.findSalesInvoiceAr(lookup))
+      expect(receiptsReducer(loading, actions.findSalesInvoiceArSuccess({ salesInvoiceId: '6', arInvoiceId: '2471' })))
+        .toMatchObject({ arLookupArInvoiceId: '2471', arLookupStatus: 'success' })
+      expect(receiptsReducer(loading, actions.findSalesInvoiceArSuccess({ salesInvoiceId: '6', arInvoiceId: null })))
+        .toMatchObject({ arLookupArInvoiceId: null, arLookupStatus: 'success' })
+      expect(receiptsReducer(loading, actions.findSalesInvoiceArSuccess({ salesInvoiceId: '9', arInvoiceId: '1' }))).toBe(loading)
+    })
+
+    it('FIND_SALES_INVOICE_AR_FAILURE stores the message', () => {
+      expect(receiptsReducer(found, actions.findSalesInvoiceArFailure('nope'))).toMatchObject({ arLookupStatus: 'error', arLookupError: 'nope' })
+    })
+
+    it('CLEAR_SALES_INVOICE_AR forgets the lookup', () => {
+      expect(receiptsReducer(found, actions.clearSalesInvoiceAr()))
+        .toMatchObject({ arLookupSalesInvoiceId: null, arLookupArInvoiceId: null, arLookupStatus: 'idle', arLookupError: null })
+    })
+  })
 })

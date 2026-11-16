@@ -3,6 +3,7 @@ import type {
   ReceiptBankAccountOption,
   ReceiptPaymentHistory,
   ReceiptSaveError,
+  SalesInvoiceArLookup,
   SalesInvoicePayments,
   SalesInvoicePaymentsRequest,
 } from '../../types/receipts'
@@ -44,6 +45,16 @@ export const loadSalesInvoicePaymentsFailure = (message: string) => ({ type: REC
 // Leaving the tab: cancels an in-flight load and forgets the payments
 export const clearSalesInvoicePayments = () => ({ type: RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_PAYMENTS })
 
+// The AR invoice to post a sales invoice's payment against
+export const findSalesInvoiceAr = (request: SalesInvoicePaymentsRequest) => ({ type: RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR, payload: request })
+
+export const findSalesInvoiceArSuccess = (lookup: SalesInvoiceArLookup) => ({ type: RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR_SUCCESS, payload: lookup })
+
+export const findSalesInvoiceArFailure = (message: string) => ({ type: RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR_FAILURE, payload: message })
+
+// Closing the payment dialog: cancels an in-flight lookup and forgets the result
+export const clearSalesInvoiceAr = () => ({ type: RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_AR })
+
 export type ReceiptsAction =
   | ReturnType<typeof loadReceiptBankAccountOptions>
   | ReturnType<typeof loadReceiptBankAccountOptionsSuccess>
@@ -60,3 +71,7 @@ export type ReceiptsAction =
   | ReturnType<typeof loadSalesInvoicePaymentsSuccess>
   | ReturnType<typeof loadSalesInvoicePaymentsFailure>
   | ReturnType<typeof clearSalesInvoicePayments>
+  | ReturnType<typeof findSalesInvoiceAr>
+  | ReturnType<typeof findSalesInvoiceArSuccess>
+  | ReturnType<typeof findSalesInvoiceArFailure>
+  | ReturnType<typeof clearSalesInvoiceAr>

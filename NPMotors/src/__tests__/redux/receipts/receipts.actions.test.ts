@@ -29,6 +29,11 @@ describe('receipts actions', () => {
       { type: RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS_SUCCESS, payload: salesInvoicePayments }],
     ['loadSalesInvoicePaymentsFailure', actions.loadSalesInvoicePaymentsFailure('nope'), { type: RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS_FAILURE, payload: 'nope' }],
     ['clearSalesInvoicePayments', actions.clearSalesInvoicePayments(), { type: RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_PAYMENTS }],
+    ['findSalesInvoiceAr', actions.findSalesInvoiceAr(lookup), { type: RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR, payload: lookup }],
+    ['findSalesInvoiceArSuccess', actions.findSalesInvoiceArSuccess({ salesInvoiceId: '3', arInvoiceId: '2471' }),
+      { type: RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR_SUCCESS, payload: { salesInvoiceId: '3', arInvoiceId: '2471' } }],
+    ['findSalesInvoiceArFailure', actions.findSalesInvoiceArFailure('nope'), { type: RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR_FAILURE, payload: 'nope' }],
+    ['clearSalesInvoiceAr', actions.clearSalesInvoiceAr(), { type: RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_AR }],
   ])('%s', (_, action, expected) => {
     expect(action).toEqual(expected)
   })

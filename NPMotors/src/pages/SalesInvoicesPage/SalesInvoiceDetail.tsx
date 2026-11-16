@@ -29,6 +29,7 @@ import { useCustomerDetail } from '../../hooks/useCustomerDetail'
 import { useSalesInvoiceDetail } from '../../hooks/useSalesInvoiceDetail'
 import { useSalesInvoiceMutations } from '../../hooks/useSalesInvoiceMutations'
 import { useSalesInvoiceOptions } from '../../hooks/useSalesInvoiceOptions'
+import { useReceiptMutations } from '../../hooks/useReceiptMutations'
 import { useSalesInvoicePayments } from '../../hooks/useSalesInvoicePayments'
 import { useVehicleDetail } from '../../hooks/useVehicleDetail'
 import type { Customer } from '../../types/customers'
@@ -37,12 +38,10 @@ import type { SalesInvoice } from '../../types/salesInvoices'
 import type { Vehicle } from '../../types/vehicles'
 import { paymentMethodLabel, sortPaymentsOldestFirst } from '../AccountsReceivablePage/receivableMetrics'
 import { CancelSalesInvoiceDialog } from './CancelSalesInvoiceDialog'
+import { SalesInvoiceReceivePaymentDialog } from './SalesInvoiceReceivePaymentDialog'
 import { canCancel, formatAmount, statusBadges, statusTitle, TAX_RATE } from './salesInvoiceMetrics'
 
 const CANCELLED_BANNER_MS = 4000
-
-// Payments are taken on the Accounts Receivable screen, as in the design
-const RECEIVE_PAYMENT_PATH = '/accounts-receivable'
 
 // Posted invoices with money still owed can take a payment
 const canReceivePayment = (invoice: SalesInvoice) => invoice.lifecycle === 'posted' && invoice.balance > 0
@@ -68,6 +67,10 @@ export function SalesInvoiceDetail() {
   const { openCustomer } = useCustomerDetail()
   const { openVehicle } = useVehicleDetail()
   const [isCancelOpen, setCancelOpen] = useState(false)
+  const { resetSave: resetReceiptSave } = useReceiptMutations()
+  // The invoice the payment dialog is open for. Kept here, not in the profile: a posted payment reloads the
+  // invoice, which unmounts the profile while it loads.
+  const [receiving, setReceiving] = useState<SalesInvoice | null>(null)
 
   const openCancel = () => {
     resetCancel()
@@ -88,7 +91,15 @@ export function SalesInvoiceDetail() {
 
   const isLoaded = detailStatus === 'success' && salesInvoice
   const customer = salesInvoice ? findCustomer(salesInvoice.customerId) : undefined
-  const receivePayment = () => navigate(RECEIVE_PAYMENT_PATH)
+  const receivePayment = () => {
+    if (!salesInvoice) return
+    resetReceiptSave()
+    setReceiving(salesInvoice)
+  }
+  const closeReceive = () => {
+    resetReceiptSave()
+    setReceiving(null)
+  }
 
   // Related Records: the customer and vehicle pages open straight into the record's detail view
   const related: RelatedLinks = {
@@ -163,6 +174,7 @@ export function SalesInvoiceDetail() {
       )}
 
       {isCancelOpen && !isCancelled && salesInvoice && <CancelSalesInvoiceDialog invoice={salesInvoice} onClose={closeCancel} />}
+      {receiving && <SalesInvoiceReceivePaymentDialog invoice={receiving} onClose={closeReceive} />}
     </div>
   )
 }

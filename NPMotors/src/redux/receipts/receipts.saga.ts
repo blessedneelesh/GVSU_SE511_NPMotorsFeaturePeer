@@ -2,6 +2,7 @@ import { all, call, cancelled, put, select, takeLatest, takeLeading } from 'redu
 import type { SagaIterator } from 'redux-saga'
 import { receiptsApi } from '../../services/receipts/receipts.api'
 import {
+  AR_LOOKUP_FALLBACK_MESSAGE,
   BANK_ACCOUNT_OPTIONS_FALLBACK_MESSAGE,
   getReceiptErrorMessage,
   getReceiptSaveError,
@@ -10,9 +11,15 @@ import {
 import type { ReceiptBankAccountOption, ReceiptPayment } from '../../types/receipts'
 import { loadReceivables, selectReceivable } from '../receivables/receivables.actions'
 import { selectSelectedReceivableId } from '../receivables/receivables.selectors'
+import { loadSalesInvoices, selectSalesInvoice } from '../salesInvoices/salesInvoices.actions'
+import { selectSelectedSalesInvoiceId } from '../salesInvoices/salesInvoices.selectors'
 import {
   type clearPaymentHistory,
+  type clearSalesInvoiceAr,
   type clearSalesInvoicePayments,
+  type findSalesInvoiceAr,
+  findSalesInvoiceArFailure,
+  findSalesInvoiceArSuccess,
   loadPaymentHistory,
   loadPaymentHistoryFailure,
   loadPaymentHistorySuccess,
@@ -26,6 +33,7 @@ import {
   recordArPaymentSuccess,
 } from './receipts.actions'
 import { RECEIPT_ACTIONS } from './receipts.constants'
+import { selectArLookupArInvoiceId, selectArLookupSalesInvoiceId } from './receipts.selectors'
 
 function* loadBankAccountOptionsWorker(): SagaIterator {
   const controller = new AbortController()
@@ -78,6 +86,23 @@ function* loadSalesInvoicePaymentsWorker(
   }
 }
 
+function* findSalesInvoiceArWorker(action: ReturnType<typeof findSalesInvoiceAr> | ReturnType<typeof clearSalesInvoiceAr>): SagaIterator {
+  // CLEAR_SALES_INVOICE_AR only exists so takeLatest cancels an in-flight lookup when the dialog closes
+  if (action.type !== RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR) return
+  const request = action.payload
+  const controller = new AbortController()
+  try {
+    const arInvoiceId: string | null = yield call(receiptsApi.findArInvoiceId, request, controller.signal)
+    yield put(findSalesInvoiceArSuccess({ salesInvoiceId: request.salesInvoiceId, arInvoiceId }))
+  } catch (error) {
+    const message = getReceiptErrorMessage(error, AR_LOOKUP_FALLBACK_MESSAGE)
+    if (message) yield put(findSalesInvoiceArFailure(message))
+  } finally {
+    const wasCancelled: boolean = yield cancelled()
+    if (wasCancelled) controller.abort()
+  }
+}
+
 function* recordArPaymentWorker(action: ReturnType<typeof recordArPayment>): SagaIterator {
   try {
     yield call(receiptsApi.recordArPayment, action.payload)
@@ -88,6 +113,14 @@ function* recordArPaymentWorker(action: ReturnType<typeof recordArPayment>): Sag
     if (selectedId === action.payload.arInvoiceId) {
       yield put(selectReceivable(selectedId))
       yield put(loadPaymentHistory(selectedId))
+    }
+    // Paid from the open sales invoice: reload it, and the sales invoice list, so the paid amount, balance and status update
+    const salesInvoiceId: string | null = yield select(selectSelectedSalesInvoiceId)
+    const lookupSalesInvoiceId: string | null = yield select(selectArLookupSalesInvoiceId)
+    const lookupArInvoiceId: string | null = yield select(selectArLookupArInvoiceId)
+    if (salesInvoiceId && salesInvoiceId === lookupSalesInvoiceId && lookupArInvoiceId === action.payload.arInvoiceId) {
+      yield put(loadSalesInvoices())
+      yield put(selectSalesInvoice(salesInvoiceId))
     }
   } catch (error) {
     const saveError = getReceiptSaveError(error)
@@ -102,5 +135,6 @@ export default function* receiptsSaga(): SagaIterator {
     takeLeading(RECEIPT_ACTIONS.RECORD_AR_PAYMENT, recordArPaymentWorker),
     takeLatest([RECEIPT_ACTIONS.LOAD_PAYMENT_HISTORY, RECEIPT_ACTIONS.CLEAR_PAYMENT_HISTORY], loadPaymentHistoryWorker),
     takeLatest([RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS, RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_PAYMENTS], loadSalesInvoicePaymentsWorker),
+    takeLatest([RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR, RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_AR], findSalesInvoiceArWorker),
   ])
 }

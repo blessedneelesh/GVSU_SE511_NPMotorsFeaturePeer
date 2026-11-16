@@ -21,6 +21,11 @@ export interface ReceiptsState {
   salesInvoicePayments: ReceiptPayment[]
   salesInvoicePaymentsStatus: RequestStatus
   salesInvoicePaymentsError: string | null
+  // The AR invoice a sales invoice's payment is posted against, found when its payment dialog opens
+  arLookupSalesInvoiceId: string | null
+  arLookupArInvoiceId: string | null
+  arLookupStatus: RequestStatus
+  arLookupError: string | null
 }
 
 export const initialReceiptsState: ReceiptsState = {
@@ -38,6 +43,10 @@ export const initialReceiptsState: ReceiptsState = {
   salesInvoicePayments: [],
   salesInvoicePaymentsStatus: 'idle',
   salesInvoicePaymentsError: null,
+  arLookupSalesInvoiceId: null,
+  arLookupArInvoiceId: null,
+  arLookupStatus: 'idle',
+  arLookupError: null,
 }
 
 const receiptActionTypes: ReadonlySet<string> = new Set(Object.values(RECEIPT_ACTIONS))
@@ -98,6 +107,15 @@ export default function receiptsReducer(state: ReceiptsState = initialReceiptsSt
       return { ...state, salesInvoicePaymentsStatus: 'error', salesInvoicePaymentsError: action.payload }
     case RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_PAYMENTS:
       return { ...state, salesInvoicePaymentsId: null, salesInvoicePayments: [], salesInvoicePaymentsStatus: 'idle', salesInvoicePaymentsError: null }
+    case RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR:
+      return { ...state, arLookupSalesInvoiceId: action.payload.salesInvoiceId, arLookupArInvoiceId: null, arLookupStatus: 'loading', arLookupError: null }
+    case RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR_SUCCESS:
+      if (action.payload.salesInvoiceId !== state.arLookupSalesInvoiceId) return state
+      return { ...state, arLookupArInvoiceId: action.payload.arInvoiceId, arLookupStatus: 'success' }
+    case RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR_FAILURE:
+      return { ...state, arLookupStatus: 'error', arLookupError: action.payload }
+    case RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_AR:
+      return { ...state, arLookupSalesInvoiceId: null, arLookupArInvoiceId: null, arLookupStatus: 'idle', arLookupError: null }
     default: {
       const unhandled: never = action
       void unhandled

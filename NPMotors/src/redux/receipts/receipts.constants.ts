@@ -14,4 +14,8 @@ export const RECEIPT_ACTIONS = {
   LOAD_SALES_INVOICE_PAYMENTS_SUCCESS: 'receipts/loadSalesInvoicePaymentsSuccess',
   LOAD_SALES_INVOICE_PAYMENTS_FAILURE: 'receipts/loadSalesInvoicePaymentsFailure',
   CLEAR_SALES_INVOICE_PAYMENTS: 'receipts/clearSalesInvoicePayments',
+  FIND_SALES_INVOICE_AR: 'receipts/findSalesInvoiceAr',
+  FIND_SALES_INVOICE_AR_SUCCESS: 'receipts/findSalesInvoiceArSuccess',
+  FIND_SALES_INVOICE_AR_FAILURE: 'receipts/findSalesInvoiceArFailure',
+  CLEAR_SALES_INVOICE_AR: 'receipts/clearSalesInvoiceAr',
 } as const

@@ -4,6 +4,13 @@ import { describe, expect, it, vi } from 'vitest'
 import { SalesInvoiceDetail } from '../../../pages/SalesInvoicesPage/SalesInvoiceDetail'
 import { selectCustomer } from '../../../redux/customers/customers.actions'
 import {
+  clearSalesInvoiceAr,
+  findSalesInvoiceAr,
+  findSalesInvoiceArFailure,
+  findSalesInvoiceArSuccess,
+  loadReceiptBankAccountOptionsSuccess,
+  recordArPayment,
+  resetReceiptSave,
   clearSalesInvoicePayments,
   loadSalesInvoicePayments,
   loadSalesInvoicePaymentsFailure,
@@ -314,10 +321,72 @@ describe('SalesInvoiceDetail', () => {
       expect(decodeURIComponent(href)).toContain('Balance due: $33,120.00 by 2026-11-14')
     })
 
-    it('takes a payment on the Accounts Receivable screen', async () => {
-      const { user } = renderRouted(postedInvoice)
-      await user.click(within(screen.getByRole('toolbar', { name: 'Invoice actions' })).getByRole('button', { name: 'Receive Payment' }))
-      expect(screen.getByText('Accounts Receivable screen')).toBeInTheDocument()
+    describe('Receive Payment', () => {
+      const lookup = { salesInvoiceId: '6', customerId: 'C001', invoiceNumber: 'INV-2026-0006' }
+      const openPayment = async () => {
+        const result = renderProfile(postedInvoice)
+        await result.user.click(within(screen.getByRole('toolbar', { name: 'Invoice actions' })).getByRole('button', { name: 'Receive Payment' }))
+        return result
+      }
+
+      it('finds the invoice\'s receivable, then opens the payment form for the invoice\'s balance', async () => {
+        const { actions, store } = await openPayment()
+        expect(actions).toEqual(expect.arrayContaining([resetReceiptSave(), findSalesInvoiceAr(lookup)]))
+        expect(screen.getByText("Finding the invoice's receivable…")).toBeInTheDocument()
+
+        // With no saga running, the test answers as the saga would
+        act(() => { store.dispatch(findSalesInvoiceArSuccess({ salesInvoiceId: '6', arInvoiceId: '2471' })) })
+        const dialog = screen.getByRole('dialog', { name: 'Receive Payment' })
+        expect(within(dialog).getByText('INV-2026-0006 · John Smith')).toBeInTheDocument()
+        expect(within(dialog).getByText('Balance Due').nextElementSibling).toHaveTextContent('$33,120.00')
+        expect(within(dialog).getByRole('spinbutton', { name: /Payment Amount/ })).toHaveValue(33120)
+      })
+
+      it('posts the payment against the AR invoice it found', async () => {
+        const { actions, store, user } = await openPayment()
+        act(() => { store.dispatch(findSalesInvoiceArSuccess({ salesInvoiceId: '6', arInvoiceId: '2471' })) })
+        act(() => { store.dispatch(loadReceiptBankAccountOptionsSuccess([{ id: '1', name: 'Operating Checking', bankName: 'Chase', accountNumber: '****4521' }])) })
+        const amount = screen.getByRole('spinbutton', { name: /Payment Amount/ })
+        await user.clear(amount)
+        await user.type(amount, '5000')
+        await user.click(screen.getByRole('button', { name: 'Post Payment' }))
+
+        expect(actions).toContainEqual(recordArPayment({
+          arInvoiceId: '2471',
+          values: expect.objectContaining({ amount: '5000', bankAccountId: '1', paymentMethod: 'transfer' }),
+        }))
+      })
+
+      it('says when the invoice has no receivable to post to', async () => {
+        const { store } = await openPayment()
+        act(() => { store.dispatch(findSalesInvoiceArSuccess({ salesInvoiceId: '6', arInvoiceId: null })) })
+        expect(screen.getByText(/No receivable was found for this invoice/)).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Post Payment' })).not.toBeInTheDocument()
+      })
+
+      it('shows when the lookup failed and retries', async () => {
+        const { actions, store, user } = await openPayment()
+        act(() => { store.dispatch(findSalesInvoiceArFailure('The receivable for this invoice could not be loaded. Please try again.')) })
+        expect(screen.getByText('The receivable for this invoice could not be loaded. Please try again.')).toBeInTheDocument()
+        await user.click(screen.getByRole('button', { name: 'Retry' }))
+        expect(actions.filter((action) => action.type === findSalesInvoiceAr(lookup).type)).toHaveLength(2)
+      })
+
+      it('closes, forgetting the lookup', async () => {
+        const { actions, user } = await openPayment()
+        await user.click(screen.getByRole('button', { name: 'Close' }))
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(actions).toContainEqual(clearSalesInvoiceAr())
+      })
+
+      it('keeps the dialog open while the invoice reloads after the payment', async () => {
+        const { store } = await openPayment()
+        act(() => { store.dispatch(findSalesInvoiceArSuccess({ salesInvoiceId: '6', arInvoiceId: '2471' })) })
+        // What the saga does after the payment: reload the sales invoice
+        act(() => { store.dispatch(selectSalesInvoice('6')) })
+        expect(screen.getByText('Loading sales invoice…')).toBeInTheDocument()
+        expect(screen.getByRole('dialog', { name: 'Receive Payment' })).toBeInTheDocument()
+      })
     })
 
     it('prints the invoice', async () => {
@@ -383,7 +452,7 @@ describe('SalesInvoiceDetail', () => {
       const panel = screen.getByRole('tabpanel', { name: 'Payment History' })
       expect(within(panel).getByText('No payments received yet')).toBeInTheDocument()
       await user.click(within(panel).getByRole('button', { name: 'Receive Payment' }))
-      expect(screen.getByText('Accounts Receivable screen')).toBeInTheDocument()
+      expect(screen.getByRole('dialog', { name: 'Receive Payment' })).toBeInTheDocument()
     })
 
     const lookup = { salesInvoiceId: '3', customerId: 'C001', invoiceNumber: 'INV-2026-0003' }
