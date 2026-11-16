@@ -2,6 +2,8 @@ import { AxiosError, AxiosHeaders, CanceledError } from 'axios'
 import { describe, expect, it, vi } from 'vitest'
 import { customerClient } from '../../../services/api/customerClient'
 import { bankAccountsApi } from '../../../services/bankAccounts/bankAccounts.api'
+import { receivablesApi } from '../../../services/receivables/receivables.api'
+import type { Receivable } from '../../../types/receivables'
 import { receiptsApi } from '../../../services/receipts/receipts.api'
 import { getReceiptErrorMessage, getReceiptSaveError } from '../../../services/receipts/receipts.errors'
 import { mapPaymentHistory, toReceiptBankAccountOptions, toRecordArPaymentDto } from '../../../services/receipts/receipts.mappers'
@@ -91,6 +93,53 @@ describe('receipts api', () => {
     const options = await receiptsApi.getBankAccountOptions()
     expect(getBankAccounts).toHaveBeenCalledWith({ pageNumber: 1, pageSize: 100, bankId: 'all', searchTerm: '' }, undefined)
     expect(options.map((option) => option.id)).toEqual(['1'])
+  })
+})
+
+describe('sales invoice payments', () => {
+  const lookup = { salesInvoiceId: '3', customerId: 'C001', invoiceNumber: 'INV-2026-0003' }
+  const ar = (id: string, invoiceNumber: string): Receivable => ({
+    id, number: `AR-${id}`, customerId: 'C001', customerName: 'John Smith', invoiceNumber, dueDate: '', amount: 0, paid: 0, balance: 0,
+    daysOverdue: 0, agingStatus: 'Unpaid',
+  })
+
+  it('finds the AR invoice among the customer\'s receivables, paging until it matches', async () => {
+    const getReceivables = vi.spyOn(receivablesApi, 'getReceivables')
+      .mockResolvedValueOnce({ items: [ar('10', 'INV-2026-0001')], hasNext: true })
+      .mockResolvedValueOnce({ items: [ar('11', ' inv-2026-0003 ')], hasNext: true })
+    const signal = new AbortController().signal
+
+    expect(await receiptsApi.findArInvoiceId(lookup, signal)).toBe('11')
+    expect(getReceivables).toHaveBeenCalledTimes(2)
+    expect(getReceivables).toHaveBeenLastCalledWith({ pageNumber: 2, pageSize: 100, status: 'all', customerId: 'C001', asOfDate: '' }, signal)
+  })
+
+  it('returns null when the customer has no receivable for the invoice', async () => {
+    vi.spyOn(receivablesApi, 'getReceivables').mockResolvedValue({ items: [ar('10', 'INV-2026-0001')], hasNext: false })
+    expect(await receiptsApi.findArInvoiceId(lookup)).toBeNull()
+  })
+
+  it('searches every customer when the invoice has none, and skips the lookup without a number', async () => {
+    const getReceivables = vi.spyOn(receivablesApi, 'getReceivables').mockResolvedValue({ items: [], hasNext: false })
+    await receiptsApi.findArInvoiceId({ ...lookup, customerId: '' })
+    expect(getReceivables.mock.calls[0]![0].customerId).toBe('all')
+    getReceivables.mockClear()
+    expect(await receiptsApi.findArInvoiceId({ ...lookup, invoiceNumber: ' ' })).toBeNull()
+    expect(getReceivables).not.toHaveBeenCalled()
+  })
+
+  it('loads the payment history of the AR invoice it finds', async () => {
+    vi.spyOn(receivablesApi, 'getReceivables').mockResolvedValue({ items: [ar('2471', 'INV-2026-0003')], hasNext: false })
+    const get = vi.spyOn(customerClient, 'get').mockResolvedValue({ data: paymentHistoryBody })
+    expect(await receiptsApi.getSalesInvoicePayments(lookup)).toEqual(receiptPayments)
+    expect(get).toHaveBeenCalledWith('Receipt/GetPaymentHistory/2471', { signal: undefined })
+  })
+
+  it('has no payments when there is no AR invoice', async () => {
+    vi.spyOn(receivablesApi, 'getReceivables').mockResolvedValue({ items: [], hasNext: false })
+    const get = vi.spyOn(customerClient, 'get')
+    expect(await receiptsApi.getSalesInvoicePayments(lookup)).toEqual([])
+    expect(get).not.toHaveBeenCalled()
   })
 })
 

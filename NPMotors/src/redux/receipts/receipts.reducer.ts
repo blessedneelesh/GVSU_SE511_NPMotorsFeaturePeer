@@ -16,6 +16,11 @@ export interface ReceiptsState {
   payments: ReceiptPayment[]
   paymentHistoryStatus: RequestStatus
   paymentHistoryError: string | null
+  // A sales invoice's receipts, keyed by the sales invoice so another invoice's are never shown
+  salesInvoicePaymentsId: string | null
+  salesInvoicePayments: ReceiptPayment[]
+  salesInvoicePaymentsStatus: RequestStatus
+  salesInvoicePaymentsError: string | null
 }
 
 export const initialReceiptsState: ReceiptsState = {
@@ -29,6 +34,10 @@ export const initialReceiptsState: ReceiptsState = {
   payments: [],
   paymentHistoryStatus: 'idle',
   paymentHistoryError: null,
+  salesInvoicePaymentsId: null,
+  salesInvoicePayments: [],
+  salesInvoicePaymentsStatus: 'idle',
+  salesInvoicePaymentsError: null,
 }
 
 const receiptActionTypes: ReadonlySet<string> = new Set(Object.values(RECEIPT_ACTIONS))
@@ -72,6 +81,23 @@ export default function receiptsReducer(state: ReceiptsState = initialReceiptsSt
       return { ...state, paymentHistoryStatus: 'error', paymentHistoryError: action.payload }
     case RECEIPT_ACTIONS.CLEAR_PAYMENT_HISTORY:
       return { ...state, paymentHistoryInvoiceId: null, payments: [], paymentHistoryStatus: 'idle', paymentHistoryError: null }
+    case RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS: {
+      const isSameInvoice = action.payload.salesInvoiceId === state.salesInvoicePaymentsId
+      return {
+        ...state,
+        salesInvoicePaymentsId: action.payload.salesInvoiceId,
+        salesInvoicePayments: isSameInvoice ? state.salesInvoicePayments : [],
+        salesInvoicePaymentsStatus: 'loading',
+        salesInvoicePaymentsError: null,
+      }
+    }
+    case RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS_SUCCESS:
+      if (action.payload.salesInvoiceId !== state.salesInvoicePaymentsId) return state
+      return { ...state, salesInvoicePayments: action.payload.payments, salesInvoicePaymentsStatus: 'success' }
+    case RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS_FAILURE:
+      return { ...state, salesInvoicePaymentsStatus: 'error', salesInvoicePaymentsError: action.payload }
+    case RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_PAYMENTS:
+      return { ...state, salesInvoicePaymentsId: null, salesInvoicePayments: [], salesInvoicePaymentsStatus: 'idle', salesInvoicePaymentsError: null }
     default: {
       const unhandled: never = action
       void unhandled

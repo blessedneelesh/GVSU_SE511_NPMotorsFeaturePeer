@@ -62,3 +62,16 @@ export interface ReceiptPaymentHistory {
   arInvoiceId: string
   payments: ReceiptPayment[]
 }
+
+// Finds a sales invoice's receipts. GetSalesInvoiceById's ar_Invoice_Id is always null, so the AR invoice is looked up
+// among the customer's receivables by its invoice number
+export interface SalesInvoicePaymentsRequest {
+  salesInvoiceId: string
+  customerId: string
+  invoiceNumber: string
+}
+
+export interface SalesInvoicePayments {
+  salesInvoiceId: string
+  payments: ReceiptPayment[]
+}

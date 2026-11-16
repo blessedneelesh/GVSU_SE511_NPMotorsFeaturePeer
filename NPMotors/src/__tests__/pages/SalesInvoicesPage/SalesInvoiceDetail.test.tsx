@@ -3,7 +3,14 @@ import { Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { SalesInvoiceDetail } from '../../../pages/SalesInvoicesPage/SalesInvoiceDetail'
 import { selectCustomer } from '../../../redux/customers/customers.actions'
+import {
+  clearSalesInvoicePayments,
+  loadSalesInvoicePayments,
+  loadSalesInvoicePaymentsFailure,
+  loadSalesInvoicePaymentsSuccess,
+} from '../../../redux/receipts/receipts.actions'
 import { selectVehicle } from '../../../redux/vehicles/vehicles.actions'
+import { receiptPayments } from '../../../test/fixtures/receipts'
 import {
   cancelSalesInvoiceSuccess,
   clearSalesInvoiceSelection,
@@ -379,9 +386,50 @@ describe('SalesInvoiceDetail', () => {
       expect(screen.getByText('Accounts Receivable screen')).toBeInTheDocument()
     })
 
-    it('shows the amount paid and what is still owed', async () => {
-      const { user } = renderProfile(partialInvoice)
+    const lookup = { salesInvoiceId: '3', customerId: 'C001', invoiceNumber: 'INV-2026-0003' }
+
+    it('does not look up payments for an invoice with nothing paid', async () => {
+      const { actions, user } = renderProfile(postedInvoice)
       await user.click(screen.getByRole('tab', { name: 'Payment History' }))
+      expect(actions.some((action) => action.type === loadSalesInvoicePayments(lookup).type)).toBe(false)
+    })
+
+    it('lists the receipts posted against the invoice, newest first', async () => {
+      const { actions, store, user } = renderProfile(partialInvoice)
+      await user.click(screen.getByRole('tab', { name: 'Payment History' }))
+      expect(actions).toContainEqual(loadSalesInvoicePayments(lookup))
+      expect(screen.getByText('Loading payments…')).toBeInTheDocument()
+
+      // With no saga running, the test answers as the saga would
+      act(() => { store.dispatch(loadSalesInvoicePaymentsSuccess({ salesInvoiceId: '3', payments: receiptPayments })) })
+      const rows = within(screen.getByRole('table', { name: 'Payments for INV-2026-0003' })).getAllByRole('row').slice(1)
+      expect(rows.map((row) => within(row).getAllByRole('cell').map((cell) => cell.textContent))).toEqual([
+        ['2026-11-10', 'Bank Transfer', 'RCT-2026-000462', '$650.00', 'Deposited to Business Savings'],
+        ['2026-11-08', 'Check', 'RCT-2026-000461', '$1,200.00', 'Deposited to Operating Checking · INV-004262'],
+      ])
+    })
+
+    it('shows when the payments failed to load and retries', async () => {
+      const { actions, store, user } = renderProfile(partialInvoice)
+      await user.click(screen.getByRole('tab', { name: 'Payment History' }))
+      act(() => { store.dispatch(loadSalesInvoicePaymentsFailure('Payment history could not be loaded. Please try again.')) })
+
+      expect(screen.getByText("Couldn't load payments")).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Retry' }))
+      expect(actions.filter((action) => action.type === loadSalesInvoicePayments(lookup).type)).toHaveLength(2)
+    })
+
+    it('forgets the payments when the tab is left', async () => {
+      const { actions, user } = renderProfile(partialInvoice)
+      await user.click(screen.getByRole('tab', { name: 'Payment History' }))
+      await user.click(screen.getByRole('tab', { name: 'Vehicle Details' }))
+      expect(actions).toContainEqual(clearSalesInvoicePayments())
+    })
+
+    it('falls back to the amount paid when no receipts are found', async () => {
+      const { store, user } = renderProfile(partialInvoice)
+      await user.click(screen.getByRole('tab', { name: 'Payment History' }))
+      act(() => { store.dispatch(loadSalesInvoicePaymentsSuccess({ salesInvoiceId: '3', payments: [] })) })
 
       const rows = within(screen.getByRole('table', { name: 'Payments for INV-2026-0003' })).getAllByRole('row').slice(1)
       expect(rows.map((row) => within(row).getAllByRole('cell').map((cell) => cell.textContent))).toEqual([

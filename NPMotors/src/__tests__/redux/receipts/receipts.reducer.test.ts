@@ -104,4 +104,44 @@ describe('receiptsReducer', () => {
       expect(state).toMatchObject({ paymentHistoryInvoiceId: null, payments: [], paymentHistoryStatus: 'idle', paymentHistoryError: null, saveStatus: 'error' })
     })
   })
+
+  describe('sales invoice payments', () => {
+    const lookup = { salesInvoiceId: '3', customerId: 'C001', invoiceNumber: 'INV-2026-0003' }
+    const loaded: ReceiptsState = {
+      ...initialReceiptsState,
+      salesInvoicePaymentsId: '3',
+      salesInvoicePayments: receiptPayments,
+      salesInvoicePaymentsStatus: 'success',
+    }
+
+    it('LOAD_SALES_INVOICE_PAYMENTS for the same invoice keeps its payments while reloading', () => {
+      const state = receiptsReducer({ ...loaded, salesInvoicePaymentsError: 'old' }, actions.loadSalesInvoicePayments(lookup))
+      expect(state).toMatchObject({ salesInvoicePaymentsId: '3', salesInvoicePayments: receiptPayments, salesInvoicePaymentsStatus: 'loading', salesInvoicePaymentsError: null })
+    })
+
+    it('LOAD_SALES_INVOICE_PAYMENTS for another invoice starts empty', () => {
+      const state = receiptsReducer(loaded, actions.loadSalesInvoicePayments({ ...lookup, salesInvoiceId: '4' }))
+      expect(state).toMatchObject({ salesInvoicePaymentsId: '4', salesInvoicePayments: [], salesInvoicePaymentsStatus: 'loading' })
+    })
+
+    it('LOAD_SALES_INVOICE_PAYMENTS_SUCCESS stores the payments, and ignores a late answer for another invoice', () => {
+      const loading = receiptsReducer(initialReceiptsState, actions.loadSalesInvoicePayments(lookup))
+      expect(receiptsReducer(loading, actions.loadSalesInvoicePaymentsSuccess({ salesInvoiceId: '3', payments: receiptPayments })))
+        .toMatchObject({ salesInvoicePayments: receiptPayments, salesInvoicePaymentsStatus: 'success' })
+      expect(receiptsReducer(loading, actions.loadSalesInvoicePaymentsSuccess({ salesInvoiceId: '9', payments: receiptPayments }))).toBe(loading)
+    })
+
+    it('LOAD_SALES_INVOICE_PAYMENTS_FAILURE stores the message', () => {
+      expect(receiptsReducer(loaded, actions.loadSalesInvoicePaymentsFailure('nope')))
+        .toMatchObject({ salesInvoicePaymentsStatus: 'error', salesInvoicePaymentsError: 'nope' })
+    })
+
+    it('CLEAR_SALES_INVOICE_PAYMENTS forgets them without touching the AR payment history', () => {
+      const state = receiptsReducer({ ...loaded, paymentHistoryInvoiceId: '2471', payments: receiptPayments }, actions.clearSalesInvoicePayments())
+      expect(state).toMatchObject({
+        salesInvoicePaymentsId: null, salesInvoicePayments: [], salesInvoicePaymentsStatus: 'idle', salesInvoicePaymentsError: null,
+        paymentHistoryInvoiceId: '2471', payments: receiptPayments,
+      })
+    })
+  })
 })

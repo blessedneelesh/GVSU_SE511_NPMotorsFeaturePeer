@@ -15,6 +15,10 @@ const state = makeReceiptState({
   payments: receiptPayments,
   paymentHistoryStatus: 'error',
   paymentHistoryError: 'history error',
+  salesInvoicePaymentsId: '3',
+  salesInvoicePayments: [receiptPayments[0]!],
+  salesInvoicePaymentsStatus: 'loading',
+  salesInvoicePaymentsError: 'sales invoice error',
 })
 
 describe('receipts selectors', () => {
@@ -33,6 +37,10 @@ describe('receipts selectors', () => {
     ['selectReceiptPayments', selectors.selectReceiptPayments, receiptPayments],
     ['selectReceiptPaymentHistoryStatus', selectors.selectReceiptPaymentHistoryStatus, 'error'],
     ['selectReceiptPaymentHistoryError', selectors.selectReceiptPaymentHistoryError, 'history error'],
+    ['selectSalesInvoicePaymentsId', selectors.selectSalesInvoicePaymentsId, '3'],
+    ['selectSalesInvoicePayments', selectors.selectSalesInvoicePayments, [receiptPayments[0]]],
+    ['selectSalesInvoicePaymentsStatus', selectors.selectSalesInvoicePaymentsStatus, 'loading'],
+    ['selectSalesInvoicePaymentsError', selectors.selectSalesInvoicePaymentsError, 'sales invoice error'],
   ] as const)('%s', (_, selector, expected) => {
     expect(selector(state)).toEqual(expected)
   })

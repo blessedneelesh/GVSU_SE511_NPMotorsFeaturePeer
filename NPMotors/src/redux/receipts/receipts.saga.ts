@@ -12,10 +12,14 @@ import { loadReceivables, selectReceivable } from '../receivables/receivables.ac
 import { selectSelectedReceivableId } from '../receivables/receivables.selectors'
 import {
   type clearPaymentHistory,
+  type clearSalesInvoicePayments,
   loadPaymentHistory,
   loadPaymentHistoryFailure,
   loadPaymentHistorySuccess,
   loadReceiptBankAccountOptionsFailure,
+  type loadSalesInvoicePayments,
+  loadSalesInvoicePaymentsFailure,
+  loadSalesInvoicePaymentsSuccess,
   loadReceiptBankAccountOptionsSuccess,
   type recordArPayment,
   recordArPaymentFailure,
@@ -55,6 +59,25 @@ function* loadPaymentHistoryWorker(action: ReturnType<typeof loadPaymentHistory>
   }
 }
 
+function* loadSalesInvoicePaymentsWorker(
+  action: ReturnType<typeof loadSalesInvoicePayments> | ReturnType<typeof clearSalesInvoicePayments>,
+): SagaIterator {
+  // CLEAR_SALES_INVOICE_PAYMENTS only exists so takeLatest cancels an in-flight load when the tab closes
+  if (action.type !== RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS) return
+  const request = action.payload
+  const controller = new AbortController()
+  try {
+    const payments: ReceiptPayment[] = yield call(receiptsApi.getSalesInvoicePayments, request, controller.signal)
+    yield put(loadSalesInvoicePaymentsSuccess({ salesInvoiceId: request.salesInvoiceId, payments }))
+  } catch (error) {
+    const message = getReceiptErrorMessage(error, PAYMENT_HISTORY_FALLBACK_MESSAGE)
+    if (message) yield put(loadSalesInvoicePaymentsFailure(message))
+  } finally {
+    const wasCancelled: boolean = yield cancelled()
+    if (wasCancelled) controller.abort()
+  }
+}
+
 function* recordArPaymentWorker(action: ReturnType<typeof recordArPayment>): SagaIterator {
   try {
     yield call(receiptsApi.recordArPayment, action.payload)
@@ -78,5 +101,6 @@ export default function* receiptsSaga(): SagaIterator {
     // takeLeading ignores repeat submits while a post is in flight, so a double-click can't record the payment twice
     takeLeading(RECEIPT_ACTIONS.RECORD_AR_PAYMENT, recordArPaymentWorker),
     takeLatest([RECEIPT_ACTIONS.LOAD_PAYMENT_HISTORY, RECEIPT_ACTIONS.CLEAR_PAYMENT_HISTORY], loadPaymentHistoryWorker),
+    takeLatest([RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS, RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_PAYMENTS], loadSalesInvoicePaymentsWorker),
   ])
 }

@@ -11,6 +11,10 @@ import {
   loadReceiptBankAccountOptions,
   loadReceiptBankAccountOptionsFailure,
   loadReceiptBankAccountOptionsSuccess,
+  clearSalesInvoicePayments,
+  loadSalesInvoicePayments,
+  loadSalesInvoicePaymentsFailure,
+  loadSalesInvoicePaymentsSuccess,
   recordArPayment,
   recordArPaymentFailure,
   recordArPaymentSuccess,
@@ -24,7 +28,7 @@ import { receiptsApi } from '../../../services/receipts/receipts.api'
 import { receiptBankAccountOptions, receiptFormValues, receiptPayments } from '../../../test/fixtures/receipts'
 
 vi.mock('../../../services/receipts/receipts.api', () => ({
-  receiptsApi: { getBankAccountOptions: vi.fn(), recordArPayment: vi.fn(), getPaymentHistory: vi.fn() },
+  receiptsApi: { getBankAccountOptions: vi.fn(), recordArPayment: vi.fn(), getPaymentHistory: vi.fn(), getSalesInvoicePayments: vi.fn() },
 }))
 
 // The workers aren't exported; take them from the watchers in the root saga's all([...]) effect
@@ -39,6 +43,7 @@ const workerAt = (index: number): Worker => {
 const loadBankAccountOptionsWorker = workerAt(0)
 const recordArPaymentWorker = workerAt(1)
 const loadPaymentHistoryWorker = workerAt(2)
+const loadSalesInvoicePaymentsWorker = workerAt(3)
 
 // The error helpers check axios.isAxiosError / axios.isCancel, so failures must be real axios errors
 const httpError = (status: number, data?: unknown) =>
@@ -54,6 +59,7 @@ describe('receiptsSaga (root)', () => {
       takeLatest(RECEIPT_ACTIONS.LOAD_BANK_ACCOUNT_OPTIONS, loadBankAccountOptionsWorker),
       takeLeading(RECEIPT_ACTIONS.RECORD_AR_PAYMENT, recordArPaymentWorker),
       takeLatest([RECEIPT_ACTIONS.LOAD_PAYMENT_HISTORY, RECEIPT_ACTIONS.CLEAR_PAYMENT_HISTORY], loadPaymentHistoryWorker),
+      takeLatest([RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS, RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_PAYMENTS], loadSalesInvoicePaymentsWorker),
     ]))
     expect(gen.next().done).toBe(true)
   })
@@ -181,6 +187,37 @@ describe('loadPaymentHistoryWorker', () => {
 
   it('aborts the request when the invoice is closed or another one opened', () => {
     const { gen, signal } = startHistory()
+    expect(gen.return(undefined).value).toStrictEqual(cancelled())
+    expect(gen.next(true).done).toBe(true)
+    expect(signal.aborted).toBe(true)
+  })
+})
+
+describe('loadSalesInvoicePaymentsWorker', () => {
+  const lookup = { salesInvoiceId: '3', customerId: 'C001', invoiceNumber: 'INV-2026-0003' }
+  const startPayments = () => {
+    const gen = loadSalesInvoicePaymentsWorker(loadSalesInvoicePayments(lookup))
+    const effect = gen.next().value
+    expect(effect).toEqual(call(receiptsApi.getSalesInvoicePayments, lookup, expect.any(AbortSignal)))
+    return { gen, signal: effect.payload.args[1] as AbortSignal }
+  }
+
+  it('dispatches the payments with the sales invoice they belong to', () => {
+    const { gen } = startPayments()
+    expect(gen.next(receiptPayments).value).toStrictEqual(put(loadSalesInvoicePaymentsSuccess({ salesInvoiceId: '3', payments: receiptPayments })))
+  })
+
+  it('does nothing on CLEAR_SALES_INVOICE_PAYMENTS', () => {
+    expect(loadSalesInvoicePaymentsWorker(clearSalesInvoicePayments()).next().done).toBe(true)
+  })
+
+  it('falls back to the history message when the error has no detail', () => {
+    const { gen } = startPayments()
+    expect(gen.throw(httpError(400)).value).toStrictEqual(put(loadSalesInvoicePaymentsFailure('Payment history could not be loaded. Please try again.')))
+  })
+
+  it('aborts the requests when the tab closes', () => {
+    const { gen, signal } = startPayments()
     expect(gen.return(undefined).value).toStrictEqual(cancelled())
     expect(gen.next(true).done).toBe(true)
     expect(signal.aborted).toBe(true)

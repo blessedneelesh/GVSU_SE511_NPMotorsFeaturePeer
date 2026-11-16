@@ -29,10 +29,13 @@ import { useCustomerDetail } from '../../hooks/useCustomerDetail'
 import { useSalesInvoiceDetail } from '../../hooks/useSalesInvoiceDetail'
 import { useSalesInvoiceMutations } from '../../hooks/useSalesInvoiceMutations'
 import { useSalesInvoiceOptions } from '../../hooks/useSalesInvoiceOptions'
+import { useSalesInvoicePayments } from '../../hooks/useSalesInvoicePayments'
 import { useVehicleDetail } from '../../hooks/useVehicleDetail'
 import type { Customer } from '../../types/customers'
+import type { ReceiptPayment } from '../../types/receipts'
 import type { SalesInvoice } from '../../types/salesInvoices'
 import type { Vehicle } from '../../types/vehicles'
+import { paymentMethodLabel, sortPaymentsOldestFirst } from '../AccountsReceivablePage/receivableMetrics'
 import { CancelSalesInvoiceDialog } from './CancelSalesInvoiceDialog'
 import { canCancel, formatAmount, statusBadges, statusTitle, TAX_RATE } from './salesInvoiceMetrics'
 
@@ -493,10 +496,16 @@ function VehicleDetailsPanel({ invoice, customer, vehicle }: Omit<InvoiceTabsPro
   )
 }
 
-// The API has no per-invoice receipt list yet (GetPaymentHistory needs the AR invoice id, which GetSalesInvoiceById
-// doesn't return), so, as the design does without recorded transactions, the amount paid is one row on the invoice date
+// Receipts from GetPaymentHistory, newest first. Only invoices with money paid are looked up; when no receipts are
+// found (no receivable, or the payment was taken with the invoice), the design's fallback shows the amount paid as one row.
 function PaymentHistoryPanel({ invoice, onReceivePayment }: { invoice: SalesInvoice; onReceivePayment: () => void }) {
-  if (invoice.paid <= 0) {
+  const hasPaid = invoice.paid > 0
+  const { payments, paymentsStatus, paymentsError, retry } = useSalesInvoicePayments(
+    hasPaid ? { salesInvoiceId: invoice.id, customerId: invoice.customerId, invoiceNumber: invoice.number } : null,
+  )
+  const newestFirst = sortPaymentsOldestFirst(payments).reverse()
+
+  if (!hasPaid) {
     return (
       <div className="payment-history__empty">
         <MoneyHand20Regular aria-hidden="true" />
@@ -506,10 +515,32 @@ function PaymentHistoryPanel({ invoice, onReceivePayment }: { invoice: SalesInvo
     )
   }
 
+  if (paymentsStatus === 'error') {
+    return (
+      <MessageBar intent="error">
+        <MessageBarBody>
+          <MessageBarTitle>Couldn&apos;t load payments</MessageBarTitle>
+          {paymentsError}
+        </MessageBarBody>
+        <MessageBarActions>
+          <Button onClick={retry}>Retry</Button>
+        </MessageBarActions>
+      </MessageBar>
+    )
+  }
+
+  if (paymentsStatus !== 'success' && newestFirst.length === 0) {
+    return (
+      <div className="payment-history__empty">
+        <Spinner size="small" label="Loading payments…" />
+      </div>
+    )
+  }
+
   return (
     <>
-      <div className="table-scroll">
-        <Table aria-label={`Payments for ${invoice.number}`} className="data-table payment-history-table">
+      <div className={`table-scroll${paymentsStatus === 'loading' ? ' is-refreshing' : ''}`}>
+        <Table aria-label={`Payments for ${invoice.number}`} aria-busy={paymentsStatus === 'loading'} className="data-table payment-history-table">
           <TableHeader>
             <TableRow>
               <TableHeaderCell>Date</TableHeaderCell>
@@ -520,13 +551,23 @@ function PaymentHistoryPanel({ invoice, onReceivePayment }: { invoice: SalesInvo
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow>
-              <TableCell className="text-secondary">{invoice.invoiceDate || '—'}</TableCell>
-              <TableCell><span className="method-chip">Recorded payment</span></TableCell>
-              <TableCell className="mono text-xs">—</TableCell>
-              <TableCell className="num strong text-green">{formatAmount(invoice.paid)}</TableCell>
-              <TableCell className="text-xs text-muted">Payment recorded with invoice</TableCell>
-            </TableRow>
+            {newestFirst.length > 0 ? newestFirst.map((payment, index) => (
+              <TableRow key={payment.id || `${payment.receiptNumber}-${index}`}>
+                <TableCell className="text-secondary">{payment.receiptDate || '—'}</TableCell>
+                <TableCell><span className="method-chip">{paymentMethodLabel(payment.paymentMethod)}</span></TableCell>
+                <TableCell className="mono text-xs text-link">{payment.receiptNumber || '—'}</TableCell>
+                <TableCell className="num strong text-green">{formatAmount(payment.amount)}</TableCell>
+                <TableCell className="text-xs text-muted">{paymentNote(payment)}</TableCell>
+              </TableRow>
+            )) : (
+              <TableRow>
+                <TableCell className="text-secondary">{invoice.invoiceDate || '—'}</TableCell>
+                <TableCell><span className="method-chip">Recorded payment</span></TableCell>
+                <TableCell className="mono text-xs">—</TableCell>
+                <TableCell className="num strong text-green">{formatAmount(invoice.paid)}</TableCell>
+                <TableCell className="text-xs text-muted">Payment recorded with invoice</TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
@@ -537,3 +578,7 @@ function PaymentHistoryPanel({ invoice, onReceivePayment }: { invoice: SalesInvo
     </>
   )
 }
+
+// The design's Note: where the money went, and the payer's reference when there is one
+const paymentNote = (payment: ReceiptPayment) =>
+  [payment.bankAccountName && `Deposited to ${payment.bankAccountName}`, payment.reference].filter(Boolean).join(' · ') || '—'
