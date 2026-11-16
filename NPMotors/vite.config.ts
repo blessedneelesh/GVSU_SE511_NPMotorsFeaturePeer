@@ -69,6 +69,18 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // AR aging endpoints (Accounts Receivable page), same API. Capitalised with a trailing slash, so it can't catch /accounts-receivable or other paths starting with "/Ar".
+      '/Ar/': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
+      // Receipt endpoints (Receive Payment on Accounts Receivable), same API. Capitalised with a trailing slash; no page route starts with "/Receipt/".
+      '/Receipt/': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   test: {

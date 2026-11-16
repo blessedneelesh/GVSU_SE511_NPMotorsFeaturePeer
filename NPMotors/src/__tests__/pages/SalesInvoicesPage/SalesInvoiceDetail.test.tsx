@@ -1,6 +1,23 @@
-import { act, screen, waitFor, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react'
+import { Route, Routes } from 'react-router-dom'
+import { describe, expect, it, vi } from 'vitest'
 import { SalesInvoiceDetail } from '../../../pages/SalesInvoicesPage/SalesInvoiceDetail'
+import { selectCustomer } from '../../../redux/customers/customers.actions'
+import {
+  clearSalesInvoiceAr,
+  findSalesInvoiceAr,
+  findSalesInvoiceArFailure,
+  findSalesInvoiceArSuccess,
+  loadReceiptBankAccountOptionsSuccess,
+  recordArPayment,
+  resetReceiptSave,
+  clearSalesInvoicePayments,
+  loadSalesInvoicePayments,
+  loadSalesInvoicePaymentsFailure,
+  loadSalesInvoicePaymentsSuccess,
+} from '../../../redux/receipts/receipts.actions'
+import { selectVehicle } from '../../../redux/vehicles/vehicles.actions'
+import { receiptPayments } from '../../../test/fixtures/receipts'
 import {
   cancelSalesInvoiceSuccess,
   clearSalesInvoiceSelection,
@@ -18,16 +35,36 @@ import {
   sparseInvoice,
 } from '../../../test/fixtures/salesInvoices'
 import { makeSalesInvoiceState, renderWithProviders } from '../../../test/test-utils'
+import { availableVehicle } from '../../../test/fixtures/vehicles'
 import type { SalesInvoice } from '../../../types/salesInvoices'
+import type { Vehicle } from '../../../types/vehicles'
+
+interface ProfileOptions {
+  options?: boolean
+  // The invoice's vehicle record, as the detail saga loads it after the invoice
+  vehicle?: Vehicle | null
+}
 
 // The detail view loads the customers and employees on mount for Bill To and Salesperson; the helper answers it
-const renderProfile = (selected: SalesInvoice, { options = true } = {}) => {
-  const result = renderWithProviders(<SalesInvoiceDetail />, {
-    preloadedState: makeSalesInvoiceState({ selectedId: selected.id || 'X', selected, detailStatus: 'success' }),
+const renderProfile = (selected: SalesInvoice, { options = true, vehicle = null }: ProfileOptions = {}, ui = <SalesInvoiceDetail />) => {
+  const result = renderWithProviders(ui, {
+    preloadedState: makeSalesInvoiceState({ selectedId: selected.id || 'X', selected, selectedVehicle: vehicle, detailStatus: 'success' }),
   })
   if (options) act(() => { result.store.dispatch(loadSalesInvoiceOptionsSuccess(salesInvoiceOptions)) })
   return result
 }
+
+// The command bar and Related Records leave for other screens; stand-ins show which one was reached
+const renderRouted = (selected: SalesInvoice, profileOptions: ProfileOptions = {}) =>
+  renderProfile(selected, profileOptions, (
+    <Routes>
+      <Route path="/" element={<SalesInvoiceDetail />} />
+      <Route path="/accounts-receivable" element={<p>Accounts Receivable screen</p>} />
+      <Route path="/customers" element={<p>Customers screen</p>} />
+      <Route path="/vehicle-inventory" element={<p>Vehicles screen</p>} />
+      <Route path="/transactions" element={<p>Transactions screen</p>} />
+    </Routes>
+  ))
 
 // Every summary figure is a <dt>/<dd> pair; returns the <dd> for a label inside a container
 const valueOf = (container: HTMLElement, label: string) => {
@@ -125,7 +162,7 @@ describe('SalesInvoiceDetail', () => {
         ['Toyota CamryVIN: 4T1G11AK0RU000024', '1', '$30,250.00', '$30,250.00'],
         ['Document & Processing Fees', '—', '—', '$450.00'],
         ['Subtotal', '$30,700.00'],
-        ['Sales Tax', '$2,420.00'],
+        ['Sales Tax (8%)', '$2,420.00'],
         ['TOTAL DUE', '$33,120.00'],
       ])
     })
@@ -177,7 +214,7 @@ describe('SalesInvoiceDetail', () => {
         ['Negotiated Discount', '—', '—', '-$500.00'],
         ['Document & Processing Fees', '—', '—', '$450.00'],
         ['Subtotal', '$44,450.00'],
-        ['Sales Tax', '$3,560.00'],
+        ['Sales Tax (8%)', '$3,560.00'],
         ['TOTAL DUE', '$48,010.00'],
         ['Amount Paid', '-$10,000.00'],
         ['BALANCE DUE', '$38,010.00'],
@@ -267,6 +304,242 @@ describe('SalesInvoiceDetail', () => {
       await user.click(screen.getByRole('button', { name: 'Dismiss' }))
       expect(screen.queryByText('Invoice cancelled. The vehicle is available again.')).not.toBeInTheDocument()
       expect(store.getState().salesInvoices.cancelStatus).toBe('idle')
+    })
+  })
+
+  describe('command bar', () => {
+    it('offers Receive Payment, Print and Send to Customer on an unpaid invoice', () => {
+      renderProfile(postedInvoice)
+      const toolbar = screen.getByRole('toolbar', { name: 'Invoice actions' })
+      expect(within(toolbar).getByRole('button', { name: 'Receive Payment' })).toBeInTheDocument()
+      expect(within(toolbar).getByRole('button', { name: 'Print' })).toBeInTheDocument()
+      expect(within(toolbar).getByRole('button', { name: 'Cancel Invoice' })).toBeInTheDocument()
+
+      const send = within(toolbar).getByRole('link', { name: 'Send to Customer' })
+      const href = send.getAttribute('href') ?? ''
+      expect(href).toMatch(/^mailto:john\.smith%40email\.com\?subject=Sales%20Invoice%20INV-2026-0006&body=/)
+      expect(decodeURIComponent(href)).toContain('Balance due: $33,120.00 by 2026-11-14')
+    })
+
+    describe('Receive Payment', () => {
+      const lookup = { salesInvoiceId: '6', customerId: 'C001', invoiceNumber: 'INV-2026-0006' }
+      const openPayment = async () => {
+        const result = renderProfile(postedInvoice)
+        await result.user.click(within(screen.getByRole('toolbar', { name: 'Invoice actions' })).getByRole('button', { name: 'Receive Payment' }))
+        return result
+      }
+
+      it('finds the invoice\'s receivable, then opens the payment form for the invoice\'s balance', async () => {
+        const { actions, store } = await openPayment()
+        expect(actions).toEqual(expect.arrayContaining([resetReceiptSave(), findSalesInvoiceAr(lookup)]))
+        expect(screen.getByText("Finding the invoice's receivable…")).toBeInTheDocument()
+
+        // With no saga running, the test answers as the saga would
+        act(() => { store.dispatch(findSalesInvoiceArSuccess({ salesInvoiceId: '6', arInvoiceId: '2471' })) })
+        const dialog = screen.getByRole('dialog', { name: 'Receive Payment' })
+        expect(within(dialog).getByText('INV-2026-0006 · John Smith')).toBeInTheDocument()
+        expect(within(dialog).getByText('Balance Due').nextElementSibling).toHaveTextContent('$33,120.00')
+        expect(within(dialog).getByRole('spinbutton', { name: /Payment Amount/ })).toHaveValue(33120)
+      })
+
+      it('posts the payment against the AR invoice it found', async () => {
+        const { actions, store, user } = await openPayment()
+        act(() => { store.dispatch(findSalesInvoiceArSuccess({ salesInvoiceId: '6', arInvoiceId: '2471' })) })
+        act(() => { store.dispatch(loadReceiptBankAccountOptionsSuccess([{ id: '1', name: 'Operating Checking', bankName: 'Chase', accountNumber: '****4521' }])) })
+        const amount = screen.getByRole('spinbutton', { name: /Payment Amount/ })
+        await user.clear(amount)
+        await user.type(amount, '5000')
+        await user.click(screen.getByRole('button', { name: 'Post Payment' }))
+
+        expect(actions).toContainEqual(recordArPayment({
+          arInvoiceId: '2471',
+          values: expect.objectContaining({ amount: '5000', bankAccountId: '1', paymentMethod: 'transfer' }),
+        }))
+      })
+
+      it('says when the invoice has no receivable to post to', async () => {
+        const { store } = await openPayment()
+        act(() => { store.dispatch(findSalesInvoiceArSuccess({ salesInvoiceId: '6', arInvoiceId: null })) })
+        expect(screen.getByText(/No receivable was found for this invoice/)).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Post Payment' })).not.toBeInTheDocument()
+      })
+
+      it('shows when the lookup failed and retries', async () => {
+        const { actions, store, user } = await openPayment()
+        act(() => { store.dispatch(findSalesInvoiceArFailure('The receivable for this invoice could not be loaded. Please try again.')) })
+        expect(screen.getByText('The receivable for this invoice could not be loaded. Please try again.')).toBeInTheDocument()
+        await user.click(screen.getByRole('button', { name: 'Retry' }))
+        expect(actions.filter((action) => action.type === findSalesInvoiceAr(lookup).type)).toHaveLength(2)
+      })
+
+      it('closes, forgetting the lookup', async () => {
+        const { actions, user } = await openPayment()
+        await user.click(screen.getByRole('button', { name: 'Close' }))
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(actions).toContainEqual(clearSalesInvoiceAr())
+      })
+
+      it('keeps the dialog open while the invoice reloads after the payment', async () => {
+        const { store } = await openPayment()
+        act(() => { store.dispatch(findSalesInvoiceArSuccess({ salesInvoiceId: '6', arInvoiceId: '2471' })) })
+        // What the saga does after the payment: reload the sales invoice
+        act(() => { store.dispatch(selectSalesInvoice('6')) })
+        expect(screen.getByText('Loading sales invoice…')).toBeInTheDocument()
+        expect(screen.getByRole('dialog', { name: 'Receive Payment' })).toBeInTheDocument()
+      })
+    })
+
+    it('prints the invoice', async () => {
+      const print = vi.spyOn(window, 'print').mockImplementation(() => undefined)
+      const { user } = renderProfile(postedInvoice)
+      await user.click(screen.getByRole('button', { name: 'Print' }))
+      expect(print).toHaveBeenCalledTimes(1)
+      print.mockRestore()
+    })
+
+    it('cannot send to a customer without an email address', () => {
+      renderProfile(postedInvoice, { options: false })
+      expect(screen.getByRole('button', { name: 'Send to Customer' })).toBeDisabled()
+    })
+
+    it.each([
+      ['a draft', draftInvoice],
+      ['a cancelled invoice', cancelledInvoice],
+      ['a fully paid invoice', sparseInvoice],
+    ])('offers no Receive Payment on %s', (_, invoice) => {
+      renderProfile(invoice)
+      expect(screen.queryByRole('button', { name: 'Receive Payment' })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('vehicle record', () => {
+    it('adds the year and color once the vehicle loads', () => {
+      renderProfile(postedInvoice, { vehicle: availableVehicle })
+      expect(within(blockOf('Vehicle')).getByText('2024 Toyota Camry')).toBeInTheDocument()
+      expect(within(blockOf('Vehicle')).getByText('Color: Silver')).toBeInTheDocument()
+    })
+
+    it('lists the vehicle and customer on the Vehicle Details tab', () => {
+      renderProfile(postedInvoice, { vehicle: availableVehicle })
+      expect(screen.getByRole('tab', { name: 'Vehicle Details' })).toHaveAttribute('aria-selected', 'true')
+
+      const vehicleInfo = blockOf('Vehicle Information')
+      expect(valueOf(vehicleInfo, 'Year')).toHaveTextContent('2024')
+      expect(valueOf(vehicleInfo, 'Color')).toHaveTextContent('Silver')
+      expect(valueOf(vehicleInfo, 'Warehouse')).toHaveTextContent('Showroom')
+      expect(valueOf(vehicleInfo, 'VIN')).toHaveTextContent('4T1G11AK0RU000024')
+
+      const customerInfo = blockOf('Customer')
+      expect(valueOf(customerInfo, 'Phone')).toHaveTextContent('(214) 555-0101')
+      expect(valueOf(customerInfo, 'Address')).toHaveTextContent('1250 Motor Mile Drive, Dallas')
+      expect(valueOf(customerInfo, 'Customer ID')).toHaveTextContent('C001')
+    })
+
+    it('falls back to the invoice\'s make, model and VIN without the vehicle record', () => {
+      renderProfile(postedInvoice)
+      const vehicleInfo = blockOf('Vehicle Information')
+      expect(valueOf(vehicleInfo, 'Make')).toHaveTextContent('Toyota')
+      expect(valueOf(vehicleInfo, 'Year')).toHaveTextContent('—')
+      expect(valueOf(vehicleInfo, 'Warehouse')).toHaveTextContent('—')
+    })
+  })
+
+  describe('Payment History tab', () => {
+    it('says no payments are received yet and offers to take one', async () => {
+      const { user } = renderRouted(postedInvoice)
+      await user.click(screen.getByRole('tab', { name: 'Payment History' }))
+
+      const panel = screen.getByRole('tabpanel', { name: 'Payment History' })
+      expect(within(panel).getByText('No payments received yet')).toBeInTheDocument()
+      await user.click(within(panel).getByRole('button', { name: 'Receive Payment' }))
+      expect(screen.getByRole('dialog', { name: 'Receive Payment' })).toBeInTheDocument()
+    })
+
+    const lookup = { salesInvoiceId: '3', customerId: 'C001', invoiceNumber: 'INV-2026-0003' }
+
+    it('does not look up payments for an invoice with nothing paid', async () => {
+      const { actions, user } = renderProfile(postedInvoice)
+      await user.click(screen.getByRole('tab', { name: 'Payment History' }))
+      expect(actions.some((action) => action.type === loadSalesInvoicePayments(lookup).type)).toBe(false)
+    })
+
+    it('lists the receipts posted against the invoice, newest first', async () => {
+      const { actions, store, user } = renderProfile(partialInvoice)
+      await user.click(screen.getByRole('tab', { name: 'Payment History' }))
+      expect(actions).toContainEqual(loadSalesInvoicePayments(lookup))
+      expect(screen.getByText('Loading payments…')).toBeInTheDocument()
+
+      // With no saga running, the test answers as the saga would
+      act(() => { store.dispatch(loadSalesInvoicePaymentsSuccess({ salesInvoiceId: '3', payments: receiptPayments })) })
+      const rows = within(screen.getByRole('table', { name: 'Payments for INV-2026-0003' })).getAllByRole('row').slice(1)
+      expect(rows.map((row) => within(row).getAllByRole('cell').map((cell) => cell.textContent))).toEqual([
+        ['2026-11-10', 'Bank Transfer', 'RCT-2026-000462', '$650.00', 'Deposited to Business Savings'],
+        ['2026-11-08', 'Check', 'RCT-2026-000461', '$1,200.00', 'Deposited to Operating Checking · INV-004262'],
+      ])
+    })
+
+    it('shows when the payments failed to load and retries', async () => {
+      const { actions, store, user } = renderProfile(partialInvoice)
+      await user.click(screen.getByRole('tab', { name: 'Payment History' }))
+      act(() => { store.dispatch(loadSalesInvoicePaymentsFailure('Payment history could not be loaded. Please try again.')) })
+
+      expect(screen.getByText("Couldn't load payments")).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Retry' }))
+      expect(actions.filter((action) => action.type === loadSalesInvoicePayments(lookup).type)).toHaveLength(2)
+    })
+
+    it('forgets the payments when the tab is left', async () => {
+      const { actions, user } = renderProfile(partialInvoice)
+      await user.click(screen.getByRole('tab', { name: 'Payment History' }))
+      await user.click(screen.getByRole('tab', { name: 'Vehicle Details' }))
+      expect(actions).toContainEqual(clearSalesInvoicePayments())
+    })
+
+    it('falls back to the amount paid when no receipts are found', async () => {
+      const { store, user } = renderProfile(partialInvoice)
+      await user.click(screen.getByRole('tab', { name: 'Payment History' }))
+      act(() => { store.dispatch(loadSalesInvoicePaymentsSuccess({ salesInvoiceId: '3', payments: [] })) })
+
+      const rows = within(screen.getByRole('table', { name: 'Payments for INV-2026-0003' })).getAllByRole('row').slice(1)
+      expect(rows.map((row) => within(row).getAllByRole('cell').map((cell) => cell.textContent))).toEqual([
+        ['2026-09-20', 'Recorded payment', '—', '$10,000.00', 'Payment recorded with invoice'],
+      ])
+      const panel = screen.getByRole('tabpanel', { name: 'Payment History' })
+      expect(valueOf(panel, 'Total Paid')).toHaveTextContent('$10,000.00')
+      expect(valueOf(panel, 'Balance Remaining')).toHaveTextContent('$38,010.00')
+    })
+  })
+
+  describe('Related Records', () => {
+    it('opens the customer\'s profile on the Customers page', async () => {
+      const { actions, user } = renderRouted(postedInvoice)
+      await user.click(screen.getByRole('button', { name: /Customer Profile/ }))
+      expect(actions).toContainEqual(selectCustomer('C001'))
+      expect(screen.getByText('Customers screen')).toBeInTheDocument()
+    })
+
+    it('opens the vehicle record on the Vehicles page', async () => {
+      const { actions, user } = renderRouted(postedInvoice, { vehicle: availableVehicle })
+      expect(screen.getByRole('button', { name: /Vehicle Record/ })).toHaveTextContent('2024 Toyota Camry')
+      await user.click(screen.getByRole('button', { name: /Vehicle Record/ }))
+      expect(actions).toContainEqual(selectVehicle('24'))
+      expect(screen.getByText('Vehicles screen')).toBeInTheDocument()
+    })
+
+    it('links the GL entries and profitability report', async () => {
+      const { user } = renderRouted(postedInvoice)
+      expect(screen.getByRole('button', { name: /Vehicle Profitability/ })).toHaveTextContent('Margin 11.4%')
+      await user.click(screen.getByRole('button', { name: /GL Entries/ }))
+      expect(screen.getByText('Transactions screen')).toBeInTheDocument()
+    })
+
+    it('has no GL entries for a draft, and nothing to open without ids', () => {
+      renderProfile(draftInvoice)
+      expect(screen.queryByRole('button', { name: /GL Entries/ })).not.toBeInTheDocument()
+      cleanup()
+      renderProfile(sparseInvoice)
+      expect(screen.getByRole('button', { name: /Customer Profile/ })).toBeDisabled()
+      expect(screen.getByRole('button', { name: /Vehicle Record/ })).toBeDisabled()
     })
   })
 })

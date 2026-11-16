@@ -20,6 +20,7 @@ import {
   setSalesInvoiceSearch,
   setSalesInvoiceStatusFilter,
   setSalesInvoiceToDate,
+  updateSalesInvoiceDraft,
 } from '../../../redux/salesInvoices/salesInvoices.actions'
 import type { SalesInvoicesState } from '../../../redux/salesInvoices/salesInvoices.reducer'
 import {
@@ -125,7 +126,40 @@ describe('SalesInvoicesPage', () => {
     renderLoaded([postedInvoice, partialInvoice, draftInvoice, cancelledInvoice])
     expect(within(table()).getAllByRole('button', { name: /^Cancel invoice/ }))
       .toEqual([within(table()).getByRole('button', { name: 'Cancel invoice INV-2026-0006' })])
-    expect(within(table()).getAllByRole('button', { name: /^View invoice/ })).toHaveLength(4)
+    // The draft gets Edit instead of View, as in the design
+    expect(within(table()).getAllByRole('button', { name: /^View invoice/ })).toHaveLength(3)
+    expect(within(table()).getAllByRole('button', { name: /^Edit draft/ }))
+      .toEqual([within(table()).getByRole('button', { name: 'Edit draft INV-2026-0008' })])
+  })
+
+  it.each([
+    ['its number', 'INV-2026-0008'],
+    ['its Edit button', 'Edit draft INV-2026-0008'],
+  ])('opens a draft in the form from %s, not the detail view', async (_, name) => {
+    const { actions, user } = renderLoaded([draftInvoice])
+    await user.click(screen.getByRole('button', { name }))
+
+    expect(actions).toContainEqual(resetSalesInvoiceSave())
+    expect(actions.some((action) => action.type === selectSalesInvoice('8').type)).toBe(false)
+    expect(within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getByText('Edit INV-2026-0008')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeInTheDocument()
+  })
+
+  it('shows the update banner after saving a draft\'s changes', async () => {
+    const { store, user } = renderLoaded([draftInvoice])
+    await user.click(screen.getByRole('button', { name: 'Edit draft INV-2026-0008' }))
+    act(() => {
+      store.dispatch(updateSalesInvoiceDraft({ id: '8', values: salesInvoiceFormValues }))
+      store.dispatch(saveSalesInvoiceSuccess())
+    })
+    expect(screen.getByText('Draft INV-2026-0008 updated successfully.')).toBeInTheDocument()
+    expect(table()).toBeInTheDocument()
+  })
+
+  it('labels draft rows that have no customer or vehicle yet', () => {
+    renderLoaded([{ ...draftInvoice, customerName: '', vehicle: '' }])
+    expect(within(table()).getByText('Customer not selected')).toBeInTheDocument()
+    expect(within(table()).getByText('Vehicle not selected')).toBeInTheDocument()
   })
 
   it('uses the singular for a single invoice', () => {

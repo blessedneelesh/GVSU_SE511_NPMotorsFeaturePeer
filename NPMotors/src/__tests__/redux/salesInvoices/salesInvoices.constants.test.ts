@@ -21,11 +21,14 @@ describe('SALES_INVOICE_ACTIONS', () => {
     ['CLEAR_SELECTION', 'salesInvoices/clearSelection'],
     ['LOAD_BY_ID_SUCCESS', 'salesInvoices/loadByIdSuccess'],
     ['LOAD_BY_ID_FAILURE', 'salesInvoices/loadByIdFailure'],
+    ['LOAD_VEHICLE_SUCCESS', 'salesInvoices/loadVehicleSuccess'],
     ['LOAD_OPTIONS', 'salesInvoices/loadOptions'],
     ['LOAD_OPTIONS_SUCCESS', 'salesInvoices/loadOptionsSuccess'],
     ['LOAD_OPTIONS_FAILURE', 'salesInvoices/loadOptionsFailure'],
     ['CREATE', 'salesInvoices/create'],
     ['POST', 'salesInvoices/post'],
+    ['UPDATE', 'salesInvoices/update'],
+    ['POST_DRAFT', 'salesInvoices/postDraft'],
     ['SAVE_SUCCESS', 'salesInvoices/saveSuccess'],
     ['SAVE_FAILURE', 'salesInvoices/saveFailure'],
     ['RESET_SAVE', 'salesInvoices/resetSave'],
@@ -37,8 +40,8 @@ describe('SALES_INVOICE_ACTIONS', () => {
     expect(SALES_INVOICE_ACTIONS[key]).toBe(value)
   })
 
-  it('has 25 action types', () => {
-    expect(Object.keys(SALES_INVOICE_ACTIONS)).toHaveLength(25)
+  it('has 28 action types', () => {
+    expect(Object.keys(SALES_INVOICE_ACTIONS)).toHaveLength(28)
   })
 
   it('has unique values', () => {

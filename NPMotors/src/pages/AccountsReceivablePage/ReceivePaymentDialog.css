@@ -1,0 +1,62 @@
+/* Receive Payment modal — matches the Figma Make ReceivePaymentModal. Fluent renders dialogs in a portal outside
+   .receivables-page, so everything is scoped under .receipt-dialog and the page's CSS variables are redeclared here. */
+.receipt-dialog {
+  --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-400: #94a3b8; --slate-500: #64748b;
+  --slate-700: #334155; --slate-800: #1e293b; --slate-900: #0f172a;
+  --amber: #d97706; --green: #047857;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  width: min(480px, calc(100vw - 32px));
+  max-width: none;
+  max-height: 90vh;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.receipt-dialog form { display: flex; flex-direction: column; max-height: 90vh; }
+.receipt-dialog .receipt-dialog__body { display: flex; flex-direction: column; gap: 0; max-height: 90vh; }
+
+.receipt-dialog__header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; background: var(--slate-900); }
+.receipt-dialog__header h2 { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.4; color: #fff; }
+.receipt-dialog__header p { margin: 2px 0 0; font-size: 12px; color: var(--slate-400); }
+.receipt-dialog__header .fui-Button { color: var(--slate-400); }
+.receipt-dialog__header .fui-Button:hover { color: #fff; }
+
+.receipt-dialog .receipt-dialog__content { display: flex; flex-direction: column; gap: 16px; padding: 24px; overflow-y: auto; }
+
+.receipt-dialog__summary { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0; background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: 8px; }
+.receipt-dialog__summary > div { padding: 12px 16px; text-align: center; }
+.receipt-dialog__summary > div + div { border-left: 1px solid var(--slate-100); }
+.receipt-dialog__summary dt { margin-bottom: 2px; font-size: 12px; color: var(--slate-400); }
+.receipt-dialog__summary dd { margin: 0; font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--slate-800); }
+
+.receipt-dialog__fields { display: flex; flex-direction: column; gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.receipt-dialog__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.receipt-dialog .fui-Dropdown { min-width: 0; }
+
+.receipt-dialog .receipt-dialog__footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 24px; background: var(--slate-50); border-top: 1px solid var(--slate-200); }
+
+/* Confirmation after posting */
+.receipt-dialog--posted { width: min(440px, calc(100vw - 32px)); }
+.receipt-dialog .receipt-dialog__posted { display: flex; flex-direction: column; align-items: center; gap: 0; padding: 32px; text-align: center; }
+.receipt-dialog__check { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; margin-bottom: 16px; border-radius: 50%; background: #d1fae5; color: var(--green); }
+.receipt-dialog__posted h2 { margin: 0 0 4px; font-size: 18px; font-weight: 700; color: var(--slate-900); }
+.receipt-dialog__posted p { margin: 0 0 16px; font-size: 14px; color: var(--slate-500); }
+.receipt-dialog__posted p strong { color: var(--slate-700); }
+.receipt-dialog__facts { width: 100%; margin: 0 0 20px; padding: 16px; display: flex; flex-direction: column; gap: 4px; background: var(--slate-50); border-radius: 8px; text-align: left; }
+.receipt-dialog__facts > div { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.receipt-dialog__facts dt { color: var(--slate-500); }
+.receipt-dialog__facts dd { margin: 0; font-weight: 500; color: var(--slate-800); overflow-wrap: anywhere; text-align: right; }
+.receipt-dialog .receipt-dialog__done { width: 100%; }
+.receipt-dialog .receipt-dialog__done .fui-Button { width: 100%; }
+
+.receipt-dialog .mono, .receipt-dialog .mono input { font-family: var(--mono); }
+.receipt-dialog .strong { font-weight: 700; }
+.receipt-dialog .text-green { color: var(--green); }
+.receipt-dialog .text-amber { color: var(--amber); }
+
+@media (max-width: 480px) {
+  .receipt-dialog__grid { grid-template-columns: 1fr; }
+  .receipt-dialog__summary { grid-template-columns: 1fr; }
+  .receipt-dialog__summary > div + div { border-left: 0; border-top: 1px solid var(--slate-100); }
+}

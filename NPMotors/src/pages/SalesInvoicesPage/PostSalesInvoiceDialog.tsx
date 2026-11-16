@@ -14,12 +14,14 @@ interface PostSalesInvoiceDialogProps {
   customerName: string
   vehicle: string
   total: number
+  // What the payment terms collect now; the rest of the total goes to Accounts Receivable
+  amountReceived: number
   onConfirm: () => void
   onClose: () => void
 }
 
 // The design's "Confirm Post Invoice" step: posting can't be undone, so it gets a summary first
-export function PostSalesInvoiceDialog({ customerName, vehicle, total, onConfirm, onClose }: PostSalesInvoiceDialogProps) {
+export function PostSalesInvoiceDialog({ customerName, vehicle, total, amountReceived, onConfirm, onClose }: PostSalesInvoiceDialogProps) {
   return (
     <Dialog open modalType="modal" onOpenChange={(_, data) => { if (!data.open) onClose() }}>
       <DialogSurface className="sales-invoice-dialog" aria-describedby="post-invoice-description">
@@ -34,6 +36,7 @@ export function PostSalesInvoiceDialog({ customerName, vehicle, total, onConfirm
               <div><dt>Customer</dt><dd>{customerName}</dd></div>
               <div><dt>Vehicle</dt><dd>{vehicle}</dd></div>
               <div className="sales-invoice-dialog__summary-total"><dt>Total Amount</dt><dd className="mono">{formatAmount(total)}</dd></div>
+              {amountReceived > 0 && <div><dt>Received Now</dt><dd className="mono">{formatAmount(amountReceived)}</dd></div>}
             </dl>
           </DialogContent>
           <DialogActions className="sales-invoice-dialog__footer">

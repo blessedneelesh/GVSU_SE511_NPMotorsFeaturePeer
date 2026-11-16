@@ -9,6 +9,7 @@ import {
   OPTIONS_FALLBACK_MESSAGE,
 } from '../../services/salesInvoices/salesInvoices.errors'
 import type { SalesInvoice, SalesInvoiceOptions, SalesInvoicePage, SalesInvoiceQuery } from '../../types/salesInvoices'
+import type { Vehicle } from '../../types/vehicles'
 import {
   type cancelSalesInvoice,
   cancelSalesInvoiceFailure,
@@ -17,12 +18,15 @@ import {
   type createSalesInvoice,
   loadSalesInvoiceByIdFailure,
   loadSalesInvoiceByIdSuccess,
+  loadSalesInvoiceVehicleSuccess,
   loadSalesInvoiceOptionsFailure,
   loadSalesInvoiceOptionsSuccess,
   loadSalesInvoices,
   loadSalesInvoicesFailure,
   loadSalesInvoicesSuccess,
   type postSalesInvoice,
+  type postSalesInvoiceDraft,
+  type updateSalesInvoiceDraft,
   saveSalesInvoiceFailure,
   saveSalesInvoiceSuccess,
   selectSalesInvoice,
@@ -53,11 +57,25 @@ function* loadSalesInvoiceByIdWorker(action: SalesInvoiceDetailAction): SagaIter
   if (action.type !== SALES_INVOICE_ACTIONS.SELECT) return
   const controller = new AbortController()
   try {
-    const invoice: SalesInvoice = yield call(salesInvoicesApi.getSalesInvoiceById, action.payload, controller.signal)
+    let invoice: SalesInvoice
+    try {
+      invoice = yield call(salesInvoicesApi.getSalesInvoiceById, action.payload, controller.signal)
+    } catch (error) {
+      const message = getSalesInvoiceDetailErrorMessage(error)
+      if (message) yield put(loadSalesInvoiceByIdFailure(message))
+      return
+    }
     yield put(loadSalesInvoiceByIdSuccess(invoice))
-  } catch (error) {
-    const message = getSalesInvoiceDetailErrorMessage(error)
-    if (message) yield put(loadSalesInvoiceByIdFailure(message))
+
+    // The invoice is already showing; the vehicle record only adds its year, color and warehouse, so a failed
+    // lookup leaves those out instead of failing the whole view
+    if (!invoice.vehicleId) return
+    try {
+      const vehicle: Vehicle = yield call(salesInvoicesApi.getVehicle, invoice.vehicleId, controller.signal)
+      yield put(loadSalesInvoiceVehicleSuccess(vehicle))
+    } catch (error) {
+      if (getSalesInvoiceErrorMessage(error)) yield put(loadSalesInvoiceVehicleSuccess(null))
+    }
   } finally {
     const wasCancelled: boolean = yield cancelled()
     if (wasCancelled) controller.abort()
@@ -78,13 +96,30 @@ function* loadOptionsWorker(): SagaIterator {
   }
 }
 
-type SaveSalesInvoiceAction = ReturnType<typeof createSalesInvoice> | ReturnType<typeof postSalesInvoice>
+type SaveSalesInvoiceAction =
+  | ReturnType<typeof createSalesInvoice>
+  | ReturnType<typeof postSalesInvoice>
+  | ReturnType<typeof updateSalesInvoiceDraft>
+  | ReturnType<typeof postSalesInvoiceDraft>
 
-// Save Draft and Post Invoice send the same body to different endpoints
+// Save Draft sends the invoice to AddSalesInvoice and Post Invoice sends it plus the payment to CreateAndPost; on an
+// existing draft, Save Changes calls UpdateDraft and Post Invoice saves the changes and then posts the draft
 function* saveSalesInvoiceWorker(action: SaveSalesInvoiceAction): SagaIterator {
-  const save = action.type === SALES_INVOICE_ACTIONS.POST ? salesInvoicesApi.postSalesInvoice : salesInvoicesApi.addSalesInvoice
   try {
-    yield call(save, action.payload)
+    switch (action.type) {
+      case SALES_INVOICE_ACTIONS.CREATE:
+        yield call(salesInvoicesApi.addSalesInvoice, action.payload)
+        break
+      case SALES_INVOICE_ACTIONS.POST:
+        yield call(salesInvoicesApi.createAndPostSalesInvoice, action.payload)
+        break
+      case SALES_INVOICE_ACTIONS.UPDATE:
+        yield call(salesInvoicesApi.updateDraft, action.payload)
+        break
+      case SALES_INVOICE_ACTIONS.POST_DRAFT:
+        yield call(salesInvoicesApi.postDraft, action.payload)
+        break
+    }
     yield put(saveSalesInvoiceSuccess())
     // Paging is server-side, so refetch the current page instead of inserting the row locally
     yield put(loadSalesInvoices())
@@ -128,7 +163,10 @@ export default function* salesInvoicesSaga(): SagaIterator {
     takeLatest(SALES_INVOICE_ACTIONS.LOAD_OPTIONS, loadOptionsWorker),
     // takeLeading ignores repeat submits while a save is in flight, so a double-click can't create two invoices.
     // Draft and post share one watcher, so clicking both buttons quickly also only saves once.
-    takeLeading([SALES_INVOICE_ACTIONS.CREATE, SALES_INVOICE_ACTIONS.POST], saveSalesInvoiceWorker),
+    takeLeading(
+      [SALES_INVOICE_ACTIONS.CREATE, SALES_INVOICE_ACTIONS.POST, SALES_INVOICE_ACTIONS.UPDATE, SALES_INVOICE_ACTIONS.POST_DRAFT],
+      saveSalesInvoiceWorker,
+    ),
     takeLeading(SALES_INVOICE_ACTIONS.CANCEL, cancelSalesInvoiceWorker),
   ])
 }

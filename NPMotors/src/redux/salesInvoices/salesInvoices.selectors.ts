@@ -17,6 +17,8 @@ export const selectSelectedSalesInvoiceId = createSelector([selectSalesInvoiceSt
 
 export const selectSelectedSalesInvoice = createSelector([selectSalesInvoiceState], (salesInvoices) => salesInvoices.selected)
 
+export const selectSelectedSalesInvoiceVehicle = createSelector([selectSalesInvoiceState], (salesInvoices) => salesInvoices.selectedVehicle)
+
 export const selectSalesInvoiceDetailStatus = createSelector([selectSalesInvoiceState], (salesInvoices) => salesInvoices.detailStatus)
 
 export const selectSalesInvoiceDetailError = createSelector([selectSalesInvoiceState], (salesInvoices) => salesInvoices.detailError)

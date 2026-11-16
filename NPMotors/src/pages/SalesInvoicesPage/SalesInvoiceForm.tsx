@@ -9,18 +9,37 @@ import {
   MessageBarBody,
   MessageBarTitle,
   Option,
+  Radio,
+  RadioGroup,
   Spinner,
 } from '@fluentui/react-components'
 import { useSalesInvoiceMutations } from '../../hooks/useSalesInvoiceMutations'
 import { useSalesInvoiceOptions } from '../../hooks/useSalesInvoiceOptions'
-import type { SalesInvoiceFieldErrors, SalesInvoiceFormField, SalesInvoiceFormValues } from '../../types/salesInvoices'
+import type { BankAccount } from '../../types/bankAccounts'
+import type {
+  SalesInvoice,
+  SalesInvoiceFieldErrors,
+  SalesInvoiceFormField,
+  SalesInvoiceFormValues,
+  SalesInvoicePaymentTerms,
+} from '../../types/salesInvoices'
 import type { Vehicle } from '../../types/vehicles'
 import { PostSalesInvoiceDialog } from './PostSalesInvoiceDialog'
-import { addDaysIso, computeTotals, formatAmount, TAX_RATE, todayIso } from './salesInvoiceMetrics'
+import { addDaysIso, computeTotals, formatAmount, roundCents, TAX_RATE, todayIso } from './salesInvoiceMetrics'
 
-// Tax and fees aren't typed; they're computed from the vehicle when the form is submitted
-type EditableField = Exclude<SalesInvoiceFormField, 'tax' | 'fees'>
+// Tax and fees aren't typed; they're computed from the vehicle when the form is submitted. The payment terms are a
+// radio choice, kept in their own state.
+type EditableField = Exclude<SalesInvoiceFormField, 'tax' | 'fees' | 'paymentTerms'>
 type EditableValues = Pick<SalesInvoiceFormValues, EditableField>
+
+// The design's Payment Method options, in its order; it starts on Financing (nothing collected now)
+const PAYMENT_TERMS: { value: SalesInvoicePaymentTerms; label: string }[] = [
+  { value: 'bank', label: 'Bank' },
+  { value: 'cash', label: 'Cash' },
+  { value: 'financing', label: 'Financing' },
+  { value: 'partial', label: 'Partial' },
+]
+const isPaymentTerms = (value: string): value is SalesInvoicePaymentTerms => PAYMENT_TERMS.some((terms) => terms.value === value)
 
 // The design defaults the due date to a month after the invoice date
 const DUE_IN_DAYS = 30
@@ -36,6 +55,9 @@ const REQUIRED_MESSAGES: Partial<Record<EditableField, string>> = {
 
 const vehicleLabel = (vehicle: Vehicle) =>
   `${vehicle.title}${vehicle.color ? ` — ${vehicle.color}` : ''} (VIN: ...${vehicle.vin.slice(-6)})`
+
+const accountLabel = (account: BankAccount) =>
+  `${[account.bankName, account.name].filter(Boolean).join(' — ')}${account.accountNumber ? ` (${account.accountNumber})` : ''}`
 
 // Drafts and posted invoices need the same fields: the API rejects a draft without customer, salesperson or vehicle
 function validate(values: EditableValues, salePrice: number): SalesInvoiceFieldErrors {
@@ -56,23 +78,68 @@ function validate(values: EditableValues, salePrice: number): SalesInvoiceFieldE
   return errors
 }
 
+// Posting also records the payment; CreateAndPost's rules: a partial payment is more than zero and less than the
+// total, and any amount received needs an account to deposit it to
+function validatePayment(values: EditableValues, terms: SalesInvoicePaymentTerms, total: number): SalesInvoiceFieldErrors {
+  const errors: SalesInvoiceFieldErrors = {}
+  if (terms === 'partial') {
+    const amount = Number(values.amountReceived.trim())
+    if (!values.amountReceived.trim() || !Number.isFinite(amount) || amount <= 0) errors.amountReceived = 'Enter the amount received'
+    else if (amount >= total) errors.amountReceived = 'Partial payment must be less than the invoice total.'
+  }
+  if (terms !== 'financing' && !values.bankAccountId) errors.bankAccountId = 'Select the account the payment is deposited to'
+  return errors
+}
+
+// The draft's vehicle as the form needs it, for when it isn't in the available-vehicle list (e.g. past the first page)
+function draftVehicle(draft: SalesInvoice): Vehicle {
+  return {
+    id: draft.vehicleId,
+    vendorId: '',
+    vendorName: '',
+    vin: draft.vin,
+    make: draft.make,
+    model: draft.model,
+    year: 0,
+    title: draft.vehicle || 'Vehicle',
+    color: '',
+    purchaseDate: '',
+    warehouse: '',
+    purchasePrice: 0,
+    additionalCosts: 0,
+    totalCost: draft.vehicleTotalCost,
+    sellingPrice: draft.sellingPrice,
+    grossProfit: draft.sellingPrice - draft.vehicleTotalCost,
+    grossMargin: 0,
+    isAvailable: true,
+    status: 'available',
+  }
+}
+
+const initialValues = (draft: SalesInvoice | undefined): EditableValues => ({
+  customerId: draft?.customerId ?? '',
+  salespersonId: draft?.salespersonId ?? '',
+  vehicleId: draft?.vehicleId ?? '',
+  invoiceDate: draft?.invoiceDate || todayIso(),
+  dueDate: draft ? draft.dueDate : addDaysIso(DUE_IN_DAYS),
+  discount: draft && draft.discount > 0 ? draft.discount.toFixed(2) : '',
+  amountReceived: '',
+  bankAccountId: '',
+})
+
 interface SalesInvoiceFormProps {
+  // The draft being edited, as the design's "Edit INV-…" screen; undefined for a new invoice
+  draft?: SalesInvoice
   onClose: () => void
 }
 
-// The design's "New Sales Invoice" screen. Mounted only while open, so every opening starts from an empty form
-// and reloads the customers, salespeople and vehicles still available for sale.
-export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
-  const { saveMode, saveStatus, saveError, fieldErrors, saveDraft, post } = useSalesInvoiceMutations()
+// The design's "New Sales Invoice" screen, and "Edit INV-…" for a draft. Mounted only while open, so every opening
+// starts from an empty (or the draft's) form and reloads the customers, salespeople and vehicles still for sale.
+export function SalesInvoiceForm({ draft, onClose }: SalesInvoiceFormProps) {
+  const { saveMode, saveStatus, saveError, fieldErrors, saveDraft, post, updateDraft, postDraft } = useSalesInvoiceMutations()
   const { options, optionsStatus, optionsError, retry } = useSalesInvoiceOptions()
-  const [values, setValues] = useState<EditableValues>(() => ({
-    customerId: '',
-    salespersonId: '',
-    vehicleId: '',
-    invoiceDate: todayIso(),
-    dueDate: addDaysIso(DUE_IN_DAYS),
-    discount: '',
-  }))
+  const [values, setValues] = useState<EditableValues>(() => initialValues(draft))
+  const [paymentTerms, setPaymentTerms] = useState<SalesInvoicePaymentTerms>('financing')
   const [clientErrors, setClientErrors] = useState<SalesInvoiceFieldErrors>({})
   // Server errors stay in Redux until the next submit; hide each one as soon as its field is edited
   const [editedFields, setEditedFields] = useState<ReadonlySet<SalesInvoiceFormField>>(new Set())
@@ -80,16 +147,33 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
 
   const isSaving = saveStatus === 'loading'
   const optionsLoading = optionsStatus === 'loading' || optionsStatus === 'idle'
-  const activeCustomers = options.customers.filter((customer) => customer.status === 'Active')
+  // A draft keeps its own customer, salesperson and vehicle on offer even if they've since left the dropdowns' lists
+  const activeCustomers = options.customers.filter((customer) => customer.status === 'Active' || customer.id === draft?.customerId)
+  const draftSalesperson = draft && options.employees.find((employee) => employee.id === draft.salespersonId)
+  const salespeople = draftSalesperson && !options.salespeople.some((item) => item.id === draftSalesperson.id)
+    ? [...options.salespeople, draftSalesperson]
+    : options.salespeople
+  const vehicles = draft?.vehicleId && !options.vehicles.some((item) => item.id === draft.vehicleId)
+    ? [...options.vehicles, draftVehicle(draft)]
+    : options.vehicles
   const customer = options.customers.find((item) => item.id === values.customerId)
-  const vehicle = options.vehicles.find((item) => item.id === values.vehicleId)
+  const vehicle = vehicles.find((item) => item.id === values.vehicleId)
 
-  // The API prices the invoice at the vehicle's selling price; the form shows the same figures before saving
+  // The API prices the invoice at the vehicle's selling price; the form shows the same figures before saving.
+  // The discount is rounded to cents as it's sent, so a paid-in-full amount matches the API's total exactly.
   const salePrice = vehicle?.sellingPrice ?? 0
-  const discount = Number(values.discount) > 0 ? Number(values.discount) : 0
+  const discount = Number(values.discount) > 0 ? roundCents(Number(values.discount)) : 0
   const totals = computeTotals(salePrice, discount)
   const cogs = vehicle?.totalCost ?? 0
   const profit = totals.subtotal - cogs
+
+  const partialAmount = Number(values.amountReceived) > 0 ? roundCents(Number(values.amountReceived)) : 0
+  const amountPaid =
+    paymentTerms === 'bank' || paymentTerms === 'cash' ? totals.total
+      : paymentTerms === 'partial' ? Math.min(partialAmount, totals.total)
+        : 0
+  const balance = Math.max(0, roundCents(totals.total - amountPaid))
+  const needsDepositAccount = paymentTerms !== 'financing'
 
   const errorFor = (field: SalesInvoiceFormField) => clientErrors[field] ?? (editedFields.has(field) ? undefined : fieldErrors[field])
   // Tax and fees have no input, so their server errors go in the banner
@@ -101,31 +185,49 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
     setEditedFields((current) => new Set(current).add(field))
   }
 
-  const toFormValues = (): SalesInvoiceFormValues => ({ ...values, tax: totals.tax.toFixed(2), fees: totals.fees.toFixed(2) })
+  const changePaymentTerms = (value: string) => {
+    if (!isPaymentTerms(value)) return
+    setPaymentTerms(value)
+    setClientErrors((current) => ({ ...current, amountReceived: undefined, bankAccountId: undefined }))
+    setEditedFields((current) => new Set(current).add('amountReceived').add('bankAccountId'))
+  }
 
-  // Returns true when the form can be sent
-  const check = () => {
-    const errors = validate(values, salePrice)
+  const toFormValues = (): SalesInvoiceFormValues => ({
+    ...values,
+    tax: totals.tax.toFixed(2),
+    fees: totals.fees.toFixed(2),
+    paymentTerms,
+    amountReceived: amountPaid.toFixed(2),
+    bankAccountId: needsDepositAccount ? values.bankAccountId : '',
+  })
+
+  // Returns true when the form can be sent; a draft records no payment, so only posting checks it
+  const check = (withPayment: boolean) => {
+    const errors = { ...validate(values, salePrice), ...(withPayment ? validatePayment(values, paymentTerms, totals.total) : {}) }
     setClientErrors(errors)
     return Object.keys(errors).length === 0
   }
 
   const handleSaveDraft = (event: FormEvent) => {
     event.preventDefault()
-    if (!check()) return
+    if (!check(false)) return
     setEditedFields(new Set())
-    saveDraft(toFormValues())
+    if (draft) updateDraft(draft.id, toFormValues())
+    else saveDraft(toFormValues())
   }
 
   const handlePost = () => {
-    if (check()) setConfirmOpen(true)
+    if (check(true)) setConfirmOpen(true)
   }
 
   const confirmPost = () => {
     setConfirmOpen(false)
     setEditedFields(new Set())
-    post(toFormValues())
+    if (draft) postDraft(draft.id, toFormValues())
+    else post(toFormValues())
   }
+
+  const isSavingDraft = isSaving && (saveMode === 'draft' || saveMode === 'update')
 
   const dropdownField = (
     field: EditableField,
@@ -154,7 +256,7 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
       <nav className="sales-invoices-breadcrumb" aria-label="Breadcrumb">
         <button type="button" className="link-button" disabled={isSaving} onClick={onClose}>← Sales Invoices</button>
         <span aria-hidden="true">/</span>
-        <strong>New Sales Invoice</strong>
+        <strong>{draft ? `Edit ${draft.number || 'Draft'}` : 'New Sales Invoice'}</strong>
       </nav>
 
       <MessageBar intent="info" className="sales-invoices-message">
@@ -179,7 +281,9 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
       {bannerError && (
         <MessageBar intent="error" className="sales-invoices-message">
           <MessageBarBody>
-            <MessageBarTitle>{saveMode === 'post' ? "Couldn't post invoice" : "Couldn't save draft"}</MessageBarTitle>
+            <MessageBarTitle>
+              {saveMode === 'post' ? "Couldn't post invoice" : saveMode === 'update' ? "Couldn't save changes" : "Couldn't save draft"}
+            </MessageBarTitle>
             {bannerError}
           </MessageBarBody>
         </MessageBar>
@@ -191,8 +295,8 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
             <legend className="sales-invoice-form__title">Invoice Details</legend>
 
             <div className="form-grid form-grid--3">
-              <Field label="Invoice Number" hint="Assigned when saved">
-                <Input readOnly value="" placeholder="Auto-generated" className="readonly-input" />
+              <Field label="Invoice Number" hint={draft ? undefined : 'Assigned when saved'}>
+                <Input readOnly value={draft?.number ?? ''} placeholder="Auto-generated" className="readonly-input mono" />
               </Field>
               <Field label="Invoice Date" required validationState={errorFor('invoiceDate') ? 'error' : 'none'} validationMessage={errorFor('invoiceDate')}>
                 <Input type="date" value={values.invoiceDate} onChange={(_, data) => setField('invoiceDate', data.value)} />
@@ -204,15 +308,15 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
 
             <div className="form-grid form-grid--2">
               {dropdownField('customerId', 'Customer', 'Select customer...', activeCustomers.map((item) => ({ id: item.id, label: item.fullName })))}
-              {dropdownField('salespersonId', 'Salesperson', 'Select salesperson...', options.salespeople.map((item) => ({ id: item.id, label: item.fullName })))}
+              {dropdownField('salespersonId', 'Salesperson', 'Select salesperson...', salespeople.map((item) => ({ id: item.id, label: item.fullName })))}
             </div>
 
             <div>
               {dropdownField(
                 'vehicleId',
                 'Vehicle',
-                options.vehicles.length || optionsLoading ? 'Select available vehicle...' : 'No vehicles available for sale',
-                options.vehicles.map((item) => ({ id: item.id, label: vehicleLabel(item) })),
+                vehicles.length || optionsLoading ? 'Select available vehicle...' : 'No vehicles available for sale',
+                vehicles.map((item) => ({ id: item.id, label: vehicleLabel(item) })),
               )}
               {vehicle && <div className="sales-invoice-form__vin mono">VIN: {vehicle.vin}</div>}
             </div>
@@ -233,6 +337,41 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
                 />
               </Field>
             </div>
+
+            <Field label="Payment Method" hint={paymentTerms === 'financing' ? 'Nothing is collected now; the balance goes to Accounts Receivable' : undefined}>
+              <RadioGroup
+                layout="horizontal"
+                className="payment-terms"
+                value={paymentTerms}
+                onChange={(_, data) => changePaymentTerms(data.value)}
+              >
+                {PAYMENT_TERMS.map((terms) => (
+                  <Radio key={terms.value} value={terms.value} label={terms.label} className="payment-terms__option" />
+                ))}
+              </RadioGroup>
+            </Field>
+
+            {paymentTerms === 'partial' && (
+              <Field label="Amount Received" required validationState={errorFor('amountReceived') ? 'error' : 'none'} validationMessage={errorFor('amountReceived')}>
+                <Input
+                  type="number"
+                  className="mono"
+                  min={0}
+                  step="0.01"
+                  value={values.amountReceived}
+                  placeholder="0.00"
+                  onChange={(_, data) => setField('amountReceived', data.value)}
+                />
+              </Field>
+            )}
+
+            {needsDepositAccount &&
+              dropdownField(
+                'bankAccountId',
+                'Deposit To',
+                options.bankAccounts.length || optionsLoading ? 'Select account...' : 'No active bank accounts',
+                options.bankAccounts.map((item) => ({ id: item.id, label: accountLabel(item) })),
+              )}
           </fieldset>
 
           <aside className="sales-invoice-form__aside">
@@ -245,7 +384,8 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
                 <div><dt>Tax ({TAX_RATE * 100}%)</dt><dd>{formatAmount(totals.tax)}</dd></div>
                 <div><dt>Fees</dt><dd>{formatAmount(totals.fees)}</dd></div>
                 <div className="summary-list__total"><dt>Total</dt><dd className="text-blue">{formatAmount(totals.total)}</dd></div>
-                <div className="summary-list__strong"><dt>Balance Due</dt><dd className="text-amber">{formatAmount(totals.total)}</dd></div>
+                <div><dt>Paid on Invoice</dt><dd className="text-green">{formatAmount(amountPaid)}</dd></div>
+                <div className="summary-list__strong"><dt>Balance Due</dt><dd className="text-amber">{formatAmount(balance)}</dd></div>
               </dl>
             </section>
 
@@ -287,8 +427,8 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
         </div>
 
         <div className="sales-invoice-form__actions">
-          <Button type="submit" disabled={isSaving} icon={isSaving && saveMode === 'draft' ? <Spinner size="tiny" /> : undefined}>
-            {isSaving && saveMode === 'draft' ? 'Saving…' : 'Save Draft'}
+          <Button type="submit" disabled={isSaving} icon={isSavingDraft ? <Spinner size="tiny" /> : undefined}>
+            {isSavingDraft ? 'Saving…' : draft ? 'Save Changes' : 'Save Draft'}
           </Button>
           <Button appearance="primary" disabled={isSaving} onClick={handlePost} icon={isSaving && saveMode === 'post' ? <Spinner size="tiny" /> : undefined}>
             {isSaving && saveMode === 'post' ? 'Posting…' : 'Post Invoice'}
@@ -302,6 +442,7 @@ export function SalesInvoiceForm({ onClose }: SalesInvoiceFormProps) {
           customerName={customer?.fullName ?? ''}
           vehicle={vehicle?.title ?? ''}
           total={totals.total}
+          amountReceived={amountPaid}
           onConfirm={confirmPost}
           onClose={() => setConfirmOpen(false)}
         />

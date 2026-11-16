@@ -8,6 +8,7 @@ import {
   salesInvoicePage,
   salesInvoiceSaveError,
 } from '../../../test/fixtures/salesInvoices'
+import { availableVehicle } from '../../../test/fixtures/vehicles'
 
 describe('salesInvoices actions', () => {
   describe('creators without a payload', () => {
@@ -70,6 +71,11 @@ describe('salesInvoices actions', () => {
     expect(actions.loadSalesInvoiceByIdFailure('Not found')).toEqual({ type: SALES_INVOICE_ACTIONS.LOAD_BY_ID_FAILURE, payload: 'Not found' })
   })
 
+  it('loadSalesInvoiceVehicleSuccess carries the vehicle, or null', () => {
+    expect(actions.loadSalesInvoiceVehicleSuccess(availableVehicle)).toEqual({ type: SALES_INVOICE_ACTIONS.LOAD_VEHICLE_SUCCESS, payload: availableVehicle })
+    expect(actions.loadSalesInvoiceVehicleSuccess(null)).toEqual({ type: SALES_INVOICE_ACTIONS.LOAD_VEHICLE_SUCCESS, payload: null })
+  })
+
   it('loadSalesInvoiceOptionsSuccess carries the options', () => {
     expect(actions.loadSalesInvoiceOptionsSuccess(salesInvoiceOptions))
       .toEqual({ type: SALES_INVOICE_ACTIONS.LOAD_OPTIONS_SUCCESS, payload: salesInvoiceOptions })
@@ -86,6 +92,12 @@ describe('salesInvoices actions', () => {
 
   it('postSalesInvoice carries the form values', () => {
     expect(actions.postSalesInvoice(salesInvoiceFormValues)).toEqual({ type: SALES_INVOICE_ACTIONS.POST, payload: salesInvoiceFormValues })
+  })
+
+  it('updateSalesInvoiceDraft and postSalesInvoiceDraft carry the draft id and form values', () => {
+    const request = { id: '8', values: salesInvoiceFormValues }
+    expect(actions.updateSalesInvoiceDraft(request)).toEqual({ type: SALES_INVOICE_ACTIONS.UPDATE, payload: request })
+    expect(actions.postSalesInvoiceDraft(request)).toEqual({ type: SALES_INVOICE_ACTIONS.POST_DRAFT, payload: request })
   })
 
   it('saveSalesInvoiceFailure carries the message and field errors', () => {

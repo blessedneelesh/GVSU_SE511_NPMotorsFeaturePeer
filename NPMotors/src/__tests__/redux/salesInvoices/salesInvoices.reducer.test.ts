@@ -16,6 +16,7 @@ import {
   salesInvoicePage,
   salesInvoiceSaveError,
 } from '../../../test/fixtures/salesInvoices'
+import { availableVehicle } from '../../../test/fixtures/vehicles'
 
 // Freezes the state and its nested objects, so a reducer that mutates instead of copying throws
 const frozen = (state: SalesInvoicesState): SalesInvoicesState => {
@@ -30,7 +31,7 @@ const initial = () => frozen({
   ...initialSalesInvoicesState,
   query: { ...initialSalesInvoicesState.query },
   items: [],
-  options: { customers: [], employees: [], salespeople: [], vehicles: [] },
+  options: { customers: [], employees: [], salespeople: [], vehicles: [], bankAccounts: [] },
   fieldErrors: {},
 })
 
@@ -175,8 +176,28 @@ describe('salesInvoicesReducer', () => {
     })
 
     it('CLEAR_SELECTION resets every detail field', () => {
-      const state = frozen({ ...initialSalesInvoicesState, selectedId: '6', selected: postedInvoice, detailStatus: 'error', detailError: 'x' })
+      const state = frozen({
+        ...initialSalesInvoicesState,
+        selectedId: '6',
+        selected: postedInvoice,
+        selectedVehicle: availableVehicle,
+        detailStatus: 'error',
+        detailError: 'x',
+      })
       expect(salesInvoicesReducer(state, actions.clearSalesInvoiceSelection())).toEqual(initialSalesInvoicesState)
+    })
+
+    it('SELECT drops the previous invoice\'s vehicle', () => {
+      const state = frozen({ ...initialSalesInvoicesState, selectedId: '6', selected: postedInvoice, selectedVehicle: availableVehicle })
+      expect(salesInvoicesReducer(state, actions.selectSalesInvoice('7')).selectedVehicle).toBeNull()
+    })
+
+    it.each([
+      ['the loaded vehicle', availableVehicle],
+      ['null when it could not be loaded', null],
+    ])('LOAD_VEHICLE_SUCCESS stores %s', (_, vehicle) => {
+      const state = frozen({ ...initialSalesInvoicesState, selectedId: '6', selected: postedInvoice, detailStatus: 'success' })
+      expect(salesInvoicesReducer(state, actions.loadSalesInvoiceVehicleSuccess(vehicle))).toEqual({ ...state, selectedVehicle: vehicle })
     })
   })
 
@@ -227,6 +248,8 @@ describe('salesInvoicesReducer', () => {
     it.each([
       ['CREATE', actions.createSalesInvoice(salesInvoiceFormValues), 'draft'],
       ['POST', actions.postSalesInvoice(salesInvoiceFormValues), 'post'],
+      ['UPDATE', actions.updateSalesInvoiceDraft({ id: '8', values: salesInvoiceFormValues }), 'update'],
+      ['POST_DRAFT', actions.postSalesInvoiceDraft({ id: '8', values: salesInvoiceFormValues }), 'post'],
     ] as const)('%s records the save mode, starts saving and clears the errors', (_, action, saveMode) => {
       expect(salesInvoicesReducer(afterFailure(), action)).toEqual({
         ...initialSalesInvoicesState,
@@ -241,6 +264,8 @@ describe('salesInvoicesReducer', () => {
     it.each([
       ['CREATE', actions.createSalesInvoice(salesInvoiceFormValues)],
       ['POST', actions.postSalesInvoice(salesInvoiceFormValues)],
+      ['UPDATE', actions.updateSalesInvoiceDraft({ id: '8', values: salesInvoiceFormValues })],
+      ['POST_DRAFT', actions.postSalesInvoiceDraft({ id: '8', values: salesInvoiceFormValues })],
     ] as const)('%s is ignored while another save is in flight', (_, action) => {
       const state = frozen({ ...initialSalesInvoicesState, saveMode: 'draft', saveStatus: 'loading' })
       expect(salesInvoicesReducer(state, action)).toBe(state)

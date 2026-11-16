@@ -80,6 +80,7 @@
 
 .sales-invoices-page .sales-invoices-table { min-width: 1240px; }
 .sales-invoices-page .sales-invoices-table .is-draft { background: rgba(248, 250, 252, .6); }
+.sales-invoices-page .sales-invoices-table .is-draft .draft-link { color: var(--slate-600); }
 .vehicle-cell { display: flex; flex-direction: column; }
 .row-actions { display: flex; gap: 2px; }
 .sales-invoices-page .row-actions__danger { color: var(--red); }
@@ -126,6 +127,11 @@
 .sales-invoices-page .sales-invoice-form__cancel { margin-left: auto; }
 .sales-invoices-page .readonly-input { background: var(--slate-50); }
 
+/* Payment Method: the design's pill radios (Bank / Cash / Financing / Partial) */
+.sales-invoices-page .payment-terms { display: flex; flex-wrap: wrap; gap: 8px; }
+.sales-invoices-page .payment-terms__option { border: 1px solid var(--slate-200); border-radius: 8px; color: var(--slate-600); }
+.sales-invoices-page .payment-terms__option:has(input:checked) { border-color: var(--accent); background: var(--blue-soft); color: var(--blue-text); }
+
 .form-grid { display: grid; gap: 12px; }
 .form-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .form-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -133,6 +139,7 @@
 
 /* Detail view */
 .sales-invoice-detail__bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.sales-invoice-detail__commands { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .status-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; padding: 12px 16px; border: 1px solid; border-radius: 8px; }
 .status-banner--green { background: #d1fae5; border-color: #6ee7b7; color: #065f46; }
@@ -168,6 +175,36 @@
 .sales-invoices-page .line-items__balance td { background: var(--amber-soft); font-weight: 700; color: #92400e; }
 .sales-invoices-page .line-items__balance td.text-amber { font-size: 18px; color: var(--amber-dark); }
 
+/* Vehicle Details / Payment History tabs */
+.invoice-tabs__list { padding: 0 16px; border-bottom: 1px solid var(--slate-200); }
+.invoice-tabs__panel { padding: 20px; }
+.detail-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.detail-columns h4 { margin: 0 0 12px; font-size: 14px; font-weight: 600; color: var(--slate-700); }
+.detail-list { display: flex; flex-direction: column; margin: 0; font-size: 14px; }
+.detail-list > div { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-bottom: 1px solid var(--slate-50); }
+.detail-list dt { color: var(--slate-500); }
+.detail-list dd { margin: 0; font-weight: 500; color: var(--slate-800); text-align: right; overflow-wrap: anywhere; }
+
+.sales-invoices-page .payment-history-table { min-width: 560px; margin-bottom: 16px; }
+.sales-invoices-page .method-chip { padding: 2px 8px; border-radius: 4px; background: var(--blue-soft); font-size: 12px; font-weight: 500; color: var(--blue-text); }
+.payment-history__totals { padding: 0 4px; }
+.payment-history__empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 32px 0; font-size: 14px; color: var(--slate-400); }
+
+/* Related Records links */
+.related-records { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.related-record { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; border: 0; border-radius: 8px; background: none; text-align: left; cursor: pointer; }
+.related-record:hover:not(:disabled) { background: var(--slate-50); }
+.related-record:disabled { cursor: default; opacity: .6; }
+.related-record__icon { display: flex; color: var(--slate-500); }
+.related-record__label { display: block; font-size: 12px; font-weight: 500; color: var(--accent); }
+.related-record__sub { display: block; font-size: 12px; color: var(--slate-400); }
+
+/* Printing the invoice: just the invoice, without the app chrome or the action buttons */
+@media print {
+  .sales-invoice-detail__commands, .sales-invoices-breadcrumb, .invoice-tabs, .sales-invoice-detail__aside { display: none; }
+  .sales-invoice-detail { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 960px) {
   .sales-invoice-form, .sales-invoice-detail { grid-template-columns: 1fr; }
 }
@@ -177,7 +214,7 @@
   .sales-invoices-header, .sales-invoice-detail__bar { flex-direction: column; align-items: stretch; }
   .sales-invoices-page .sales-invoices-filters__search, .sales-invoices-page .sales-invoices-filters__date,
   .sales-invoices-page .sales-invoices-filters__status { width: 100%; }
-  .form-grid--2, .form-grid--3, .invoice-card__parties { grid-template-columns: 1fr; }
+  .form-grid--2, .form-grid--3, .invoice-card__parties, .detail-columns { grid-template-columns: 1fr; }
   .status-banner { flex-direction: column; align-items: flex-start; }
   .status-banner__progress { text-align: left; }
 }

@@ -1,3 +1,4 @@
+import type { BankAccount } from './bankAccounts'
 import type { Customer } from './customers'
 import type { Employee } from './employees'
 import type { Vehicle } from './vehicles'
@@ -57,8 +58,13 @@ export interface SalesInvoicePage {
   hasNext: boolean
 }
 
-// Form state: what the user picks and types, before it becomes the API's SalesInvoiceCreateDto.
-// Tax and fees aren't typed: the form computes them as the design does (8% of the sale price, flat fees).
+// The design's "Payment Method" choice on the form. Bank and Cash collect the whole total, Financing collects
+// nothing (the balance goes to Accounts Receivable) and Partial collects the amount typed in.
+export type SalesInvoicePaymentTerms = 'bank' | 'cash' | 'financing' | 'partial'
+
+// Form state: what the user picks and types, before it becomes the API's SalesInvoiceCreateDto (Save Draft) or
+// SalesInvoiceCreateAndPostRequest (Post Invoice). Tax and fees aren't typed: the form computes them as the design
+// does (8% of the sale price, flat fees). The payment fields are only sent when posting.
 export interface SalesInvoiceFormValues {
   customerId: string
   salespersonId: string
@@ -68,6 +74,11 @@ export interface SalesInvoiceFormValues {
   tax: string
   fees: string
   discount: string
+  paymentTerms: SalesInvoicePaymentTerms
+  // The amount collected now: the total for Bank/Cash, the typed amount for Partial, '' for Financing
+  amountReceived: string
+  // The "Deposit To" account; required by the API whenever an amount is received
+  bankAccountId: string
 }
 
 export type SalesInvoiceFormField = keyof SalesInvoiceFormValues
@@ -79,8 +90,15 @@ export interface SalesInvoiceSaveError {
   fieldErrors: SalesInvoiceFieldErrors
 }
 
-// "Save Draft" calls AddSalesInvoice; "Post Invoice" calls PostSalesInvoice with the same body
-export type SalesInvoiceSaveMode = 'draft' | 'post'
+// "Save Draft" calls AddSalesInvoice and "Post Invoice" CreateAndPost, which also records the payment. On an existing
+// draft, "Save Changes" calls UpdateDraft and "Post Invoice" saves the changes and then posts it (PostInvoice).
+export type SalesInvoiceSaveMode = 'draft' | 'update' | 'post'
+
+// Saving or posting an existing draft: its id plus the form's values
+export interface SalesInvoiceDraftRequest {
+  id: string
+  values: SalesInvoiceFormValues
+}
 
 export interface SalesInvoiceCancelRequest {
   id: string
@@ -88,10 +106,11 @@ export interface SalesInvoiceCancelRequest {
 }
 
 // What the form and the table look things up in: every customer and employee (for names), the active
-// salespeople and the available vehicles (for the form's dropdowns)
+// salespeople, the available vehicles and the active bank accounts (for the form's dropdowns)
 export interface SalesInvoiceOptions {
   customers: Customer[]
   employees: Employee[]
   salespeople: Employee[]
   vehicles: Vehicle[]
+  bankAccounts: BankAccount[]
 }

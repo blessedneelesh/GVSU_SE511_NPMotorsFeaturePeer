@@ -10,15 +10,18 @@ import {
   loadSalesInvoiceOptionsFailure,
   loadSalesInvoiceOptionsSuccess,
   postSalesInvoice,
+  postSalesInvoiceDraft,
+  updateSalesInvoiceDraft,
 } from '../../../redux/salesInvoices/salesInvoices.actions'
 import type { SalesInvoicesState } from '../../../redux/salesInvoices/salesInvoices.reducer'
-import { salesInvoiceFormValues, salesInvoiceOptions } from '../../../test/fixtures/salesInvoices'
+import { draftInvoice, salesInvoiceFormValues, salesInvoiceOptions } from '../../../test/fixtures/salesInvoices'
 import { makeSalesInvoiceState, renderWithProviders } from '../../../test/test-utils'
+import type { SalesInvoice } from '../../../types/salesInvoices'
 
 // The form loads the customers, salespeople and vehicles on mount; without a saga the helper answers it
-function renderForm(overrides: Partial<SalesInvoicesState> = {}, { options = true } = {}) {
+function renderForm(overrides: Partial<SalesInvoicesState> = {}, { options = true, draft }: { options?: boolean; draft?: SalesInvoice } = {}) {
   const onClose = vi.fn()
-  const result = renderWithProviders(<SalesInvoiceForm onClose={onClose} />, { preloadedState: makeSalesInvoiceState(overrides) })
+  const result = renderWithProviders(<SalesInvoiceForm draft={draft} onClose={onClose} />, { preloadedState: makeSalesInvoiceState(overrides) })
   if (options) act(() => { result.store.dispatch(loadSalesInvoiceOptionsSuccess(salesInvoiceOptions)) })
   return { ...result, onClose }
 }
@@ -44,8 +47,13 @@ async function fillValidForm(user: UserEvent) {
 // The form's own default dates, so the expected payload matches whatever day the test runs
 const expectedValues = () => ({ ...salesInvoiceFormValues, invoiceDate: todayIso(), dueDate: addDaysIso(30) })
 
-const saves = (actions: UnknownAction[]) =>
-  actions.filter((action) => action.type === createSalesInvoice(salesInvoiceFormValues).type || action.type === postSalesInvoice(salesInvoiceFormValues).type)
+const SAVE_TYPES: readonly string[] = [
+  createSalesInvoice(salesInvoiceFormValues).type,
+  postSalesInvoice(salesInvoiceFormValues).type,
+  updateSalesInvoiceDraft({ id: '', values: salesInvoiceFormValues }).type,
+  postSalesInvoiceDraft({ id: '', values: salesInvoiceFormValues }).type,
+]
+const saves = (actions: UnknownAction[]) => actions.filter((action) => SAVE_TYPES.includes(action.type))
 
 const sectionOf = (heading: string) => {
   const section = screen.getByRole('heading', { name: heading }).closest('section')
@@ -259,6 +267,71 @@ describe('SalesInvoiceForm', () => {
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     })
 
+    it('starts on Financing, collecting nothing and asking for no deposit account', () => {
+      renderForm()
+      expect(screen.getByRole('radio', { name: 'Financing' })).toBeChecked()
+      expect(screen.queryByRole('combobox', { name: /Deposit To/ })).not.toBeInTheDocument()
+      expect(valueOf(sectionOf('Invoice Summary'), 'Paid on Invoice')).toHaveTextContent('$0.00')
+    })
+
+    it('collects the whole total on Bank terms and deposits it to the picked account', async () => {
+      const { actions, user } = renderForm()
+      await fillValidForm(user)
+      await user.click(screen.getByRole('radio', { name: 'Bank' }))
+
+      expect(valueOf(sectionOf('Invoice Summary'), 'Paid on Invoice')).toHaveTextContent('$33,120.00')
+      expect(valueOf(sectionOf('Invoice Summary'), 'Balance Due')).toHaveTextContent('$0.00')
+
+      await user.click(screen.getByRole('button', { name: 'Post Invoice' }))
+      expect(screen.getByText('Select the account the payment is deposited to')).toBeInTheDocument()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+      await pick(user, /^Deposit To/, 'Chase Bank — Operating Checking (****4521)')
+      await user.click(screen.getByRole('button', { name: 'Post Invoice' }))
+      const dialog = screen.getByRole('dialog')
+      expect(within(dialog).getByText('Received Now').nextElementSibling).toHaveTextContent('$33,120.00')
+      await user.click(within(dialog).getByRole('button', { name: 'Confirm & Post' }))
+
+      expect(saves(actions)).toEqual([
+        postSalesInvoice({ ...expectedValues(), paymentTerms: 'bank', amountReceived: '33120.00', bankAccountId: '1' }),
+      ])
+    })
+
+    it('requires a partial payment above zero and below the total', async () => {
+      const { actions, user } = renderForm()
+      await fillValidForm(user)
+      await user.click(screen.getByRole('radio', { name: 'Partial' }))
+      await pick(user, /^Deposit To/, 'Chase Bank — Operating Checking (****4521)')
+      const amount = screen.getByRole('spinbutton', { name: /Amount Received/ })
+
+      await user.click(screen.getByRole('button', { name: 'Post Invoice' }))
+      expect(screen.getByText('Enter the amount received')).toBeInTheDocument()
+
+      await user.type(amount, '33120')
+      await user.click(screen.getByRole('button', { name: 'Post Invoice' }))
+      expect(screen.getByText('Partial payment must be less than the invoice total.')).toBeInTheDocument()
+
+      await user.clear(amount)
+      await user.type(amount, '5000')
+      expect(valueOf(sectionOf('Invoice Summary'), 'Balance Due')).toHaveTextContent('$28,120.00')
+      await user.click(screen.getByRole('button', { name: 'Post Invoice' }))
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm & Post' }))
+
+      expect(saves(actions)).toEqual([
+        postSalesInvoice({ ...expectedValues(), paymentTerms: 'partial', amountReceived: '5000.00', bankAccountId: '1' }),
+      ])
+    })
+
+    it('does not check the payment for a draft, which records none', async () => {
+      const { actions, user } = renderForm()
+      await fillValidForm(user)
+      await user.click(screen.getByRole('radio', { name: 'Bank' }))
+      await user.click(screen.getByRole('button', { name: 'Save Draft' }))
+      expect(saves(actions)).toEqual([
+        createSalesInvoice({ ...expectedValues(), paymentTerms: 'bank', amountReceived: '33120.00', bankAccountId: '' }),
+      ])
+    })
+
     it('goes back to the form from the confirmation without posting', async () => {
       const { actions, user } = renderForm()
       await fillValidForm(user)
@@ -318,5 +391,64 @@ describe('SalesInvoiceForm', () => {
     const { onClose, user } = renderForm()
     await user.click(screen.getByRole('button', { name }))
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  describe('editing a draft', () => {
+    // The draft's own values, as the form sends them back (Financing, nothing received)
+    const draftValues = { ...salesInvoiceFormValues, invoiceDate: '2026-11-01', dueDate: '2026-12-01' }
+
+    it('opens as "Edit" with the draft\'s number, picks and dates filled in', () => {
+      renderForm({}, { draft: draftInvoice })
+      expect(within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getByText('Edit INV-2026-0008')).toBeInTheDocument()
+      expect(screen.getByRole('textbox', { name: /Invoice Number/ })).toHaveValue('INV-2026-0008')
+      expect(combobox(/^Customer/)).toHaveTextContent('John Smith')
+      expect(combobox(/^Salesperson/)).toHaveTextContent('Maria Lopez')
+      expect(combobox(/^Vehicle/)).toHaveTextContent(CAMRY)
+      expect(invoiceDate()).toHaveValue('2026-11-01')
+      expect(dueDate()).toHaveValue('2026-12-01')
+      expect(valueOf(sectionOf('Invoice Summary'), 'Total')).toHaveTextContent('$33,120.00')
+    })
+
+    it('starts with the draft\'s discount', () => {
+      renderForm({}, { draft: { ...draftInvoice, discount: 250 } })
+      expect(discount()).toHaveValue(250)
+    })
+
+    it('saves the changes to the draft with Save Changes', async () => {
+      const { actions, user } = renderForm({}, { draft: draftInvoice })
+      await user.type(discount(), '100')
+      await user.click(screen.getByRole('button', { name: 'Save Changes' }))
+      expect(saves(actions)).toEqual([updateSalesInvoiceDraft({ id: '8', values: { ...draftValues, discount: '100' } })])
+    })
+
+    it('posts the draft itself, with the payment, instead of creating another invoice', async () => {
+      const { actions, user } = renderForm({}, { draft: draftInvoice })
+      await user.click(screen.getByRole('radio', { name: 'Bank' }))
+      await pick(user, /^Deposit To/, 'Chase Bank — Operating Checking (****4521)')
+      await user.click(screen.getByRole('button', { name: 'Post Invoice' }))
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm & Post' }))
+
+      expect(saves(actions)).toEqual([postSalesInvoiceDraft({
+        id: '8',
+        values: { ...draftValues, paymentTerms: 'bank', amountReceived: '33120.00', bankAccountId: '1' },
+      })])
+    })
+
+    it('shows "Saving…" while saving changes', () => {
+      renderForm({ saveMode: 'update', saveStatus: 'loading' }, { draft: draftInvoice })
+      expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled()
+    })
+
+    it('says the changes could not be saved', () => {
+      renderForm({ saveMode: 'update', saveStatus: 'error', saveError: 'This sales invoice no longer exists.' }, { draft: draftInvoice })
+      expect(screen.getByText("Couldn't save changes")).toBeInTheDocument()
+      expect(screen.getByText('This sales invoice no longer exists.')).toBeInTheDocument()
+    })
+
+    it('keeps the draft\'s vehicle on offer when it is not in the available list', () => {
+      renderForm({}, { draft: { ...draftInvoice, vehicleId: '99', vehicle: 'Honda Civic', vin: 'ITEST-D39F9810000', sellingPrice: 18000, vehicleTotalCost: 15250 } })
+      expect(combobox(/^Vehicle/)).toHaveTextContent('Honda Civic (VIN: ...810000)')
+      expect(valueOf(sectionOf('Profitability'), 'Gross Profit')).toHaveTextContent('$2,750.00')
+    })
   })
 })

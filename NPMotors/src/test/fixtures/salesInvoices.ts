@@ -5,6 +5,7 @@ import type {
   SalesInvoicePage,
   SalesInvoiceSaveError,
 } from '../../types/salesInvoices'
+import { bankAccount } from './bankAccounts'
 import { customer, sparseCustomer } from './customers'
 import { employee } from './employees'
 import { availableVehicle } from './vehicles'
@@ -125,15 +126,18 @@ export const salesInvoicePage: SalesInvoicePage = {
   hasNext: true,
 }
 
-// The inactive customer is left out of the form's dropdown; the Camry is the only vehicle still for sale
+// The inactive customer is left out of the form's dropdown; the Camry is the only vehicle still for sale;
+// Operating Checking is the only active account to deposit a payment to
 export const salesInvoiceOptions: SalesInvoiceOptions = {
   customers: [customer, sparseCustomer],
   employees: [employee],
   salespeople: [employee],
   vehicles: [availableVehicle],
+  bankAccounts: [bankAccount],
 }
 
-// What the form sends for the Camry with no discount (dates are overridden by tests that fill the form)
+// What the form sends for the Camry with no discount, on the default Financing terms (nothing received now;
+// dates are overridden by tests that fill the form)
 export const salesInvoiceFormValues: SalesInvoiceFormValues = {
   customerId: 'C001',
   salespersonId: '12',
@@ -143,6 +147,9 @@ export const salesInvoiceFormValues: SalesInvoiceFormValues = {
   tax: '2420.00',
   fees: '450.00',
   discount: '',
+  paymentTerms: 'financing',
+  amountReceived: '0.00',
+  bankAccountId: '',
 }
 
 export const salesInvoiceSaveError: SalesInvoiceSaveError = {
