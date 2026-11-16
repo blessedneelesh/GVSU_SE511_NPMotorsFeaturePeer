@@ -61,10 +61,6 @@ describe('ReceivableDetail', () => {
     expect(screen.getByText('7 days overdue')).toHaveClass('aging-30')
     expect(screen.getByText('Payment Due')).toBeInTheDocument()
     expect(screen.queryByText('Fully Settled')).not.toBeInTheDocument()
-
-    const entry = screen.getByRole('table', { name: 'Accounting entry for AR-002471' })
-    expect(within(entry).getByText('Accounts Receivable')).toBeInTheDocument()
-    expect(within(entry).getAllByText('$29,350.00')).toHaveLength(2)
   })
 
   it('shows an invoice that is not yet due as current', () => {
@@ -95,7 +91,6 @@ describe('ReceivableDetail', () => {
     expect(screen.getByRole('heading', { level: 1, name: '—' })).toBeInTheDocument()
     expect(screen.getByText('— · Issued — · Due —')).toBeInTheDocument()
     expect(screen.getByText('?')).toBeInTheDocument()
-    expect(screen.getByRole('table', { name: 'Accounting entry for this receivable' })).toBeInTheDocument()
     expect(screen.getByText('0% collected')).toBeInTheDocument()
   })
 

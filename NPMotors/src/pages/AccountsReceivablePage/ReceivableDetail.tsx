@@ -6,12 +6,6 @@ import {
   MessageBarTitle,
   ProgressBar,
   Spinner,
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableHeaderCell,
-  TableRow,
 } from '@fluentui/react-components'
 import { CheckmarkCircle16Regular, Clock16Regular, Document16Regular, Warning16Regular } from '@fluentui/react-icons'
 import type { ReactElement } from 'react'
@@ -128,37 +122,6 @@ function ReceivableProfile({ receivable }: { receivable: ReceivableDetailData })
                 <div><dt>Email</dt><dd>{dash(receivable.email)}</dd></div>
                 <div><dt>Address</dt><dd>{dash(receivable.address)}</dd></div>
               </dl>
-            </div>
-          </section>
-
-          <section className="card receivable-section">
-            <h2 className="section-title">Accounting Entry</h2>
-            <div className="table-scroll">
-              {/* GetArById has no tax/fee/discount split, so the whole amount is shown as sales revenue */}
-              <Table aria-label={`Accounting entry for ${receivable.number || 'this receivable'}`} className="data-table receivable-entry-table">
-                <TableHeader>
-                  <TableRow>
-                    <TableHeaderCell>Account</TableHeaderCell>
-                    <TableHeaderCell>Type</TableHeaderCell>
-                    <TableHeaderCell className="num">Debit</TableHeaderCell>
-                    <TableHeaderCell className="num">Credit</TableHeaderCell>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell className="strong text-dark">Accounts Receivable</TableCell>
-                    <TableCell><span className="account-type account-type--asset">Asset</span></TableCell>
-                    <TableCell className="num text-red">{formatCurrencyExact(receivable.amount)}</TableCell>
-                    <TableCell className="num text-faint">—</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="strong text-dark">Sales Revenue</TableCell>
-                    <TableCell><span className="account-type account-type--revenue">Revenue</span></TableCell>
-                    <TableCell className="num text-faint">—</TableCell>
-                    <TableCell className="num text-green">{formatCurrencyExact(receivable.amount)}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
             </div>
           </section>
         </div>

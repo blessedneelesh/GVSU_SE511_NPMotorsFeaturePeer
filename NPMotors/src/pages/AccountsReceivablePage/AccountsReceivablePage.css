@@ -110,11 +110,6 @@
 .receivable-customer__facts dt { font-size: 12px; color: var(--slate-400); }
 .receivable-customer__facts dd { margin: 0; font-size: 14px; font-weight: 500; color: var(--slate-800); overflow-wrap: anywhere; }
 
-.receivables-page .receivable-entry-table { min-width: 480px; }
-.account-type { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.account-type--asset { background: #eff6ff; color: #1d4ed8; }
-.account-type--revenue { background: #ecfdf5; color: var(--green); }
-
 .aging-box { padding: 8px 12px; border: 1px solid; border-radius: 8px; font-size: 14px; font-weight: 600; }
 .aging-current { color: #047857; background: #ecfdf5; border-color: #a7f3d0; }
 .aging-30 { color: #1d4ed8; background: #eff6ff; border-color: #bfdbfe; }
