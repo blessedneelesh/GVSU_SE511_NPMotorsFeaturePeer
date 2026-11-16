@@ -1,3 +1,5 @@
+import type { PaymentMethod } from '../../types/common'
+import type { ReceiptPayment } from '../../types/receipts'
 import type { Receivable, ReceivableAgingStatus } from '../../types/receivables'
 
 // The design shows whole dollars in the list, like Customers
@@ -50,3 +52,18 @@ export const sumPage = (rows: Receivable[]): ReceivableTotals =>
     (totals, row) => ({ amount: totals.amount + row.amount, paid: totals.paid + row.paid, balance: totals.balance + row.balance }),
     { amount: 0, paid: 0, balance: 0 },
   )
+
+// The design's methods that the API's PaymentMethod enum has; it has no "Finance" value, so that option is left out
+export const paymentMethodOptions: { value: PaymentMethod; label: string }[] = [
+  { value: 'transfer', label: 'Bank Transfer' },
+  { value: 'cash', label: 'Cash' },
+  { value: 'check', label: 'Check' },
+  { value: 'card', label: 'Credit Card' },
+]
+
+export const paymentMethodLabel = (method: PaymentMethod | null) =>
+  paymentMethodOptions.find((option) => option.value === method)?.label ?? '—'
+
+// Oldest first, as the timeline reads; same-day receipts by receipt number (they're numbered in posting order)
+export const sortPaymentsOldestFirst = (payments: readonly ReceiptPayment[]) =>
+  [...payments].sort((a, b) => a.receiptDate.localeCompare(b.receiptDate) || a.receiptNumber.localeCompare(b.receiptNumber))

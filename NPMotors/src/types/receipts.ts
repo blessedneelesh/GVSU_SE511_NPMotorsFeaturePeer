@@ -44,3 +44,21 @@ export interface ArPaymentRequest {
   arInvoiceId: string
   values: ReceiptFormValues
 }
+
+// One receipt posted against an AR invoice, from GET Receipt/GetPaymentHistory/{arInvoiceId}
+export interface ReceiptPayment {
+  id: string
+  receiptNumber: string
+  // YYYY-MM-DD
+  receiptDate: string
+  amount: number
+  // null when the API sends a method this app doesn't know
+  paymentMethod: PaymentMethod | null
+  reference: string
+  bankAccountName: string
+}
+
+export interface ReceiptPaymentHistory {
+  arInvoiceId: string
+  payments: ReceiptPayment[]
+}

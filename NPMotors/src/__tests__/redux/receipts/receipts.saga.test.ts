@@ -4,6 +4,10 @@ import createSagaMiddleware, { type SagaIterator, type Task } from 'redux-saga'
 import { all, call, cancelled, put, select, takeLatest, takeLeading } from 'redux-saga/effects'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  clearPaymentHistory,
+  loadPaymentHistory,
+  loadPaymentHistoryFailure,
+  loadPaymentHistorySuccess,
   loadReceiptBankAccountOptions,
   loadReceiptBankAccountOptionsFailure,
   loadReceiptBankAccountOptionsSuccess,
@@ -17,10 +21,10 @@ import { loadReceivables, selectReceivable } from '../../../redux/receivables/re
 import { selectSelectedReceivableId } from '../../../redux/receivables/receivables.selectors'
 import { rootReducer } from '../../../redux/rootReducer'
 import { receiptsApi } from '../../../services/receipts/receipts.api'
-import { receiptBankAccountOptions, receiptFormValues } from '../../../test/fixtures/receipts'
+import { receiptBankAccountOptions, receiptFormValues, receiptPayments } from '../../../test/fixtures/receipts'
 
 vi.mock('../../../services/receipts/receipts.api', () => ({
-  receiptsApi: { getBankAccountOptions: vi.fn(), recordArPayment: vi.fn() },
+  receiptsApi: { getBankAccountOptions: vi.fn(), recordArPayment: vi.fn(), getPaymentHistory: vi.fn() },
 }))
 
 // The workers aren't exported; take them from the watchers in the root saga's all([...]) effect
@@ -34,6 +38,7 @@ const workerAt = (index: number): Worker => {
 }
 const loadBankAccountOptionsWorker = workerAt(0)
 const recordArPaymentWorker = workerAt(1)
+const loadPaymentHistoryWorker = workerAt(2)
 
 // The error helpers check axios.isAxiosError / axios.isCancel, so failures must be real axios errors
 const httpError = (status: number, data?: unknown) =>
@@ -43,11 +48,12 @@ const httpError = (status: number, data?: unknown) =>
 const request = { arInvoiceId: '2471', values: receiptFormValues }
 
 describe('receiptsSaga (root)', () => {
-  it('loads accounts with takeLatest and records payments with takeLeading', () => {
+  it('loads accounts and payment history with takeLatest and records payments with takeLeading', () => {
     const gen = receiptsSaga()
     expect(gen.next().value).toStrictEqual(all([
       takeLatest(RECEIPT_ACTIONS.LOAD_BANK_ACCOUNT_OPTIONS, loadBankAccountOptionsWorker),
       takeLeading(RECEIPT_ACTIONS.RECORD_AR_PAYMENT, recordArPaymentWorker),
+      takeLatest([RECEIPT_ACTIONS.LOAD_PAYMENT_HISTORY, RECEIPT_ACTIONS.CLEAR_PAYMENT_HISTORY], loadPaymentHistoryWorker),
     ]))
     expect(gen.next().done).toBe(true)
   })
@@ -96,12 +102,13 @@ describe('recordArPaymentWorker', () => {
     return gen
   }
 
-  it('refetches the AR list and the open invoice when it is the one paid', () => {
+  it('refetches the AR list, and the open invoice and its payments when it is the one paid', () => {
     const gen = startRecord()
     expect(gen.next().value).toStrictEqual(put(recordArPaymentSuccess()))
     expect(gen.next().value).toStrictEqual(put(loadReceivables()))
     expect(gen.next().value).toStrictEqual(select(selectSelectedReceivableId))
     expect(gen.next('2471').value).toStrictEqual(put(selectReceivable('2471')))
+    expect(gen.next().value).toStrictEqual(put(loadPaymentHistory('2471')))
     expect(gen.next().done).toBe(true)
   })
 
@@ -142,6 +149,44 @@ describe('recordArPaymentWorker', () => {
   })
 })
 
+describe('loadPaymentHistoryWorker', () => {
+  const startHistory = () => {
+    const gen = loadPaymentHistoryWorker(loadPaymentHistory('2471'))
+    const effect = gen.next().value
+    expect(effect).toEqual(call(receiptsApi.getPaymentHistory, '2471', expect.any(AbortSignal)))
+    return { gen, signal: effect.payload.args[1] as AbortSignal }
+  }
+
+  it('dispatches the payments with the invoice they belong to', () => {
+    const { gen, signal } = startHistory()
+    expect(gen.next(receiptPayments).value).toStrictEqual(put(loadPaymentHistorySuccess({ arInvoiceId: '2471', payments: receiptPayments })))
+    expect(gen.next().value).toStrictEqual(cancelled())
+    expect(gen.next(false).done).toBe(true)
+    expect(signal.aborted).toBe(false)
+  })
+
+  it('does nothing on CLEAR_PAYMENT_HISTORY, which only cancels the previous load', () => {
+    expect(loadPaymentHistoryWorker(clearPaymentHistory()).next().done).toBe(true)
+  })
+
+  it('says the invoice no longer exists on a 404', () => {
+    const { gen } = startHistory()
+    expect(gen.throw(httpError(404, { title: 'Not Found' })).value).toStrictEqual(put(loadPaymentHistoryFailure('This receivable no longer exists.')))
+  })
+
+  it('falls back to the history message when the error has no detail', () => {
+    const { gen } = startHistory()
+    expect(gen.throw(httpError(400)).value).toStrictEqual(put(loadPaymentHistoryFailure('Payment history could not be loaded. Please try again.')))
+  })
+
+  it('aborts the request when the invoice is closed or another one opened', () => {
+    const { gen, signal } = startHistory()
+    expect(gen.return(undefined).value).toStrictEqual(cancelled())
+    expect(gen.next(true).done).toBe(true)
+    expect(signal.aborted).toBe(true)
+  })
+})
+
 interface Deferred<T> {
   promise: Promise<T>
   resolve: (value: T) => void
@@ -173,6 +218,7 @@ describe('receiptsSaga (running)', () => {
     const pending = deferred<void>()
     vi.mocked(receiptsApi.recordArPayment).mockReturnValue(pending.promise)
 
+    vi.mocked(receiptsApi.getPaymentHistory).mockResolvedValue([])
     store.dispatch(recordArPayment(request))
     store.dispatch(recordArPayment(request))
     expect(receiptsApi.recordArPayment).toHaveBeenCalledTimes(1)
@@ -187,6 +233,19 @@ describe('receiptsSaga (running)', () => {
 
     await vi.waitFor(() => expect(store.getState().receipts.bankAccountOptionsStatus).toBe('success'))
     expect(store.getState().receipts.bankAccountOptions).toEqual(receiptBankAccountOptions)
+  })
+
+  it('shows only the last opened invoice\'s payments when an earlier load answers late', async () => {
+    const first = deferred<typeof receiptPayments>()
+    vi.mocked(receiptsApi.getPaymentHistory).mockReturnValueOnce(first.promise).mockResolvedValueOnce([])
+
+    store.dispatch(loadPaymentHistory('2471'))
+    store.dispatch(loadPaymentHistory('3975'))
+    await vi.waitFor(() => expect(store.getState().receipts.paymentHistoryStatus).toBe('success'))
+    first.resolve(receiptPayments)
+    await Promise.resolve()
+
+    expect(store.getState().receipts).toMatchObject({ paymentHistoryInvoiceId: '3975', payments: [] })
   })
 
   it('stores the error when the payment is rejected', async () => {

@@ -8,9 +8,12 @@ import {
   formatDays,
   getNameInitials,
   paidPercent,
+  paymentMethodLabel,
+  sortPaymentsOldestFirst,
   statusBadgeClass,
   sumPage,
 } from '../../../pages/AccountsReceivablePage/receivableMetrics'
+import { receiptPayments } from '../../../test/fixtures/receipts'
 import { overdueReceivable, partialReceivable } from '../../../test/fixtures/receivables'
 
 describe('receivableMetrics', () => {
@@ -68,6 +71,20 @@ describe('receivableMetrics', () => {
     ['an overpaid invoice', -50, 'Overdue', false],
   ] as const)('can receive a payment against %s: %s', (_, balance, agingStatus, expected) => {
     expect(canReceivePayment({ balance, agingStatus })).toBe(expected)
+  })
+
+  it('labels payment methods as the design names them', () => {
+    expect(paymentMethodLabel('transfer')).toBe('Bank Transfer')
+    expect(paymentMethodLabel('card')).toBe('Credit Card')
+    expect(paymentMethodLabel(null)).toBe('—')
+  })
+
+  it('sorts payments oldest first, by receipt number within a day, without changing the input', () => {
+    const [first, second] = receiptPayments
+    const sameDay = { ...second!, receiptDate: first!.receiptDate }
+    const input = [sameDay, first!]
+    expect(sortPaymentsOldestFirst(input).map((payment) => payment.id)).toEqual(['461', '462'])
+    expect(input[0]).toBe(sameDay)
   })
 
   it('sums the page', () => {

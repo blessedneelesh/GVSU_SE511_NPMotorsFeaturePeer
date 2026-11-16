@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as selectors from '../../../redux/receipts/receipts.selectors'
 import { makeReceiptState } from '../../../test/test-utils'
-import { receiptBankAccountOptions } from '../../../test/fixtures/receipts'
+import { receiptBankAccountOptions, receiptPayments } from '../../../test/fixtures/receipts'
 
 // Every key differs from its initial value, so each selector is shown to read the right field
 const state = makeReceiptState({
@@ -11,6 +11,10 @@ const state = makeReceiptState({
   saveStatus: 'error',
   saveError: 'save error',
   fieldErrors: { amount: 'Too much' },
+  paymentHistoryInvoiceId: '2471',
+  payments: receiptPayments,
+  paymentHistoryStatus: 'error',
+  paymentHistoryError: 'history error',
 })
 
 describe('receipts selectors', () => {
@@ -25,6 +29,10 @@ describe('receipts selectors', () => {
     ['selectReceiptSaveStatus', selectors.selectReceiptSaveStatus, 'error'],
     ['selectReceiptSaveError', selectors.selectReceiptSaveError, 'save error'],
     ['selectReceiptFieldErrors', selectors.selectReceiptFieldErrors, { amount: 'Too much' }],
+    ['selectReceiptPaymentHistoryInvoiceId', selectors.selectReceiptPaymentHistoryInvoiceId, '2471'],
+    ['selectReceiptPayments', selectors.selectReceiptPayments, receiptPayments],
+    ['selectReceiptPaymentHistoryStatus', selectors.selectReceiptPaymentHistoryStatus, 'error'],
+    ['selectReceiptPaymentHistoryError', selectors.selectReceiptPaymentHistoryError, 'history error'],
   ] as const)('%s', (_, selector, expected) => {
     expect(selector(state)).toEqual(expected)
   })

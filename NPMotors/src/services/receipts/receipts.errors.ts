@@ -5,6 +5,7 @@ const UNREACHABLE_MESSAGE = 'Receipt service is unreachable. Is the API running 
 const SAVE_FALLBACK_MESSAGE = 'The payment could not be posted. Please try again.'
 const NOT_FOUND_MESSAGE = 'This receivable no longer exists.'
 export const BANK_ACCOUNT_OPTIONS_FALLBACK_MESSAGE = 'Bank accounts could not be loaded. Please try again.'
+export const PAYMENT_HISTORY_FALLBACK_MESSAGE = 'Payment history could not be loaded. Please try again.'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)

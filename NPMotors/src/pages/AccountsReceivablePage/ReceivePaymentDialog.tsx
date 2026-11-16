@@ -21,20 +21,10 @@ import { useReceiptBankAccountOptions } from '../../hooks/useReceiptBankAccountO
 import { useReceiptMutations } from '../../hooks/useReceiptMutations'
 import type { PaymentMethod } from '../../types/common'
 import type { ReceiptFieldErrors, ReceiptFormField, ReceiptFormValues, ReceiptTarget } from '../../types/receipts'
-import { formatCurrencyExact } from './receivableMetrics'
+import { formatCurrencyExact, paymentMethodLabel, paymentMethodOptions } from './receivableMetrics'
 import './ReceivePaymentDialog.css'
 
-// The design's methods that the API's PaymentMethod enum has; it has no "Finance" value, so that option is left out
-const paymentMethodOptions: { value: PaymentMethod; label: string }[] = [
-  { value: 'transfer', label: 'Bank Transfer' },
-  { value: 'cash', label: 'Cash' },
-  { value: 'check', label: 'Check' },
-  { value: 'card', label: 'Credit Card' },
-]
-
 const isPaymentMethod = (value: unknown): value is PaymentMethod => paymentMethodOptions.some((option) => option.value === value)
-
-const methodLabel = (method: PaymentMethod) => paymentMethodOptions.find((option) => option.value === method)?.label ?? method
 
 // Money is compared in whole cents so 0.1 + 0.2 style rounding can't let an overpayment through
 const toCents = (value: number) => Math.round(value * 100)
@@ -132,7 +122,7 @@ export function ReceivePaymentDialog({ invoice, onClose }: ReceivePaymentDialogP
             <dl className="receipt-dialog__facts">
               <div><dt>Invoice</dt><dd className="mono">{invoice.number || '—'}</dd></div>
               <div><dt>Payment Date</dt><dd>{posted.receiptDate}</dd></div>
-              <div><dt>Method</dt><dd>{methodLabel(posted.paymentMethod)}</dd></div>
+              <div><dt>Method</dt><dd>{paymentMethodLabel(posted.paymentMethod)}</dd></div>
               {bankAccount && <div><dt>Deposited To</dt><dd>{accountLabel(bankAccount)}</dd></div>}
               {posted.reference.trim() && <div><dt>Reference</dt><dd className="mono">{posted.reference.trim()}</dd></div>}
               <div>
@@ -211,7 +201,7 @@ export function ReceivePaymentDialog({ invoice, onClose }: ReceivePaymentDialogP
                     validationMessage={errorFor('paymentMethod')}
                   >
                     <Dropdown
-                      value={methodLabel(values.paymentMethod)}
+                      value={paymentMethodLabel(values.paymentMethod)}
                       selectedOptions={[values.paymentMethod]}
                       onOptionSelect={(_, data) => { if (isPaymentMethod(data.optionValue)) setField('paymentMethod', data.optionValue) }}
                     >

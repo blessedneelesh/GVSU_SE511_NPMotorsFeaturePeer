@@ -1,8 +1,8 @@
 import { RECEIPT_ENDPOINTS } from '../api/apiConstants'
 import { customerClient } from '../api/customerClient'
 import { bankAccountsApi } from '../bankAccounts/bankAccounts.api'
-import type { ArPaymentRequest, ReceiptBankAccountOption } from '../../types/receipts'
-import { toReceiptBankAccountOptions, toRecordArPaymentDto } from './receipts.mappers'
+import type { ArPaymentRequest, ReceiptBankAccountOption, ReceiptPayment } from '../../types/receipts'
+import { mapPaymentHistory, toReceiptBankAccountOptions, toRecordArPaymentDto } from './receipts.mappers'
 
 // The API's largest page; accounts past the first 100 can't be picked
 const ACCOUNT_OPTIONS_PAGE_SIZE = 100
@@ -17,4 +17,10 @@ async function recordArPayment({ arInvoiceId, values }: ArPaymentRequest, signal
   await customerClient.post(RECEIPT_ENDPOINTS.recordArPayment(arInvoiceId), toRecordArPaymentDto(values), { signal })
 }
 
-export const receiptsApi = { getBankAccountOptions, recordArPayment }
+// Every receipt posted against one AR invoice, in one response (the endpoint isn't paged)
+async function getPaymentHistory(arInvoiceId: string, signal?: AbortSignal): Promise<ReceiptPayment[]> {
+  const { data } = await customerClient.get<unknown>(RECEIPT_ENDPOINTS.getPaymentHistory(arInvoiceId), { signal })
+  return mapPaymentHistory(data)
+}
+
+export const receiptsApi = { getBankAccountOptions, recordArPayment, getPaymentHistory }

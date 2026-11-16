@@ -4,8 +4,8 @@ import { customerClient } from '../../../services/api/customerClient'
 import { bankAccountsApi } from '../../../services/bankAccounts/bankAccounts.api'
 import { receiptsApi } from '../../../services/receipts/receipts.api'
 import { getReceiptErrorMessage, getReceiptSaveError } from '../../../services/receipts/receipts.errors'
-import { toReceiptBankAccountOptions, toRecordArPaymentDto } from '../../../services/receipts/receipts.mappers'
-import { receiptFormValues } from '../../../test/fixtures/receipts'
+import { mapPaymentHistory, toReceiptBankAccountOptions, toRecordArPaymentDto } from '../../../services/receipts/receipts.mappers'
+import { receiptFormValues, receiptPayments } from '../../../test/fixtures/receipts'
 import type { BankAccount } from '../../../types/bankAccounts'
 
 const account = (id: string, name: string, status: BankAccount['status']): BankAccount => ({
@@ -37,7 +37,48 @@ describe('receipts mappers', () => {
   })
 })
 
+// GetPaymentHistory/2471 as the API answered it
+const paymentHistoryBody = {
+  id: 2471, number: 'AR-002471', invoiceNumber: 'INV-004262', customerName: 'Jennifer Brown', dueDate: '2026-11-08T00:00:00',
+  amount: 29350.0, paid: 1850.0, balance: 27500.0, status: 'partial',
+  payments: [
+    { id: 461, receiptNumber: 'RCT-2026-000461', receiptDate: '2026-11-08T00:00:00', payer: null, description: null, amount: 1200.0,
+      paymentMethod: 'check', reference: 'INV-004262', bankAccountName: 'Operating Checking', transactionId: 2560 },
+    { id: 462, receiptNumber: 'RCT-2026-000462', receiptDate: '2026-11-10T00:00:00', payer: null, description: null, amount: 650.0,
+      paymentMethod: 'transfer', reference: null, bankAccountName: 'Business Savings', transactionId: 2561 },
+  ],
+}
+
+describe('payment history mapper', () => {
+  it('maps the payments of the GetPaymentHistory body', () => {
+    expect(mapPaymentHistory(paymentHistoryBody)).toEqual(receiptPayments)
+  })
+
+  it('accepts a bare array and PascalCase fields', () => {
+    expect(mapPaymentHistory([{ Id: 9, ReceiptNumber: 'RCT-9', ReceiptDate: '2026-01-02T00:00:00', Amount: '10.5', PaymentMethod: 'Cash' }]))
+      .toEqual([{ id: '9', receiptNumber: 'RCT-9', receiptDate: '2026-01-02', amount: 10.5, paymentMethod: 'cash', reference: '', bankAccountName: '' }])
+  })
+
+  it('keeps an unknown method as null and skips rows that are not objects', () => {
+    expect(mapPaymentHistory({ payments: [{ id: 1, paymentMethod: 'finance', amount: 'abc' }, null, 'x'] }))
+      .toEqual([{ id: '1', receiptNumber: '', receiptDate: '', amount: 0, paymentMethod: null, reference: '', bankAccountName: '' }])
+  })
+
+  it('reads an invoice with no payments, or an unexpected body, as none', () => {
+    expect(mapPaymentHistory({ ...paymentHistoryBody, payments: [] })).toEqual([])
+    expect(mapPaymentHistory({ id: 1 })).toEqual([])
+    expect(mapPaymentHistory('')).toEqual([])
+  })
+})
+
 describe('receipts api', () => {
+  it('gets the payment history with the AR invoice in the path', async () => {
+    const get = vi.spyOn(customerClient, 'get').mockResolvedValue({ data: paymentHistoryBody })
+    const signal = new AbortController().signal
+    expect(await receiptsApi.getPaymentHistory('2471', signal)).toEqual(receiptPayments)
+    expect(get).toHaveBeenCalledWith('Receipt/GetPaymentHistory/2471', { signal })
+  })
+
   it('posts to the AR invoice in the path', async () => {
     const post = vi.spyOn(customerClient, 'post').mockResolvedValue({ data: {} })
     await receiptsApi.recordArPayment({ arInvoiceId: '2471', values: receiptFormValues })

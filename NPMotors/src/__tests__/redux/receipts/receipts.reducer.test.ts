@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as actions from '../../../redux/receipts/receipts.actions'
 import receiptsReducer, { initialReceiptsState, type ReceiptsState } from '../../../redux/receipts/receipts.reducer'
-import { receiptBankAccountOptions, receiptFormValues } from '../../../test/fixtures/receipts'
+import { receiptBankAccountOptions, receiptFormValues, receiptPayments } from '../../../test/fixtures/receipts'
 
 // A state after a failed post, so each case can be shown to clear or keep the errors
 const failed: ReceiptsState = {
@@ -62,6 +62,46 @@ describe('receiptsReducer', () => {
     it('RESET_SAVE clears the status and errors but keeps the accounts', () => {
       const state = receiptsReducer(failed, actions.resetReceiptSave())
       expect(state).toEqual({ ...failed, saveStatus: 'idle', saveError: null, fieldErrors: {} })
+    })
+  })
+
+  describe('payment history', () => {
+    const loaded: ReceiptsState = {
+      ...initialReceiptsState,
+      paymentHistoryInvoiceId: '2471',
+      payments: receiptPayments,
+      paymentHistoryStatus: 'success',
+    }
+
+    it('LOAD_PAYMENT_HISTORY for the same invoice keeps its payments while reloading', () => {
+      const state = receiptsReducer({ ...loaded, paymentHistoryError: 'old' }, actions.loadPaymentHistory('2471'))
+      expect(state).toMatchObject({ paymentHistoryInvoiceId: '2471', payments: receiptPayments, paymentHistoryStatus: 'loading', paymentHistoryError: null })
+    })
+
+    it('LOAD_PAYMENT_HISTORY for another invoice starts empty', () => {
+      const state = receiptsReducer(loaded, actions.loadPaymentHistory('3975'))
+      expect(state).toMatchObject({ paymentHistoryInvoiceId: '3975', payments: [], paymentHistoryStatus: 'loading' })
+    })
+
+    it('LOAD_PAYMENT_HISTORY_SUCCESS stores the payments of the invoice being loaded', () => {
+      const loading = receiptsReducer(initialReceiptsState, actions.loadPaymentHistory('2471'))
+      const state = receiptsReducer(loading, actions.loadPaymentHistorySuccess({ arInvoiceId: '2471', payments: receiptPayments }))
+      expect(state).toMatchObject({ payments: receiptPayments, paymentHistoryStatus: 'success' })
+    })
+
+    it('LOAD_PAYMENT_HISTORY_SUCCESS ignores a late answer for another invoice', () => {
+      const loading = receiptsReducer(initialReceiptsState, actions.loadPaymentHistory('3975'))
+      expect(receiptsReducer(loading, actions.loadPaymentHistorySuccess({ arInvoiceId: '2471', payments: receiptPayments }))).toBe(loading)
+    })
+
+    it('LOAD_PAYMENT_HISTORY_FAILURE stores the message', () => {
+      const state = receiptsReducer(loaded, actions.loadPaymentHistoryFailure('Payment history could not be loaded.'))
+      expect(state).toMatchObject({ paymentHistoryStatus: 'error', paymentHistoryError: 'Payment history could not be loaded.' })
+    })
+
+    it('CLEAR_PAYMENT_HISTORY forgets the invoice and its payments, leaving the save alone', () => {
+      const state = receiptsReducer({ ...failed, ...loaded, saveStatus: 'error' }, actions.clearPaymentHistory())
+      expect(state).toMatchObject({ paymentHistoryInvoiceId: null, payments: [], paymentHistoryStatus: 'idle', paymentHistoryError: null, saveStatus: 'error' })
     })
   })
 })

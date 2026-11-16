@@ -6,18 +6,44 @@ import {
   MessageBarTitle,
   ProgressBar,
   Spinner,
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
 } from '@fluentui/react-components'
-import { CheckmarkCircle16Regular, Clock16Regular, Document16Regular, Warning16Regular } from '@fluentui/react-icons'
+import {
+  Add16Regular,
+  CheckmarkCircle16Regular,
+  Clock16Regular,
+  Document16Regular,
+  Payment16Regular,
+  Warning16Regular,
+} from '@fluentui/react-icons'
 import type { ReactElement } from 'react'
 import { useReceivableDetail } from '../../hooks/useReceivableDetail'
+import { type UseReceiptPaymentHistoryResult, useReceiptPaymentHistory } from '../../hooks/useReceiptPaymentHistory'
+import type { ReceiptPayment } from '../../types/receipts'
 import type { ReceivableDetail as ReceivableDetailData } from '../../types/receivables'
-import { agingClass, canReceivePayment, formatCurrencyExact, getNameInitials, paidPercent, statusBadgeClass } from './receivableMetrics'
+import {
+  agingClass,
+  canReceivePayment,
+  formatCurrencyExact,
+  getNameInitials,
+  paidPercent,
+  paymentMethodLabel,
+  sortPaymentsOldestFirst,
+  statusBadgeClass,
+} from './receivableMetrics'
 import { ReceivePaymentDialog } from './ReceivePaymentDialog'
 import { useReceivePaymentDialog } from './useReceivePaymentDialog'
 
 // Loads the selected AR invoice from GetArById via Redux; the list page decides when it's shown
 export function ReceivableDetail() {
-  const { receivable, detailStatus, detailError, closeReceivable, retry } = useReceivableDetail()
+  const { selectedId, receivable, detailStatus, detailError, closeReceivable, retry } = useReceivableDetail()
+  // Loaded beside GetArById, by the selected id; a posted payment reloads both
+  const paymentHistory = useReceiptPaymentHistory(selectedId)
   // Kept here, not in the profile: a payment refetches the invoice, which unmounts the profile while it loads
   const { receiving, openReceive, closeReceive } = useReceivePaymentDialog()
 
@@ -47,7 +73,9 @@ export function ReceivableDetail() {
         </section>
       )}
 
-      {detailStatus === 'success' && receivable && <ReceivableProfile receivable={receivable} onReceive={() => openReceive(receivable)} />}
+      {detailStatus === 'success' && receivable && (
+        <ReceivableProfile receivable={receivable} paymentHistory={paymentHistory} onReceive={() => openReceive(receivable)} />
+      )}
 
       {receiving && <ReceivePaymentDialog invoice={receiving} onClose={closeReceive} />}
     </div>
@@ -63,21 +91,30 @@ interface TimelineStep {
 
 interface ReceivableProfileProps {
   receivable: ReceivableDetailData
+  paymentHistory: UseReceiptPaymentHistoryResult
   onReceive: () => void
 }
 
-function ReceivableProfile({ receivable, onReceive }: ReceivableProfileProps) {
+function ReceivableProfile({ receivable, paymentHistory, onReceive }: ReceivableProfileProps) {
   const isSettled = receivable.balance <= 0
   const canReceive = canReceivePayment(receivable)
   const isOverdue = !isSettled && receivable.daysOverdue > 0
   const percent = paidPercent(receivable.paid, receivable.amount)
   const dash = (value: string) => value || '—'
 
-  // Payment rows are left out: there is no endpoint for an AR invoice's receipts yet
+  const paymentsOldestFirst = sortPaymentsOldestFirst(paymentHistory.payments)
+  const lastPayment = paymentsOldestFirst.at(-1)
+
   const timeline: TimelineStep[] = [
     { label: 'Invoice Created', date: receivable.date, icon: <Document16Regular />, done: true },
+    ...paymentsOldestFirst.map((payment) => ({
+      label: `Payment Received — ${formatCurrencyExact(payment.amount)}`,
+      date: payment.receiptDate,
+      icon: <Payment16Regular />,
+      done: true,
+    })),
     isSettled
-      ? { label: 'Fully Settled', date: '', icon: <CheckmarkCircle16Regular />, done: true }
+      ? { label: 'Fully Settled', date: lastPayment?.receiptDate ?? '', icon: <CheckmarkCircle16Regular />, done: true }
       : { label: 'Payment Due', date: receivable.dueDate, icon: isOverdue ? <Warning16Regular /> : <Clock16Regular />, done: false },
   ]
 
@@ -137,6 +174,15 @@ function ReceivableProfile({ receivable, onReceive }: ReceivableProfileProps) {
               </dl>
             </div>
           </section>
+
+          <PaymentHistory
+            payments={[...paymentsOldestFirst].reverse()}
+            status={paymentHistory.paymentHistoryStatus}
+            error={paymentHistory.paymentHistoryError}
+            canReceive={canReceive && Boolean(receivable.id)}
+            onRetry={paymentHistory.retry}
+            onReceive={onReceive}
+          />
         </div>
 
         <aside className="receivable-layout__side">
@@ -152,8 +198,9 @@ function ReceivableProfile({ receivable, onReceive }: ReceivableProfileProps) {
           <section className="card receivable-section">
             <h2 className="section-title">Timeline</h2>
             <ol className="receivable-timeline">
-              {timeline.map((step) => (
-                <li key={step.label} className={step.done ? 'is-done' : ''}>
+              {timeline.map((step, index) => (
+                // Two same-day payments of the same amount would share a label, so the position is part of the key
+                <li key={`${index}-${step.label}`} className={step.done ? 'is-done' : ''}>
                   <span className="receivable-timeline__icon" aria-hidden="true">{step.icon}</span>
                   <div>
                     <div className="receivable-timeline__label">{step.label}</div>
@@ -180,5 +227,80 @@ function ReceivableProfile({ receivable, onReceive }: ReceivableProfileProps) {
         </aside>
       </div>
     </>
+  )
+}
+
+interface PaymentHistoryProps {
+  // Newest first, as the design lists them
+  payments: ReceiptPayment[]
+  status: UseReceiptPaymentHistoryResult['paymentHistoryStatus']
+  error: string | null
+  canReceive: boolean
+  onRetry: () => void
+  onReceive: () => void
+}
+
+// Receipts from GetPaymentHistory. A reload after a payment keeps the old rows until the new ones arrive.
+function PaymentHistory({ payments, status, error, canReceive, onRetry, onReceive }: PaymentHistoryProps) {
+  const isFirstLoad = (status === 'loading' || status === 'idle') && payments.length === 0
+  const dash = (value: string) => value || '—'
+
+  return (
+    <section className="card receivable-payments" aria-labelledby="receivable-payments-title">
+      <header className="receivable-payments__header">
+        <h2 id="receivable-payments-title">Payment History</h2>
+        {canReceive && (
+          <Button appearance="primary" size="small" icon={<Add16Regular />} onClick={onReceive}>Receive Payment</Button>
+        )}
+      </header>
+
+      {status === 'error' ? (
+        <MessageBar intent="error" className="receivable-payments__message">
+          <MessageBarBody>
+            <MessageBarTitle>Couldn&apos;t load payments</MessageBarTitle>
+            {error}
+          </MessageBarBody>
+          <MessageBarActions>
+            <Button onClick={onRetry}>Retry</Button>
+          </MessageBarActions>
+        </MessageBar>
+      ) : isFirstLoad ? (
+        <div className="receivable-payments__empty">
+          <Spinner size="small" label="Loading payments…" />
+        </div>
+      ) : payments.length === 0 ? (
+        <div className="receivable-payments__empty">
+          <Payment16Regular aria-hidden="true" />
+          <span>No payments recorded yet</span>
+        </div>
+      ) : (
+        <div className={`table-scroll${status === 'loading' ? ' is-refreshing' : ''}`}>
+          <Table className="data-table receivable-payments-table" aria-label="Payment history" aria-busy={status === 'loading'}>
+            <TableHeader>
+              <TableRow>
+                <TableHeaderCell>Date</TableHeaderCell>
+                <TableHeaderCell>Receipt #</TableHeaderCell>
+                <TableHeaderCell>Method</TableHeaderCell>
+                <TableHeaderCell>Deposited To</TableHeaderCell>
+                <TableHeaderCell>Reference</TableHeaderCell>
+                <TableHeaderCell className="num">Amount</TableHeaderCell>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {payments.map((payment, index) => (
+                <TableRow key={payment.id || `${payment.receiptNumber}-${index}`}>
+                  <TableCell className="text-xs text-muted">{dash(payment.receiptDate)}</TableCell>
+                  <TableCell className="mono text-xs text-link">{dash(payment.receiptNumber)}</TableCell>
+                  <TableCell className="text-secondary">{paymentMethodLabel(payment.paymentMethod)}</TableCell>
+                  <TableCell className="text-secondary">{dash(payment.bankAccountName)}</TableCell>
+                  <TableCell className="mono text-xs text-muted">{dash(payment.reference)}</TableCell>
+                  <TableCell className="num text-green receivable-payments__amount">{formatCurrencyExact(payment.amount)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </section>
   )
 }

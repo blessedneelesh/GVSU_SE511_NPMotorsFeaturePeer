@@ -90,4 +90,5 @@ export const AR_ENDPOINTS = {
 export const RECEIPT_ENDPOINTS = {
   // The AR invoice id goes in the path
   recordArPayment: (arInvoiceId: string) => `Receipt/RecordArPayment/${encodeURIComponent(arInvoiceId)}`,
+  getPaymentHistory: (arInvoiceId: string) => `Receipt/GetPaymentHistory/${encodeURIComponent(arInvoiceId)}`,
 } as const

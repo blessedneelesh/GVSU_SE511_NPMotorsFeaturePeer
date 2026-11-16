@@ -156,3 +156,11 @@
 @media print {
   .receivables-header__actions, .receivables-filters, .receivables-breadcrumb, .receivable-hero__actions .fui-Button { display: none; }
 }
+
+.receivable-payments__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--slate-100); }
+.receivable-payments__header h2 { margin: 0; font-size: 15px; font-weight: 600; color: var(--slate-800); }
+.receivables-page .receivable-payments-table { min-width: 620px; }
+.receivables-page .data-table .receivable-payments__amount { font-weight: 600; }
+.receivable-payments__empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 32px 20px; font-size: 14px; color: var(--slate-400); }
+.receivable-payments__empty svg { width: 28px; height: 28px; }
+.receivables-page .receivable-payments__message { margin: 16px 20px; }

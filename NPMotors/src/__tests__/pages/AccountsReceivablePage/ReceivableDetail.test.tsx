@@ -2,7 +2,14 @@ import { act, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { ReceivableDetail } from '../../../pages/AccountsReceivablePage/ReceivableDetail'
 import { clearReceivableSelection, selectReceivable } from '../../../redux/receivables/receivables.actions'
-import { resetReceiptSave } from '../../../redux/receipts/receipts.actions'
+import {
+  clearPaymentHistory,
+  loadPaymentHistory,
+  loadPaymentHistoryFailure,
+  loadPaymentHistorySuccess,
+  resetReceiptSave,
+} from '../../../redux/receipts/receipts.actions'
+import { receiptPayments } from '../../../test/fixtures/receipts'
 import {
   currentReceivableDetail,
   paidReceivableDetail,
@@ -16,6 +23,11 @@ const renderLoaded = (selected: ReceivableDetailData) =>
   renderWithProviders(<ReceivableDetail />, {
     preloadedState: makeReceivableState({ selectedId: selected.id || 'X', selected, detailStatus: 'success' }),
   })
+
+// Opening the invoice dispatches the history load; with no saga running, tests dispatch the answer themselves
+const answerHistory = (store: { dispatch: (action: ReturnType<typeof loadPaymentHistorySuccess>) => unknown }, arInvoiceId: string, payments = receiptPayments) => {
+  act(() => { store.dispatch(loadPaymentHistorySuccess({ arInvoiceId, payments })) })
+}
 
 const stat = (label: string) => screen.getByText(label, { selector: '.receivable-hero__stats dt' }).nextElementSibling
 
@@ -35,7 +47,7 @@ describe('ReceivableDetail', () => {
     expect(screen.getByText('This receivable no longer exists.')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Retry' }))
-    expect(actions).toEqual([selectReceivable('9')])
+    expect(actions).toEqual([loadPaymentHistory('9'), selectReceivable('9')])
   })
 
   it('renders an overdue, partly paid invoice', () => {
@@ -98,8 +110,8 @@ describe('ReceivableDetail', () => {
   it('offers Receive Payment on an invoice with a balance and opens the dialog', async () => {
     const { actions, user } = renderLoaded(receivableDetail)
     const buttons = screen.getAllByRole('button', { name: 'Receive Payment' })
-    // In the header and in the Summary card
-    expect(buttons).toHaveLength(2)
+    // In the header, the Payment History card and the Summary card
+    expect(buttons).toHaveLength(3)
 
     await user.click(buttons[0]!)
     expect(actions).toContainEqual(resetReceiptSave())
@@ -108,7 +120,7 @@ describe('ReceivableDetail', () => {
   })
 
   it.each([
-    ['a not-yet-due unpaid invoice', currentReceivableDetail, 2],
+    ['a not-yet-due unpaid invoice', currentReceivableDetail, 3],
     ['a paid invoice', paidReceivableDetail, 0],
     ['an "unpaid" invoice with nothing left to pay', { ...currentReceivableDetail, balance: 0 }, 0],
   ])('shows %s with %i Receive Payment buttons', (_, detail, count) => {
@@ -126,9 +138,74 @@ describe('ReceivableDetail', () => {
     expect(screen.getByRole('dialog', { name: 'Receive Payment' })).toBeInTheDocument()
   })
 
+  it('loads the payment history of the open invoice and lists it newest first', () => {
+    const { actions, store } = renderLoaded(receivableDetail)
+    expect(actions).toEqual([loadPaymentHistory('2471')])
+    expect(screen.getByText('Loading payments…')).toBeInTheDocument()
+
+    answerHistory(store, '2471')
+    const rows = within(screen.getByRole('table', { name: 'Payment history' })).getAllByRole('row').slice(1)
+    expect(rows.map((row) => within(row).getAllByRole('cell')[1]!.textContent)).toEqual(['RCT-2026-000462', 'RCT-2026-000461'])
+    expect(within(rows[0]!).getByText('Bank Transfer')).toBeInTheDocument()
+    expect(within(rows[0]!).getByText('Business Savings')).toBeInTheDocument()
+    expect(within(rows[0]!).getByText('—')).toBeInTheDocument()
+    expect(within(rows[1]!).getByText('Check')).toBeInTheDocument()
+    expect(within(rows[1]!).getByText('INV-004262')).toBeInTheDocument()
+    expect(within(rows[1]!).getByText('$1,200.00')).toHaveClass('text-green')
+  })
+
+  it('adds each payment to the timeline, oldest first, before the due date', () => {
+    const { store } = renderLoaded(receivableDetail)
+    answerHistory(store, '2471')
+    const steps = within(screen.getByRole('list')).getAllByRole('listitem').map((item) => item.textContent)
+    expect(steps).toEqual([
+      'Invoice Created2026-11-08',
+      'Payment Received — $1,200.002026-11-08',
+      'Payment Received — $650.002026-11-10',
+      'Payment Due2026-11-08',
+    ])
+  })
+
+  it('dates Fully Settled with the last payment', () => {
+    const { store } = renderLoaded(paidReceivableDetail)
+    answerHistory(store, '4', [{ ...receiptPayments[0]!, receiptDate: '2026-11-12' }])
+    expect(screen.getByText('Fully Settled').nextElementSibling).toHaveTextContent('2026-11-12')
+  })
+
+  it('says when no payments have been recorded', () => {
+    const { store } = renderLoaded(currentReceivableDetail)
+    answerHistory(store, '3974', [])
+    expect(screen.getByText('No payments recorded yet')).toBeInTheDocument()
+    expect(screen.queryByRole('table', { name: 'Payment history' })).not.toBeInTheDocument()
+  })
+
+  it('shows when the payments failed to load and retries', async () => {
+    const { actions, store, user } = renderLoaded(receivableDetail)
+    act(() => { store.dispatch(loadPaymentHistoryFailure('Payment history could not be loaded. Please try again.')) })
+    expect(screen.getByText("Couldn't load payments")).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(actions.filter((action) => action.type === loadPaymentHistory('2471').type)).toEqual([loadPaymentHistory('2471'), loadPaymentHistory('2471')])
+  })
+
+  it('keeps the listed payments while they reload after a payment', () => {
+    const { store } = renderLoaded(receivableDetail)
+    answerHistory(store, '2471')
+    act(() => { store.dispatch(loadPaymentHistory('2471')) })
+    expect(screen.getByRole('table', { name: 'Payment history' })).toHaveAttribute('aria-busy', 'true')
+    expect(screen.getByText('RCT-2026-000461')).toBeInTheDocument()
+  })
+
+  it('forgets the payments when the invoice is closed', () => {
+    const { actions, unmount } = renderLoaded(receivableDetail)
+    unmount()
+    expect(actions).toEqual([loadPaymentHistory('2471'), clearPaymentHistory()])
+  })
+
   it('goes back to the list from the breadcrumb', async () => {
     const { actions, user } = renderLoaded(receivableDetail)
     await user.click(screen.getByRole('button', { name: '← Accounts Receivable' }))
-    expect(actions).toEqual([clearReceivableSelection()])
+    // Clearing the selection also forgets the invoice's payments
+    expect(actions).toEqual([loadPaymentHistory('2471'), clearReceivableSelection(), clearPaymentHistory()])
   })
 })

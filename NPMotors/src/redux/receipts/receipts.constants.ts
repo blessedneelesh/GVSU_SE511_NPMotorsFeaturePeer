@@ -6,4 +6,8 @@ export const RECEIPT_ACTIONS = {
   RECORD_AR_PAYMENT_SUCCESS: 'receipts/recordArPaymentSuccess',
   RECORD_AR_PAYMENT_FAILURE: 'receipts/recordArPaymentFailure',
   RESET_SAVE: 'receipts/resetSave',
+  LOAD_PAYMENT_HISTORY: 'receipts/loadPaymentHistory',
+  LOAD_PAYMENT_HISTORY_SUCCESS: 'receipts/loadPaymentHistorySuccess',
+  LOAD_PAYMENT_HISTORY_FAILURE: 'receipts/loadPaymentHistoryFailure',
+  CLEAR_PAYMENT_HISTORY: 'receipts/clearPaymentHistory',
 } as const
