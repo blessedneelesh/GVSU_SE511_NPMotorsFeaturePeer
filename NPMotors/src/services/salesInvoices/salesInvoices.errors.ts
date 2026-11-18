@@ -7,6 +7,7 @@ const DETAIL_FALLBACK_MESSAGE = 'This sales invoice could not be loaded. Please 
 const NOT_FOUND_MESSAGE = 'This sales invoice no longer exists.'
 const SAVE_FALLBACK_MESSAGE = 'The sales invoice could not be saved. Please try again.'
 const CANCEL_FALLBACK_MESSAGE = 'The sales invoice could not be cancelled. Please try again.'
+export const CUSTOMER_INVOICES_FALLBACK_MESSAGE = "This customer's sales invoices could not be loaded. Please try again."
 export const OPTIONS_FALLBACK_MESSAGE = 'Customers, salespeople, vehicles and bank accounts could not be loaded. Please try again.'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

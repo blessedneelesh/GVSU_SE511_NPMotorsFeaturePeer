@@ -41,7 +41,7 @@ describe('SALES_INVOICE_ACTIONS', () => {
   })
 
   it('has 28 action types', () => {
-    expect(Object.keys(SALES_INVOICE_ACTIONS)).toHaveLength(28)
+    expect(Object.keys(SALES_INVOICE_ACTIONS)).toHaveLength(32)
   })
 
   it('has unique values', () => {

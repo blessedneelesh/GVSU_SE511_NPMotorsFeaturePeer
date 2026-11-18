@@ -40,3 +40,11 @@ export const selectSalesInvoiceFieldErrors = createSelector([selectSalesInvoiceS
 export const selectSalesInvoiceCancelStatus = createSelector([selectSalesInvoiceState], (salesInvoices) => salesInvoices.cancelStatus)
 
 export const selectSalesInvoiceCancelError = createSelector([selectSalesInvoiceState], (salesInvoices) => salesInvoices.cancelError)
+
+export const selectCustomerInvoicesCustomerId = createSelector([selectSalesInvoiceState], (salesInvoices) => salesInvoices.customerInvoicesCustomerId)
+
+export const selectCustomerInvoices = createSelector([selectSalesInvoiceState], (salesInvoices) => salesInvoices.customerInvoices)
+
+export const selectCustomerInvoicesStatus = createSelector([selectSalesInvoiceState], (salesInvoices) => salesInvoices.customerInvoicesStatus)
+
+export const selectCustomerInvoicesError = createSelector([selectSalesInvoiceState], (salesInvoices) => salesInvoices.customerInvoicesError)

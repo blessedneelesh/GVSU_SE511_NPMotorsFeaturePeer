@@ -2,13 +2,14 @@ import { all, call, cancelled, put, select, takeLatest, takeLeading } from 'redu
 import type { SagaIterator } from 'redux-saga'
 import { salesInvoicesApi } from '../../services/salesInvoices/salesInvoices.api'
 import {
+  CUSTOMER_INVOICES_FALLBACK_MESSAGE,
   getSalesInvoiceCancelErrorMessage,
   getSalesInvoiceDetailErrorMessage,
   getSalesInvoiceErrorMessage,
   getSalesInvoiceSaveError,
   OPTIONS_FALLBACK_MESSAGE,
 } from '../../services/salesInvoices/salesInvoices.errors'
-import type { SalesInvoice, SalesInvoiceOptions, SalesInvoicePage, SalesInvoiceQuery } from '../../types/salesInvoices'
+import type { CustomerSalesInvoice, SalesInvoice, SalesInvoiceOptions, SalesInvoicePage, SalesInvoiceQuery } from '../../types/salesInvoices'
 import type { Vehicle } from '../../types/vehicles'
 import {
   type cancelSalesInvoice,
@@ -30,6 +31,10 @@ import {
   saveSalesInvoiceFailure,
   saveSalesInvoiceSuccess,
   selectSalesInvoice,
+  type clearCustomerSalesInvoices,
+  type loadCustomerSalesInvoices,
+  loadCustomerSalesInvoicesFailure,
+  loadCustomerSalesInvoicesSuccess,
 } from './salesInvoices.actions'
 import { SALES_INVOICE_ACTIONS } from './salesInvoices.constants'
 import { selectSalesInvoiceQuery, selectSelectedSalesInvoiceId } from './salesInvoices.selectors'
@@ -143,6 +148,25 @@ function* cancelSalesInvoiceWorker(action: ReturnType<typeof cancelSalesInvoice>
   }
 }
 
+type CustomerInvoicesAction = ReturnType<typeof loadCustomerSalesInvoices> | ReturnType<typeof clearCustomerSalesInvoices>
+
+function* loadCustomerInvoicesWorker(action: CustomerInvoicesAction): SagaIterator {
+  // CLEAR_CUSTOMER_INVOICES only exists so takeLatest cancels an in-flight load when the customer is closed
+  if (action.type !== SALES_INVOICE_ACTIONS.LOAD_CUSTOMER_INVOICES) return
+  const customerId = action.payload
+  const controller = new AbortController()
+  try {
+    const invoices: CustomerSalesInvoice[] = yield call(salesInvoicesApi.getSalesInvoicesByCustomer, customerId, controller.signal)
+    yield put(loadCustomerSalesInvoicesSuccess({ customerId, invoices }))
+  } catch (error) {
+    const message = getSalesInvoiceErrorMessage(error, CUSTOMER_INVOICES_FALLBACK_MESSAGE)
+    if (message) yield put(loadCustomerSalesInvoicesFailure(message))
+  } finally {
+    const wasCancelled: boolean = yield cancelled()
+    if (wasCancelled) controller.abort()
+  }
+}
+
 export default function* salesInvoicesSaga(): SagaIterator {
   yield all([
     takeLatest(
@@ -168,5 +192,6 @@ export default function* salesInvoicesSaga(): SagaIterator {
       saveSalesInvoiceWorker,
     ),
     takeLeading(SALES_INVOICE_ACTIONS.CANCEL, cancelSalesInvoiceWorker),
+    takeLatest([SALES_INVOICE_ACTIONS.LOAD_CUSTOMER_INVOICES, SALES_INVOICE_ACTIONS.CLEAR_CUSTOMER_INVOICES], loadCustomerInvoicesWorker),
   ])
 }

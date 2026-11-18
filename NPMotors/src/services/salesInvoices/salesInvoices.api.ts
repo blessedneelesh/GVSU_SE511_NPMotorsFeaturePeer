@@ -6,6 +6,7 @@ import { employeesApi } from '../employees/employees.api'
 import { mapEmployeeCollection } from '../employees/employees.mappers'
 import { vehiclesApi } from '../vehicles/vehicles.api'
 import type {
+  CustomerSalesInvoice,
   SalesInvoice,
   SalesInvoiceCancelRequest,
   SalesInvoiceDraftRequest,
@@ -16,6 +17,7 @@ import type {
 } from '../../types/salesInvoices'
 import type { Vehicle } from '../../types/vehicles'
 import {
+  mapCustomerSalesInvoiceCollection,
   mapSalesInvoice,
   mapSalesInvoiceCollection,
   readHasNext,
@@ -64,6 +66,12 @@ async function getSalesInvoiceById(id: string, signal?: AbortSignal): Promise<Sa
 }
 
 // The list is refetched afterwards, so the response body isn't needed
+// Every invoice of one customer, in one response (the endpoint isn't paged)
+async function getSalesInvoicesByCustomer(customerId: string, signal?: AbortSignal): Promise<CustomerSalesInvoice[]> {
+  const { data } = await customerClient.get<unknown>(SALES_INVOICE_ENDPOINTS.getSalesInvoicesByCustomer, { params: { customerId }, signal })
+  return mapCustomerSalesInvoiceCollection(data)
+}
+
 async function addSalesInvoice(values: SalesInvoiceFormValues, signal?: AbortSignal): Promise<void> {
   await customerClient.post(SALES_INVOICE_ENDPOINTS.addSalesInvoice, toSalesInvoiceRequestDto(values), { signal })
 }
@@ -112,6 +120,7 @@ async function getOptions(signal?: AbortSignal): Promise<SalesInvoiceOptions> {
 const getVehicle = (id: string, signal?: AbortSignal): Promise<Vehicle> => vehiclesApi.getVehicleById(id, signal)
 
 export const salesInvoicesApi = {
+  getSalesInvoicesByCustomer,
   getSalesInvoices,
   getSalesInvoiceById,
   getVehicle,

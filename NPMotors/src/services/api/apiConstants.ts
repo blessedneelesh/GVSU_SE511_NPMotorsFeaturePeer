@@ -48,6 +48,8 @@ export const PART_ENDPOINTS = {
 // CancelSalesInvoice takes ?id= and { reason }, and only accepts posted invoices with nothing paid.
 export const SALES_INVOICE_ENDPOINTS = {
   getAllSalesInvoices: 'SalesInvoice/GetAllSalesInvoices',
+  // ?customerId=; every invoice of the customer in { items } with no paging, and an empty list for an unknown customer
+  getSalesInvoicesByCustomer: 'SalesInvoice/GetSalesInvoiceByCustomer',
   getSalesInvoiceById: 'SalesInvoice/GetSalesInvoiceById',
   addSalesInvoice: 'SalesInvoice/AddSalesInvoice',
   createAndPost: 'SalesInvoice/CreateAndPost',

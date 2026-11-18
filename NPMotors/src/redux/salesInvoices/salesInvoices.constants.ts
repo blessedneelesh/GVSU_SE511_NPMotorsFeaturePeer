@@ -27,4 +27,8 @@ export const SALES_INVOICE_ACTIONS = {
   CANCEL_SUCCESS: 'salesInvoices/cancelSuccess',
   CANCEL_FAILURE: 'salesInvoices/cancelFailure',
   RESET_CANCEL: 'salesInvoices/resetCancel',
+  LOAD_CUSTOMER_INVOICES: 'salesInvoices/loadCustomerInvoices',
+  LOAD_CUSTOMER_INVOICES_SUCCESS: 'salesInvoices/loadCustomerInvoicesSuccess',
+  LOAD_CUSTOMER_INVOICES_FAILURE: 'salesInvoices/loadCustomerInvoicesFailure',
+  CLEAR_CUSTOMER_INVOICES: 'salesInvoices/clearCustomerInvoices',
 } as const

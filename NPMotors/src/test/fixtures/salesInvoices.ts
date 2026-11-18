@@ -1,4 +1,5 @@
 import type {
+  CustomerSalesInvoice,
   SalesInvoice,
   SalesInvoiceFormValues,
   SalesInvoiceOptions,
@@ -161,3 +162,10 @@ export const salesInvoiceSaveError: SalesInvoiceSaveError = {
   message: 'Customer does not exist.',
   fieldErrors: { discount: 'The field Discount must be between 0 and 999999999999.99.' },
 }
+
+// GetSalesInvoiceByCustomer rows for John Smith: one partly paid, one paid, one still a draft (no payment status)
+export const customerSalesInvoices: CustomerSalesInvoice[] = [
+  { number: 'INV-006244', invoiceDate: '2026-11-13', vehicle: 'Honda Civic', salesperson: 'Angela Torres', amount: 19890, paid: 2168, balance: 17722, paymentStatus: 'partial' },
+  { number: 'INV-006332', invoiceDate: '2026-11-13', vehicle: 'Honda Civic', salesperson: 'Marcus Webb', amount: 19870, paid: 19870, balance: 0, paymentStatus: 'paid' },
+  { number: 'INV-006400', invoiceDate: '', vehicle: '', salesperson: '', amount: 21000, paid: 0, balance: 21000, paymentStatus: null },
+]

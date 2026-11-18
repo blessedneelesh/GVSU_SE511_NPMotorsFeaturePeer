@@ -1,4 +1,5 @@
 import type {
+  CustomerSalesInvoices,
   SalesInvoice,
   SalesInvoiceCancelRequest,
   SalesInvoiceDraftRequest,
@@ -77,6 +78,16 @@ export const cancelSalesInvoiceFailure = (message: string) => ({ type: SALES_INV
 // Clears the cancel status and error when the cancel dialog is opened or closed
 export const resetSalesInvoiceCancel = () => ({ type: SALES_INVOICE_ACTIONS.RESET_CANCEL })
 
+// One customer's invoices, for the Sales Invoices card on their profile
+export const loadCustomerSalesInvoices = (customerId: string) => ({ type: SALES_INVOICE_ACTIONS.LOAD_CUSTOMER_INVOICES, payload: customerId })
+
+export const loadCustomerSalesInvoicesSuccess = (result: CustomerSalesInvoices) => ({ type: SALES_INVOICE_ACTIONS.LOAD_CUSTOMER_INVOICES_SUCCESS, payload: result })
+
+export const loadCustomerSalesInvoicesFailure = (message: string) => ({ type: SALES_INVOICE_ACTIONS.LOAD_CUSTOMER_INVOICES_FAILURE, payload: message })
+
+// Leaving the customer: cancels an in-flight load and forgets their invoices
+export const clearCustomerSalesInvoices = () => ({ type: SALES_INVOICE_ACTIONS.CLEAR_CUSTOMER_INVOICES })
+
 export type SalesInvoicesAction =
   | ReturnType<typeof loadSalesInvoices>
   | ReturnType<typeof loadSalesInvoicesSuccess>
@@ -106,3 +117,7 @@ export type SalesInvoicesAction =
   | ReturnType<typeof cancelSalesInvoiceSuccess>
   | ReturnType<typeof cancelSalesInvoiceFailure>
   | ReturnType<typeof resetSalesInvoiceCancel>
+  | ReturnType<typeof loadCustomerSalesInvoices>
+  | ReturnType<typeof loadCustomerSalesInvoicesSuccess>
+  | ReturnType<typeof loadCustomerSalesInvoicesFailure>
+  | ReturnType<typeof clearCustomerSalesInvoices>

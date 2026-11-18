@@ -1,5 +1,6 @@
 import type { PaymentMethod } from '../../types/common'
 import type {
+  CustomerSalesInvoice,
   SalesInvoice,
   SalesInvoiceFormValues,
   SalesInvoiceLifecycle,
@@ -10,7 +11,7 @@ import type {
 // Accepted spellings per field: ASP.NET camelCase (invoice_Date), plain camelCase, PascalCase and snake_case
 const DTO_FIELDS = {
   id: ['id', 'Id', 'salesInvoiceId', 'SalesInvoiceId', 'sales_invoice_id'],
-  number: ['number', 'Number', 'invoiceNumber', 'InvoiceNumber', 'invoice_number'],
+  number: ['number', 'Number', 'invoice_Number', 'invoiceNumber', 'InvoiceNumber', 'Invoice_Number', 'invoice_number'],
   invoiceDate: ['invoice_Date', 'invoiceDate', 'InvoiceDate', 'Invoice_Date', 'invoice_date'],
   dueDate: ['due_Date', 'dueDate', 'DueDate', 'Due_Date', 'due_date'],
   customerId: ['customer_Id', 'customerId', 'CustomerId', 'Customer_Id', 'customer_id'],
@@ -33,6 +34,10 @@ const DTO_FIELDS = {
   lifecycle: ['lifecycle', 'Lifecycle'],
   paymentStatus: ['payment_Status', 'paymentStatus', 'PaymentStatus', 'Payment_Status', 'payment_status'],
   cancelReason: ['cancel_Reason', 'cancelReason', 'CancelReason', 'Cancel_Reason', 'cancel_reason'],
+  // GetSalesInvoiceByCustomer's summary rows: the total as amount, and names instead of ids
+  amount: ['amount', 'Amount', 'total', 'Total'],
+  vehicleName: ['vehicle', 'Vehicle', 'vehicle_Name', 'vehicleName', 'VehicleName'],
+  salesperson: ['salesperson', 'Salesperson', 'salesperson_Name', 'salespersonName', 'SalespersonName'],
   arInvoiceId: ['ar_Invoice_Id', 'arInvoiceId', 'ArInvoiceId', 'Ar_Invoice_Id', 'ar_invoice_id'],
 } as const
 
@@ -140,6 +145,28 @@ function unwrapCollection(body: unknown): unknown[] {
 
 export function mapSalesInvoiceCollection(body: unknown): SalesInvoice[] {
   return unwrapCollection(body).filter(isRecord).map(mapSalesInvoice)
+}
+
+// A row of GetSalesInvoiceByCustomer. Payment statuses come in either case ("paid", "Paid").
+export function mapCustomerSalesInvoice(raw: unknown): CustomerSalesInvoice {
+  const dto: SalesInvoiceDto = isRecord(raw) ? raw : {}
+  const amount = readNumber(dto, 'amount')
+  const paid = readNumber(dto, 'paid')
+  return {
+    number: readString(dto, 'number'),
+    invoiceDate: readDate(dto, 'invoiceDate'),
+    vehicle: readString(dto, 'vehicleName') || [readString(dto, 'make'), readString(dto, 'model')].join(' ').trim(),
+    salesperson: readString(dto, 'salesperson'),
+    amount,
+    paid,
+    // Rounded to cents so 0.1 + 0.2 style float noise never shows as a balance
+    balance: Math.max(0, Math.round((amount - paid) * 100) / 100),
+    paymentStatus: normalizePaymentStatus(readField(dto, 'paymentStatus')),
+  }
+}
+
+export function mapCustomerSalesInvoiceCollection(body: unknown): CustomerSalesInvoice[] {
+  return unwrapCollection(body).filter(isRecord).map(mapCustomerSalesInvoice)
 }
 
 // Uses metaData.hasNext when the API sends it; null means "unknown, infer it"

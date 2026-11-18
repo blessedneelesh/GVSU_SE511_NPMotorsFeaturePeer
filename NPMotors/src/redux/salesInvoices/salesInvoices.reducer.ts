@@ -1,6 +1,7 @@
 import type { UnknownAction } from 'redux'
 import type { RequestStatus } from '../../types/common'
 import type {
+  CustomerSalesInvoice,
   SalesInvoice,
   SalesInvoiceFieldErrors,
   SalesInvoiceOptions,
@@ -33,6 +34,11 @@ export interface SalesInvoicesState {
   fieldErrors: SalesInvoiceFieldErrors
   cancelStatus: RequestStatus
   cancelError: string | null
+  // The open customer's invoices, keyed by the customer so another customer's are never shown
+  customerInvoicesCustomerId: string | null
+  customerInvoices: CustomerSalesInvoice[]
+  customerInvoicesStatus: RequestStatus
+  customerInvoicesError: string | null
 }
 
 export const initialSalesInvoicesState: SalesInvoicesState = {
@@ -55,6 +61,10 @@ export const initialSalesInvoicesState: SalesInvoicesState = {
   fieldErrors: {},
   cancelStatus: 'idle',
   cancelError: null,
+  customerInvoicesCustomerId: null,
+  customerInvoices: [],
+  customerInvoicesStatus: 'idle',
+  customerInvoicesError: null,
 }
 
 const salesInvoiceActionTypes: ReadonlySet<string> = new Set(Object.values(SALES_INVOICE_ACTIONS))
@@ -128,6 +138,24 @@ export default function salesInvoicesReducer(
       return { ...state, cancelStatus: 'error', cancelError: action.payload }
     case SALES_INVOICE_ACTIONS.RESET_CANCEL:
       return { ...state, cancelStatus: 'idle', cancelError: null }
+    case SALES_INVOICE_ACTIONS.LOAD_CUSTOMER_INVOICES: {
+      // Reloading the same customer keeps their invoices on screen; another customer starts empty
+      const isSameCustomer = action.payload === state.customerInvoicesCustomerId
+      return {
+        ...state,
+        customerInvoicesCustomerId: action.payload,
+        customerInvoices: isSameCustomer ? state.customerInvoices : [],
+        customerInvoicesStatus: 'loading',
+        customerInvoicesError: null,
+      }
+    }
+    case SALES_INVOICE_ACTIONS.LOAD_CUSTOMER_INVOICES_SUCCESS:
+      if (action.payload.customerId !== state.customerInvoicesCustomerId) return state
+      return { ...state, customerInvoices: action.payload.invoices, customerInvoicesStatus: 'success' }
+    case SALES_INVOICE_ACTIONS.LOAD_CUSTOMER_INVOICES_FAILURE:
+      return { ...state, customerInvoicesStatus: 'error', customerInvoicesError: action.payload }
+    case SALES_INVOICE_ACTIONS.CLEAR_CUSTOMER_INVOICES:
+      return { ...state, customerInvoicesCustomerId: null, customerInvoices: [], customerInvoicesStatus: 'idle', customerInvoicesError: null }
     default: {
       const unhandled: never = action
       void unhandled
