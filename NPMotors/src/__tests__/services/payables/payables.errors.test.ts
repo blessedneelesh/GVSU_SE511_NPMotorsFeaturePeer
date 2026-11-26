@@ -1,0 +1,34 @@
+import { AxiosError, AxiosHeaders, CanceledError } from 'axios'
+import { describe, expect, it } from 'vitest'
+import { getPayableErrorMessage, VENDOR_OPTIONS_FALLBACK_MESSAGE } from '../../../services/payables/payables.errors'
+
+const httpError = (status: number, data?: unknown) =>
+  new AxiosError('Request failed', 'ERR_BAD_REQUEST', undefined, undefined,
+    { status, statusText: '', data, headers: {}, config: { headers: new AxiosHeaders() } })
+
+describe('getPayableErrorMessage', () => {
+  it('reads the bare errors list GetAllApBills sends for a bad Status', () => {
+    expect(getPayableErrorMessage(httpError(400, { errors: ['Status must be unpaid, partial or overdue.'] })))
+      .toBe('Status must be unpaid, partial or overdue.')
+  })
+
+  it('reads ProblemDetails field errors', () => {
+    expect(getPayableErrorMessage(httpError(400, { title: 'One or more validation errors occurred.', errors: { VendorId: ["The value 'abc' is not valid for VendorId."] } })))
+      .toBe("The value 'abc' is not valid for VendorId.")
+  })
+
+  it('returns an empty string for a cancelled request', () => {
+    expect(getPayableErrorMessage(new CanceledError())).toBe('')
+  })
+
+  it('says the API is unreachable when the proxy answers 500 with no body or a 502', () => {
+    expect(getPayableErrorMessage(httpError(500))).toMatch(/unreachable/)
+    expect(getPayableErrorMessage(httpError(502, 'Bad Gateway'))).toMatch(/unreachable/)
+    expect(getPayableErrorMessage(new AxiosError('Network Error', 'ERR_NETWORK'))).toMatch(/localhost:7003/)
+  })
+
+  it('falls back to the given message, ignoring HTML bodies', () => {
+    expect(getPayableErrorMessage(httpError(400, '<html></html>'))).toBe('Payables could not be loaded. Please try again.')
+    expect(getPayableErrorMessage(new Error('boom'), VENDOR_OPTIONS_FALLBACK_MESSAGE)).toBe('Vendors could not be loaded. Please try again.')
+  })
+})

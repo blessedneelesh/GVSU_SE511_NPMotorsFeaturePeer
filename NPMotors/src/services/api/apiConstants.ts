@@ -91,6 +91,12 @@ export const AR_ENDPOINTS = {
   getArById: 'Ar/GetArById',
 } as const
 
+// Accounts payable (Accounts Payable page), on the Customers API origin. GetAllApBills returns open bills only and
+// takes VendorId, Status (unpaid | partial | overdue) and AsOfDate; it has no SearchTerm.
+export const AP_BILL_ENDPOINTS = {
+  getAllApBills: 'APBill/GetAllApBills',
+} as const
+
 export const RECEIPT_ENDPOINTS = {
   // The AR invoice id goes in the path
   recordArPayment: (arInvoiceId: string) => `Receipt/RecordArPayment/${encodeURIComponent(arInvoiceId)}`,

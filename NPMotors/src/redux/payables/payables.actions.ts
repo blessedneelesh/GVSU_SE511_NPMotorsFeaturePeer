@@ -1,0 +1,43 @@
+import type { PayablePage, PayableStatusFilter, PayableVendorFilter, PayableVendorOption } from '../../types/payables'
+import { PAYABLE_ACTIONS } from './payables.constants'
+
+export const loadPayables = () => ({ type: PAYABLE_ACTIONS.LOAD })
+
+export const loadPayablesSuccess = (page: PayablePage) => ({ type: PAYABLE_ACTIONS.LOAD_SUCCESS, payload: page })
+
+export const loadPayablesFailure = (message: string) => ({ type: PAYABLE_ACTIONS.LOAD_FAILURE, payload: message })
+
+export const setPayableStatusFilter = (status: PayableStatusFilter) => ({ type: PAYABLE_ACTIONS.SET_STATUS_FILTER, payload: status })
+
+export const setPayableVendorFilter = (vendorId: PayableVendorFilter) => ({ type: PAYABLE_ACTIONS.SET_VENDOR_FILTER, payload: vendorId })
+
+// YYYY-MM-DD, or '' for today
+export const setPayableAsOfDate = (asOfDate: string) => ({ type: PAYABLE_ACTIONS.SET_AS_OF_DATE, payload: asOfDate })
+
+// Clears the status, vendor and as-of filters but keeps the page size
+export const resetPayableFilters = () => ({ type: PAYABLE_ACTIONS.RESET_FILTERS })
+
+export const setPayablePage = (pageNumber: number) => ({ type: PAYABLE_ACTIONS.SET_PAGE, payload: pageNumber })
+
+export const setPayablePageSize = (pageSize: number) => ({ type: PAYABLE_ACTIONS.SET_PAGE_SIZE, payload: pageSize })
+
+// The vendors offered in the vendor filter
+export const loadPayableVendorOptions = () => ({ type: PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS })
+
+export const loadPayableVendorOptionsSuccess = (options: PayableVendorOption[]) => ({ type: PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS_SUCCESS, payload: options })
+
+export const loadPayableVendorOptionsFailure = (message: string) => ({ type: PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS_FAILURE, payload: message })
+
+export type PayablesAction =
+  | ReturnType<typeof loadPayables>
+  | ReturnType<typeof loadPayablesSuccess>
+  | ReturnType<typeof loadPayablesFailure>
+  | ReturnType<typeof setPayableStatusFilter>
+  | ReturnType<typeof setPayableVendorFilter>
+  | ReturnType<typeof setPayableAsOfDate>
+  | ReturnType<typeof resetPayableFilters>
+  | ReturnType<typeof setPayablePage>
+  | ReturnType<typeof setPayablePageSize>
+  | ReturnType<typeof loadPayableVendorOptions>
+  | ReturnType<typeof loadPayableVendorOptionsSuccess>
+  | ReturnType<typeof loadPayableVendorOptionsFailure>
