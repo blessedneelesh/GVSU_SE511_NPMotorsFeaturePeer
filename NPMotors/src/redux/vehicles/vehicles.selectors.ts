@@ -27,8 +27,16 @@ export const selectVehicleVendorOptionsStatus = createSelector([selectVehicleSta
 
 export const selectVehicleVendorOptionsError = createSelector([selectVehicleState], (vehicles) => vehicles.vendorOptionsError)
 
-export const selectVehicleSaveStatus = createSelector([selectVehicleState], (vehicles) => vehicles.saveStatus)
+export const selectVehicleBankAccountOptions = createSelector([selectVehicleState], (vehicles) => vehicles.bankAccountOptions)
 
-export const selectVehicleSaveError = createSelector([selectVehicleState], (vehicles) => vehicles.saveError)
+export const selectVehicleBankAccountOptionsStatus = createSelector([selectVehicleState], (vehicles) => vehicles.bankAccountOptionsStatus)
 
-export const selectVehicleFieldErrors = createSelector([selectVehicleState], (vehicles) => vehicles.fieldErrors)
+export const selectVehicleBankAccountOptionsError = createSelector([selectVehicleState], (vehicles) => vehicles.bankAccountOptionsError)
+
+export const selectVehiclePurchaseStatus = createSelector([selectVehicleState], (vehicles) => vehicles.purchaseStatus)
+
+export const selectVehiclePurchaseError = createSelector([selectVehicleState], (vehicles) => vehicles.purchaseError)
+
+export const selectVehiclePurchaseFieldErrors = createSelector([selectVehicleState], (vehicles) => vehicles.purchaseFieldErrors)
+
+export const selectVehiclePurchaseResult = createSelector([selectVehicleState], (vehicles) => vehicles.purchaseResult)

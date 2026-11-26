@@ -40,32 +40,71 @@ export interface VehiclePage {
   hasNext: boolean
 }
 
-// Vendors the Add Vehicle form can pick from (vehicle vendors only, as in the design)
+// Vendors the Purchase Vehicle wizard can pick from (vehicle vendors only, as in the design)
 export interface VehicleVendorOption {
   id: string
   name: string
 }
 
-// Form state: what the user types (numbers and the vendor id stay strings until the DTO), before it becomes VehicleCreateDto
-export interface VehicleFormValues {
+// How a purchase is settled. The API's PaidInFull / Partial / Credit; anything left unpaid becomes an AP bill.
+export type VehiclePaymentCondition = 'paidInFull' | 'partial' | 'credit'
+
+// The API's Cash / Check / Card / Transfer
+export type VehiclePaymentMethod = 'cash' | 'check' | 'card' | 'transfer'
+
+// Active bank accounts the Purchase Vehicle payment step can pay from
+export interface VehicleBankAccountOption {
+  id: string
+  name: string
+  bankName: string
+  bookBalance: number
+}
+
+// Purchase Vehicle wizard state. The design splits the acquisition costs into sales tax, transport and other;
+// the API stores their sum as additional_Costs.
+export interface VehiclePurchaseFormValues {
   vendorId: string
-  vin: string
+  purchaseDate: string
   make: string
   model: string
   year: string
   color: string
-  purchaseDate: string
   warehouse: string
+  vin: string
   purchasePrice: string
-  additionalCosts: string
+  salesTax: string
+  transportCost: string
+  otherCosts: string
   sellingPrice: string
+  paymentCondition: VehiclePaymentCondition
+  // Only read for a partial payment; paid in full sends the total cost and credit sends 0
+  amountPaid: string
+  paymentMethod: VehiclePaymentMethod
+  bankAccountId: string
+  reference: string
+  // The AP bill's due date, when part of the cost is left on account
+  dueDate: string
 }
 
-export type VehicleFormField = keyof VehicleFormValues
+export type VehiclePurchaseFormField = keyof VehiclePurchaseFormValues
 
-export type VehicleFieldErrors = Partial<Record<VehicleFormField, string>>
+export type VehiclePurchaseFieldErrors = Partial<Record<VehiclePurchaseFormField, string>>
 
-export interface VehicleSaveError {
+export interface VehiclePurchaseSaveError {
   message: string
-  fieldErrors: VehicleFieldErrors
+  fieldErrors: VehiclePurchaseFieldErrors
+}
+
+// What PurchaseVehicle returns, for the confirmation banner on Vehicle Inventory
+export interface VehiclePurchaseResult {
+  vehicleId: string
+  title: string
+  totalCost: number
+  amountPaid: number
+  balanceDue: number
+  // "paid", "partial" or "unpaid"
+  paymentStatus: string
+  // Set when part of the cost was left on account, or a bank payment was made
+  apBillNumber: string
+  paymentNumber: string
 }

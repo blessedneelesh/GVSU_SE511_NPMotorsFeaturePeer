@@ -1,8 +1,25 @@
 import { VEHICLE_ENDPOINTS } from '../api/apiConstants'
 import { customerClient } from '../api/customerClient'
+import { bankAccountsApi } from '../bankAccounts/bankAccounts.api'
 import { vendorsApi } from '../vendors/vendors.api'
-import type { Vehicle, VehicleFormValues, VehiclePage, VehicleQuery, VehicleVendorOption } from '../../types/vehicles'
-import { mapVehicle, mapVehicleCollection, readHasNext, toVehicleCreateDto, toVehicleVendorOptions } from './vehicles.mappers'
+import type {
+  Vehicle,
+  VehicleBankAccountOption,
+  VehiclePage,
+  VehiclePurchaseFormValues,
+  VehiclePurchaseResult,
+  VehicleQuery,
+  VehicleVendorOption,
+} from '../../types/vehicles'
+import {
+  mapVehicle,
+  mapVehicleCollection,
+  mapVehiclePurchaseResult,
+  readHasNext,
+  toVehicleBankAccountOptions,
+  toVehiclePurchaseDto,
+  toVehicleVendorOptions,
+} from './vehicles.mappers'
 
 interface VehicleQueryParams {
   PageNumber: number
@@ -11,8 +28,8 @@ interface VehicleQueryParams {
   SearchTerm?: string
 }
 
-// Enough for every vehicle vendor in one request; GetAllVendors has no unpaged mode
-const VENDOR_OPTIONS_PAGE_SIZE = 100
+// Enough for every vehicle vendor or bank account in one request; neither list endpoint has an unpaged mode
+const OPTIONS_PAGE_SIZE = 100
 
 async function getVehicles(query: VehicleQuery, signal?: AbortSignal): Promise<VehiclePage> {
   const params: VehicleQueryParams = { PageNumber: query.pageNumber, PageSize: query.pageSize }
@@ -31,15 +48,22 @@ async function getVehicleById(id: string, signal?: AbortSignal): Promise<Vehicle
   return mapVehicle(data)
 }
 
-// The list is refetched afterwards, so the response body isn't needed
-async function addVehicle(values: VehicleFormValues, signal?: AbortSignal): Promise<void> {
-  await customerClient.post(VEHICLE_ENDPOINTS.addVehicle, toVehicleCreateDto(values), { signal })
-}
-
 // The design's Vendor / Seller dropdown lists vehicle vendors only
 async function getVendorOptions(signal?: AbortSignal): Promise<VehicleVendorOption[]> {
-  const page = await vendorsApi.getVendors({ pageNumber: 1, pageSize: VENDOR_OPTIONS_PAGE_SIZE, type: 'vehicles', searchTerm: '' }, signal)
+  const page = await vendorsApi.getVendors({ pageNumber: 1, pageSize: OPTIONS_PAGE_SIZE, type: 'vehicles', searchTerm: '' }, signal)
   return toVehicleVendorOptions(page.items)
 }
 
-export const vehiclesApi = { getVehicles, getVehicleById, addVehicle, getVendorOptions }
+// Adds the vehicle and records the payment and/or AP bill in one call
+async function purchaseVehicle(values: VehiclePurchaseFormValues, signal?: AbortSignal): Promise<VehiclePurchaseResult> {
+  const { data } = await customerClient.post<unknown>(VEHICLE_ENDPOINTS.purchaseVehicle, toVehiclePurchaseDto(values), { signal })
+  return mapVehiclePurchaseResult(data)
+}
+
+// The Purchase Vehicle "Bank Account" list: every active account, in one request
+async function getBankAccountOptions(signal?: AbortSignal): Promise<VehicleBankAccountOption[]> {
+  const page = await bankAccountsApi.getBankAccounts({ pageNumber: 1, pageSize: OPTIONS_PAGE_SIZE, bankId: 'all', searchTerm: '' }, signal)
+  return toVehicleBankAccountOptions(page.items)
+}
+
+export const vehiclesApi = { getVehicles, getVehicleById, getVendorOptions, purchaseVehicle, getBankAccountOptions }

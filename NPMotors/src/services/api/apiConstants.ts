@@ -25,11 +25,13 @@ export const EMPLOYEE_ENDPOINTS = {
   getActiveSalespeople: 'Employee/GetActiveSalespeople',
 } as const
 
-// Also on the Customers API origin, so vehicle requests reuse customerClient
+// Also on the Customers API origin, so vehicle requests reuse customerClient.
+// PurchaseVehicle (VehiclePurchaseCreateDto) adds the vehicle and records how it was paid in one transaction:
+// a bank payment for any amount paid, and an AP bill for any balance left on account.
 export const VEHICLE_ENDPOINTS = {
   getAllVehicles: 'Vehicle/GetAllVehicles',
   getVehicleById: 'Vehicle/GetVehicleById',
-  addVehicle: 'Vehicle/AddVehicle',
+  purchaseVehicle: 'Vehicle/PurchaseVehicle',
 } as const
 
 // Also on the Customers API origin, so part requests reuse customerClient.

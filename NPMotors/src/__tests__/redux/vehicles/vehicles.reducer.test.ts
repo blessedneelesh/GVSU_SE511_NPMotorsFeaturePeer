@@ -4,18 +4,25 @@ import { loadCustomers } from '../../../redux/customers/customers.actions'
 import { loadEmployees } from '../../../redux/employees/employees.actions'
 import vehiclesReducer, { initialVehiclesState, type VehiclesState } from '../../../redux/vehicles/vehicles.reducer'
 import { loadVendors } from '../../../redux/vendors/vendors.actions'
-import { vehicle, vehicleFormValues, vehiclePage, vehicleSaveError, vehicleVendorOptions } from '../../../test/fixtures/vehicles'
+import {
+  vehicle,
+  vehicleBankAccountOptions,
+  vehiclePage,
+  vehiclePurchaseFormValues,
+  vehiclePurchaseResult,
+  vehicleVendorOptions,
+} from '../../../test/fixtures/vehicles'
 
 // Freezes the state and its nested objects, so a reducer that mutates instead of copying throws
 const frozen = (state: VehiclesState): VehiclesState => {
   Object.freeze(state.query)
   Object.freeze(state.items)
   Object.freeze(state.vendorOptions)
-  Object.freeze(state.fieldErrors)
+  Object.freeze(state.purchaseFieldErrors)
   return Object.freeze(state)
 }
 
-const initial = () => frozen({ ...initialVehiclesState, query: { ...initialVehiclesState.query }, items: [], vendorOptions: [], fieldErrors: {} })
+const initial = () => frozen({ ...initialVehiclesState, query: { ...initialVehiclesState.query }, items: [], vendorOptions: [], purchaseFieldErrors: {} })
 
 describe('vehiclesReducer', () => {
   it('returns the initial state for an undefined state', () => {
@@ -191,40 +198,58 @@ describe('vehiclesReducer', () => {
     })
   })
 
-  describe('save', () => {
-    it('CREATE starts saving and clears previous errors', () => {
-      const state = frozen({ ...initialVehiclesState, saveStatus: 'error', saveError: 'old', fieldErrors: { vin: 'required' } })
-      expect(vehiclesReducer(state, actions.createVehicle(vehicleFormValues))).toEqual({
+  describe('bank account options', () => {
+    it('LOAD_BANK_ACCOUNT_OPTIONS sets loading and clears the error', () => {
+      const state = frozen({ ...initialVehiclesState, bankAccountOptionsStatus: 'error', bankAccountOptionsError: 'old' })
+      expect(vehiclesReducer(state, actions.loadVehicleBankAccountOptions()))
+        .toEqual({ ...initialVehiclesState, bankAccountOptionsStatus: 'loading', bankAccountOptionsError: null })
+    })
+
+    it('LOAD_BANK_ACCOUNT_OPTIONS_SUCCESS stores the accounts', () => {
+      expect(vehiclesReducer(initial(), actions.loadVehicleBankAccountOptionsSuccess(vehicleBankAccountOptions)))
+        .toEqual({ ...initialVehiclesState, bankAccountOptions: vehicleBankAccountOptions, bankAccountOptionsStatus: 'success' })
+    })
+
+    it('LOAD_BANK_ACCOUNT_OPTIONS_FAILURE keeps the previous accounts', () => {
+      const state = frozen({ ...initialVehiclesState, bankAccountOptions: vehicleBankAccountOptions })
+      expect(vehiclesReducer(state, actions.loadVehicleBankAccountOptionsFailure('Down'))).toEqual({
         ...initialVehiclesState,
-        saveStatus: 'loading',
-        saveError: null,
-        fieldErrors: {},
+        bankAccountOptions: vehicleBankAccountOptions,
+        bankAccountOptionsStatus: 'error',
+        bankAccountOptionsError: 'Down',
       })
     })
+  })
 
-    it('CREATE_SUCCESS marks the save as successful', () => {
-      const state = frozen({ ...initialVehiclesState, saveStatus: 'loading' })
-      expect(vehiclesReducer(state, actions.createVehicleSuccess())).toEqual({ ...initialVehiclesState, saveStatus: 'success' })
-    })
-
-    it('CREATE_FAILURE stores the message and field errors', () => {
-      expect(vehiclesReducer(initial(), actions.createVehicleFailure(vehicleSaveError))).toEqual({
+  describe('purchase', () => {
+    it('PURCHASE sets loading and clears the previous error and result', () => {
+      const state = frozen({
         ...initialVehiclesState,
-        saveStatus: 'error',
-        saveError: vehicleSaveError.message,
-        fieldErrors: vehicleSaveError.fieldErrors,
+        purchaseStatus: 'error',
+        purchaseError: 'x',
+        purchaseFieldErrors: { vin: 'bad' },
+        purchaseResult: vehiclePurchaseResult,
       })
+      expect(vehiclesReducer(state, actions.purchaseVehicle(vehiclePurchaseFormValues))).toEqual({ ...initialVehiclesState, purchaseStatus: 'loading' })
     })
 
-    it('CREATE_FAILURE stores null when the message is empty', () => {
-      const result = vehiclesReducer(initial(), actions.createVehicleFailure({ message: '', fieldErrors: { purchasePrice: 'Too low' } }))
-      expect(result.saveError).toBeNull()
-      expect(result.fieldErrors).toEqual({ purchasePrice: 'Too low' })
+    it('PURCHASE_SUCCESS stores the result', () => {
+      expect(vehiclesReducer(initial(), actions.purchaseVehicleSuccess(vehiclePurchaseResult)))
+        .toEqual({ ...initialVehiclesState, purchaseStatus: 'success', purchaseResult: vehiclePurchaseResult })
     })
 
-    it('RESET_SAVE returns the save fields to idle', () => {
-      const state = frozen({ ...initialVehiclesState, saveStatus: 'error', saveError: 'x', fieldErrors: { vin: 'bad' } })
-      expect(vehiclesReducer(state, actions.resetVehicleSave())).toEqual(initialVehiclesState)
+    it('PURCHASE_FAILURE stores the message and field errors, with null for an empty message', () => {
+      const withMessage = vehiclesReducer(initial(), actions.purchaseVehicleFailure({ message: 'Duplicate VIN', fieldErrors: {} }))
+      expect(withMessage).toEqual({ ...initialVehiclesState, purchaseStatus: 'error', purchaseError: 'Duplicate VIN' })
+
+      const fieldsOnly = vehiclesReducer(initial(), actions.purchaseVehicleFailure({ message: '', fieldErrors: { vin: 'Too short' } }))
+      expect(fieldsOnly.purchaseError).toBeNull()
+      expect(fieldsOnly.purchaseFieldErrors).toEqual({ vin: 'Too short' })
+    })
+
+    it('RESET_PURCHASE returns the purchase fields to idle', () => {
+      const state = frozen({ ...initialVehiclesState, purchaseStatus: 'success', purchaseResult: vehiclePurchaseResult })
+      expect(vehiclesReducer(state, actions.resetVehiclePurchase())).toEqual(initialVehiclesState)
     })
   })
 })

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as actions from '../../../redux/vehicles/vehicles.actions'
 import { VEHICLE_ACTIONS } from '../../../redux/vehicles/vehicles.constants'
-import { vehicle, vehicleFormValues, vehiclePage, vehicleSaveError, vehicleVendorOptions } from '../../../test/fixtures/vehicles'
+import { vehicle, vehiclePage, vehicleVendorOptions } from '../../../test/fixtures/vehicles'
 
 describe('vehicles actions', () => {
   describe('creators without a payload', () => {
@@ -9,8 +9,6 @@ describe('vehicles actions', () => {
       ['loadVehicles', actions.loadVehicles, VEHICLE_ACTIONS.LOAD],
       ['clearVehicleSelection', actions.clearVehicleSelection, VEHICLE_ACTIONS.CLEAR_SELECTION],
       ['loadVehicleVendorOptions', actions.loadVehicleVendorOptions, VEHICLE_ACTIONS.LOAD_VENDOR_OPTIONS],
-      ['createVehicleSuccess', actions.createVehicleSuccess, VEHICLE_ACTIONS.CREATE_SUCCESS],
-      ['resetVehicleSave', actions.resetVehicleSave, VEHICLE_ACTIONS.RESET_SAVE],
     ] as const)('%s creates { type } with no payload key', (_, creator, type) => {
       const action = creator()
       expect(action).toEqual({ type })
@@ -64,11 +62,5 @@ describe('vehicles actions', () => {
       .toEqual({ type: VEHICLE_ACTIONS.LOAD_VENDOR_OPTIONS_FAILURE, payload: 'No vendors' })
   })
 
-  it('createVehicle carries the form values', () => {
-    expect(actions.createVehicle(vehicleFormValues)).toEqual({ type: VEHICLE_ACTIONS.CREATE, payload: vehicleFormValues })
-  })
 
-  it('createVehicleFailure carries the save error', () => {
-    expect(actions.createVehicleFailure(vehicleSaveError)).toEqual({ type: VEHICLE_ACTIONS.CREATE_FAILURE, payload: vehicleSaveError })
-  })
 })
