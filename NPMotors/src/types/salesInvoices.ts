@@ -41,6 +41,29 @@ export interface SalesInvoice {
   lifecycle: SalesInvoiceLifecycle
   paymentStatus: SalesInvoicePaymentStatus | null
   cancelReason: string
+  // The invoice's Accounts Receivable record, which payments are posted against; '' for drafts and cancelled invoices
+  arInvoiceId: string
+}
+
+// One row of GET SalesInvoice/GetSalesInvoiceByCustomer: a summary for the customer's profile. The endpoint sends
+// no ids, so rows can't open the invoice.
+export interface CustomerSalesInvoice {
+  number: string
+  // YYYY-MM-DD, or '' when the API has none
+  invoiceDate: string
+  vehicle: string
+  salesperson: string
+  amount: number
+  paid: number
+  // amount − paid; the API doesn't send it
+  balance: number
+  paymentStatus: SalesInvoicePaymentStatus | null
+}
+
+// A customer's invoices, with the customer they belong to so another customer's are never shown
+export interface CustomerSalesInvoices {
+  customerId: string
+  invoices: CustomerSalesInvoice[]
 }
 
 export interface SalesInvoiceQuery {

@@ -1,0 +1,166 @@
+import type { PaymentMethod } from './common'
+
+// The bill's status as the list shows it. GetAllApBills sends "Overdue" once past due, otherwise the bill's own
+// status (in mixed case: "unpaid", "Unpaid", "partial", "Paid"). Settled bills only come back under Status=paid.
+export type PayableStatus = 'Overdue' | 'Partial' | 'Unpaid' | 'Paid'
+
+// The API's aging buckets, by days past due as of the query's date
+export type PayableAgingBucket = 'Current' | '1-30' | '31-60' | '61-90' | 'Over 90'
+
+// One AP bill from GetAllApBills (open bills, or settled ones under the paid filter)
+export interface Payable {
+  id: string
+  // The bill number (AP-…, or the legacy BILL- numbers)
+  number: string
+  vendorId: string
+  vendorName: string
+  // YYYY-MM-DD
+  date: string
+  // YYYY-MM-DD
+  dueDate: string
+  amount: number
+  paid: number
+  balance: number
+  // Days past due as of the query's date; 0 means not yet due
+  daysOverdue: number
+  agingBucket: PayableAgingBucket
+  status: PayableStatus
+}
+
+// One AP bill from GetApById: the list row's money fields plus the vendor's contact details and the purchased vehicle.
+// It has no aging bucket and no payments.
+export interface PayableDetail {
+  id: string
+  number: string
+  vendorId: string
+  vendorName: string
+  // The vehicle the bill was raised for, or '' (parts and service bills have none)
+  vehicleId: string
+  // YYYY-MM-DD
+  date: string
+  // YYYY-MM-DD
+  dueDate: string
+  amount: number
+  paid: number
+  balance: number
+  daysOverdue: number
+  // Overdue once past due, as in the list; GetApById itself sends the stored status
+  status: PayableStatus
+  contact: string
+  phone: string
+  email: string
+  address: string
+}
+
+// The API's Status values: 'all' = every open bill; overdue = past due; unpaid/partial = that status and not yet due;
+// paid = fully settled (balance 0), which every other value leaves out
+export type PayableStatusFilter = 'all' | 'overdue' | 'unpaid' | 'partial' | 'paid'
+
+// A vendor id, or 'all' for every vendor
+export type PayableVendorFilter = string
+
+export interface PayableQuery {
+  pageNumber: number
+  pageSize: number
+  status: PayableStatusFilter
+  vendorId: PayableVendorFilter
+  // YYYY-MM-DD, or '' for today (the API's default)
+  asOfDate: string
+}
+
+export interface PayablePage {
+  items: Payable[]
+  hasNext: boolean
+}
+
+// The vendor filter's options, from GetAllVendors
+export interface PayableVendorOption {
+  id: string
+  name: string
+}
+
+// One vendor payment from GetPaymentHistory
+export interface PayablePayment {
+  id: string
+  // PAY-…
+  paymentNumber: string
+  // YYYY-MM-DD
+  paymentDate: string
+  // null when the API sends a method this app doesn't know
+  paymentMethod: PaymentMethod | null
+  reference: string
+  amount: number
+}
+
+// GetPaymentHistory's payments, tagged with the bill they belong to so a late answer for another bill can be ignored
+export interface PayablePaymentHistory {
+  apBillId: string
+  payments: PayablePayment[]
+}
+
+// The bill a vendor payment is made against: what the Make Payment dialog shows and checks the amount against
+export interface VendorPaymentTarget {
+  id: string
+  number: string
+  vendorName: string
+  amount: number
+  paid: number
+  balance: number
+}
+
+// Form state: what the user types (ids and amount stay strings until the DTO), before it becomes VendorPaymentCreateDto
+export interface VendorPaymentFormValues {
+  // YYYY-MM-DD
+  paymentDate: string
+  amount: string
+  paymentMethod: PaymentMethod
+  bankAccountId: string
+  reference: string
+}
+
+export type VendorPaymentFormField = keyof VendorPaymentFormValues
+
+// Bank Payments "Paid To": a vendor (paid against one of their AP bills) or any other party (a miscellaneous payment)
+export type PaymentPayeeType = 'vendor' | 'other'
+
+// The Bank Payments form: the shared payment fields plus who was paid. Vendor payments use vendorId + apBillId;
+// other-party payments use payee, paymentCategory and description.
+export interface BankPaymentFormValues extends VendorPaymentFormValues {
+  payeeType: PaymentPayeeType
+  vendorId: string
+  apBillId: string
+  payee: string
+  // The design's "Payment Purpose / Debit Account"; sent as payment_Category
+  paymentCategory: string
+  description: string
+}
+
+export type BankPaymentFormField = keyof BankPaymentFormValues
+
+// Keyed by every field either form can show; the Make Payment dialog only uses the VendorPaymentFormValues ones
+export type VendorPaymentFieldErrors = Partial<Record<BankPaymentFormField, string>>
+
+export interface VendorPaymentSaveError {
+  message: string
+  fieldErrors: VendorPaymentFieldErrors
+}
+
+// POST APBill/RecordVendorPayment/{apBillId}
+export interface VendorPaymentRequest {
+  apBillId: string
+  values: VendorPaymentFormValues
+}
+
+// POST BankPayment/RecordMiscellaneousPayment: money paid to someone other than against a vendor bill
+export interface MiscellaneousPaymentRequest {
+  payee: string
+  paymentCategory: string
+  description: string
+  values: VendorPaymentFormValues
+}
+
+// A vendor's open AP bills (GetAllApBills?VendorId=), the Bank Payments "Against AP Bill" choices
+export interface PaymentVendorBills {
+  vendorId: string
+  bills: Payable[]
+}

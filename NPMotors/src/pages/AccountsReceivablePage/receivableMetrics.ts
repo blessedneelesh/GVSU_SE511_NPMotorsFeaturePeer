@@ -1,6 +1,6 @@
 import type { PaymentMethod } from '../../types/common'
 import type { ReceiptPayment } from '../../types/receipts'
-import type { Receivable, ReceivableAgingStatus } from '../../types/receivables'
+import type { ReceivableAgingStatus } from '../../types/receivables'
 
 // The design shows whole dollars in the list, like Customers
 export { formatCurrency } from '../CustomersPage/customerMetrics'
@@ -46,8 +46,8 @@ export interface ReceivableTotals {
   balance: number
 }
 
-// Totals of the rows on the current page only; the API has no aggregate endpoint
-export const sumPage = (rows: Receivable[]): ReceivableTotals =>
+// Totals of the rows on the current page only; the API has no aggregate endpoint. Accounts Payable shares it.
+export const sumPage = (rows: readonly ReceivableTotals[]): ReceivableTotals =>
   rows.reduce(
     (totals, row) => ({ amount: totals.amount + row.amount, paid: totals.paid + row.paid, balance: totals.balance + row.balance }),
     { amount: 0, paid: 0, balance: 0 },

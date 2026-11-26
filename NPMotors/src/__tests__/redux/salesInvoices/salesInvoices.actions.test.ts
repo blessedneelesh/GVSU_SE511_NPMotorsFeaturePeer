@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as actions from '../../../redux/salesInvoices/salesInvoices.actions'
 import { SALES_INVOICE_ACTIONS } from '../../../redux/salesInvoices/salesInvoices.constants'
-import {
+import { customerSalesInvoices,
   postedInvoice,
   salesInvoiceFormValues,
   salesInvoiceOptions,
@@ -113,5 +113,13 @@ describe('salesInvoices actions', () => {
   it('cancelSalesInvoiceFailure carries the message', () => {
     expect(actions.cancelSalesInvoiceFailure('This sales invoice no longer exists.'))
       .toEqual({ type: SALES_INVOICE_ACTIONS.CANCEL_FAILURE, payload: 'This sales invoice no longer exists.' })
+  })
+
+  it('the customer invoice actions carry the customer, their invoices or the message', () => {
+    const result = { customerId: '3', invoices: customerSalesInvoices }
+    expect(actions.loadCustomerSalesInvoices('3')).toEqual({ type: SALES_INVOICE_ACTIONS.LOAD_CUSTOMER_INVOICES, payload: '3' })
+    expect(actions.loadCustomerSalesInvoicesSuccess(result)).toEqual({ type: SALES_INVOICE_ACTIONS.LOAD_CUSTOMER_INVOICES_SUCCESS, payload: result })
+    expect(actions.loadCustomerSalesInvoicesFailure('nope')).toEqual({ type: SALES_INVOICE_ACTIONS.LOAD_CUSTOMER_INVOICES_FAILURE, payload: 'nope' })
+    expect(actions.clearCustomerSalesInvoices()).toEqual({ type: SALES_INVOICE_ACTIONS.CLEAR_CUSTOMER_INVOICES })
   })
 })

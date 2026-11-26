@@ -1,15 +1,16 @@
 import { useCallback } from 'react'
 import { useAppDispatch, useAppSelector } from '../redux/hooks'
-import { recordArPayment, resetReceiptSave } from '../redux/receipts/receipts.actions'
+import { recordArPayment, recordMiscReceipt, resetReceiptSave } from '../redux/receipts/receipts.actions'
 import { selectReceiptFieldErrors, selectReceiptSaveError, selectReceiptSaveStatus } from '../redux/receipts/receipts.selectors'
 import type { RequestStatus } from '../types/common'
-import type { ReceiptFieldErrors, ReceiptFormValues } from '../types/receipts'
+import type { MiscReceiptRequest, ReceiptFieldErrors, ReceiptFormValues } from '../types/receipts'
 
 export interface UseReceiptMutationsResult {
   saveStatus: RequestStatus
   saveError: string | null
   fieldErrors: ReceiptFieldErrors
   recordPayment: (arInvoiceId: string, values: ReceiptFormValues) => void
+  recordMisc: (request: MiscReceiptRequest) => void
   resetSave: () => void
 }
 
@@ -20,7 +21,8 @@ export function useReceiptMutations(): UseReceiptMutationsResult {
   const fieldErrors = useAppSelector(selectReceiptFieldErrors)
 
   const recordPayment = useCallback((arInvoiceId: string, values: ReceiptFormValues) => { dispatch(recordArPayment({ arInvoiceId, values })) }, [dispatch])
+  const recordMisc = useCallback((request: MiscReceiptRequest) => { dispatch(recordMiscReceipt(request)) }, [dispatch])
   const resetSave = useCallback(() => { dispatch(resetReceiptSave()) }, [dispatch])
 
-  return { saveStatus, saveError, fieldErrors, recordPayment, resetSave }
+  return { saveStatus, saveError, fieldErrors, recordPayment, recordMisc, resetSave }
 }

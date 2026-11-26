@@ -1,4 +1,11 @@
-import type { Vehicle, VehicleFormValues, VehiclePage, VehicleSaveError, VehicleVendorOption } from '../../types/vehicles'
+import type {
+  Vehicle,
+  VehicleBankAccountOption,
+  VehiclePage,
+  VehiclePurchaseFormValues,
+  VehiclePurchaseResult,
+  VehicleVendorOption,
+} from '../../types/vehicles'
 
 // Shaped like a real GetAllVehicles sold row; every money figure differs so each stat is distinct
 export const vehicle: Vehicle = {
@@ -79,22 +86,41 @@ export const vehicleVendorOptions: VehicleVendorOption[] = [
   { id: '5', name: 'CarMax Wholesale' },
 ]
 
-// What a filled-in Add Vehicle form produces (the dialog defaults purchaseDate to today, so tests override it)
-export const vehicleFormValues: VehicleFormValues = {
+export const vehicleBankAccountOptions: VehicleBankAccountOption[] = [
+  { id: '3', name: 'Operating', bankName: 'Chase', bookBalance: 120000 },
+  { id: '7', name: 'Payroll', bankName: '', bookBalance: 5000.5 },
+]
+
+// A filled-in Purchase Vehicle wizard: $30,000 + $1,200.10 of costs = $31,200.10, paid in full from account 3
+export const vehiclePurchaseFormValues: VehiclePurchaseFormValues = {
   vendorId: '1',
-  vin: '1FTFW1E50PFA00001',
+  purchaseDate: '2026-11-02',
   make: 'Ford',
   model: 'F-150',
   year: '2024',
   color: 'Blue',
-  purchaseDate: '2026-11-02',
-  warehouse: 'Lot B',
+  warehouse: 'WH-B',
+  vin: '1ftfw1e50pfa00001',
   purchasePrice: '30000',
-  additionalCosts: '500',
+  salesTax: '900.10',
+  transportCost: '250',
+  otherCosts: '50',
   sellingPrice: '36000',
+  paymentCondition: 'paidInFull',
+  amountPaid: '',
+  paymentMethod: 'transfer',
+  bankAccountId: '3',
+  reference: 'TRF-1001',
+  dueDate: '',
 }
 
-export const vehicleSaveError: VehicleSaveError = {
-  message: 'Something went wrong while saving.',
-  fieldErrors: { vin: 'The Vin field is required.' },
+export const vehiclePurchaseResult: VehiclePurchaseResult = {
+  vehicleId: '31',
+  title: '2024 Ford F-150',
+  totalCost: 31200.1,
+  amountPaid: 10000,
+  balanceDue: 21200.1,
+  paymentStatus: 'partial',
+  apBillNumber: 'AP-0042',
+  paymentNumber: 'BP-0012',
 }

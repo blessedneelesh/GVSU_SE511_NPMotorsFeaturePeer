@@ -18,6 +18,7 @@ import { initialStatementLinesState, type StatementLinesState } from '../redux/s
 import { initialTransfersState, type TransfersState } from '../redux/transfers/transfers.reducer'
 import { initialReceivablesState, type ReceivablesState } from '../redux/receivables/receivables.reducer'
 import { initialReceiptsState, type ReceiptsState } from '../redux/receipts/receipts.reducer'
+import { initialPayablesState, type PayablesState } from '../redux/payables/payables.reducer'
 
 // Builds a full RootState from each slice's initial state; tests override only what the scenario needs
 export const makeState = (
@@ -33,6 +34,7 @@ export const makeState = (
   transferOverrides: Partial<TransfersState> = {},
   receivableOverrides: Partial<ReceivablesState> = {},
   receiptOverrides: Partial<ReceiptsState> = {},
+  payableOverrides: Partial<PayablesState> = {},
 ): RootState => ({
   customers: { ...initialCustomersState, ...overrides },
   vendors: { ...initialVendorsState, ...vendorOverrides },
@@ -46,6 +48,7 @@ export const makeState = (
   transfers: { ...initialTransfersState, ...transferOverrides },
   receivables: { ...initialReceivablesState, ...receivableOverrides },
   receipts: { ...initialReceiptsState, ...receiptOverrides },
+  payables: { ...initialPayablesState, ...payableOverrides },
 })
 
 // Shorthand for vendor tests: default customers slice, overridden vendors slice
@@ -87,6 +90,14 @@ export const makeReceivableState = (overrides: Partial<ReceivablesState> = {}): 
 // Shorthand for receive-payment tests: an overridden receivables slice (the invoice being paid) and receipts slice
 export const makeReceiptState = (overrides: Partial<ReceiptsState> = {}, receivableOverrides: Partial<ReceivablesState> = {}): RootState =>
   makeState({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, receivableOverrides, overrides)
+
+// Shorthand for accounts payable tests: every other slice at its default, overridden payables slice
+export const makePayableState = (overrides: Partial<PayablesState> = {}): RootState =>
+  makeState({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, overrides)
+
+// Shorthand for make-payment tests: an overridden payables slice and receipts slice (the Pay From accounts live there)
+export const makeVendorPaymentState = (overrides: Partial<PayablesState> = {}, receiptOverrides: Partial<ReceiptsState> = {}): RootState =>
+  makeState({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, receiptOverrides, overrides)
 
 interface RenderOptions {
   preloadedState?: RootState

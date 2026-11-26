@@ -1,12 +1,13 @@
 import axios from 'axios'
-import type { VehicleFieldErrors, VehicleFormField, VehicleSaveError } from '../../types/vehicles'
+import type { VehiclePurchaseFormField, VehiclePurchaseSaveError } from '../../types/vehicles'
 
 const UNREACHABLE_MESSAGE = 'Vehicle service is unreachable. Is the API running on https://localhost:7003?'
 const FALLBACK_MESSAGE = 'Vehicles could not be loaded. Please try again.'
 const DETAIL_FALLBACK_MESSAGE = 'This vehicle could not be loaded. Please try again.'
 const NOT_FOUND_MESSAGE = 'This vehicle no longer exists.'
-const SAVE_FALLBACK_MESSAGE = 'The vehicle could not be saved. Please try again.'
+const PURCHASE_FALLBACK_MESSAGE = 'The purchase could not be posted. Please try again.'
 export const VENDOR_OPTIONS_FALLBACK_MESSAGE = 'Vendors could not be loaded. Please try again.'
+export const BANK_ACCOUNT_OPTIONS_FALLBACK_MESSAGE = 'Bank accounts could not be loaded. Please try again.'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -51,27 +52,40 @@ export function getVehicleDetailErrorMessage(error: unknown): string {
   return getVehicleErrorMessage(error, DETAIL_FALLBACK_MESSAGE)
 }
 
-const FORM_FIELDS: readonly VehicleFormField[] = [
-  'vendorId', 'vin', 'make', 'model', 'year', 'color', 'purchaseDate', 'warehouse', 'purchasePrice', 'additionalCosts', 'sellingPrice',
+const PURCHASE_FORM_FIELDS: readonly VehiclePurchaseFormField[] = [
+  'vendorId', 'purchaseDate', 'make', 'model', 'year', 'color', 'warehouse', 'vin', 'purchasePrice', 'salesTax', 'transportCost',
+  'otherCosts', 'sellingPrice', 'paymentCondition', 'amountPaid', 'paymentMethod', 'bankAccountId', 'reference', 'dueDate',
 ]
+
+// The purchase form splits Additional_Costs into three inputs; its errors show on the last of them
+const PURCHASE_FIELD_ALIASES: Readonly<Record<string, VehiclePurchaseFormField>> = { additionalcosts: 'otherCosts' }
 
 // ProblemDetails keys look like "Vin", "Purchase_Price" or "$.purchase_Price"; match them ignoring case and underscores
 const normalizeKey = (key: string) => key.replace(/^\$\./, '').replace(/_/g, '').toLowerCase()
 
-function readFieldErrors(body: unknown): VehicleFieldErrors {
-  const fieldErrors: VehicleFieldErrors = {}
+function readFieldErrors<Field extends string>(
+  body: unknown,
+  fields: readonly Field[],
+  aliases: Readonly<Record<string, Field>> = {},
+): Partial<Record<Field, string>> {
+  const fieldErrors: Partial<Record<Field, string>> = {}
   if (!isRecord(body) || !isRecord(body.errors)) return fieldErrors
   for (const [key, value] of Object.entries(body.errors)) {
-    const field = FORM_FIELDS.find((name) => name.toLowerCase() === normalizeKey(key))
+    const normalized = normalizeKey(key)
+    const field = fields.find((name) => name.toLowerCase() === normalized) ?? aliases[normalized]
     const message = (Array.isArray(value) ? value : [value]).find(isNonEmptyString)
     if (field && message) fieldErrors[field] = message
   }
   return fieldErrors
 }
 
-// Validation errors go next to their fields; only errors no field can show become the banner message
-export function getVehicleSaveError(error: unknown): VehicleSaveError {
-  const fieldErrors = axios.isAxiosError(error) && error.response?.status === 400 ? readFieldErrors(error.response.data) : {}
-  const message = Object.keys(fieldErrors).length ? '' : getVehicleErrorMessage(error, SAVE_FALLBACK_MESSAGE)
+// Validation errors go next to their fields; only errors no field can show become the banner message.
+// PurchaseVehicle's business rules (duplicate VIN, inactive vendor, amount vs payment condition)
+// come back as a 400 { message } with no field, so they become the banner message.
+export function getVehiclePurchaseError(error: unknown): VehiclePurchaseSaveError {
+  const fieldErrors = axios.isAxiosError(error) && error.response?.status === 400
+    ? readFieldErrors(error.response.data, PURCHASE_FORM_FIELDS, PURCHASE_FIELD_ALIASES)
+    : {}
+  const message = Object.keys(fieldErrors).length ? '' : getVehicleErrorMessage(error, PURCHASE_FALLBACK_MESSAGE)
   return { message, fieldErrors }
 }

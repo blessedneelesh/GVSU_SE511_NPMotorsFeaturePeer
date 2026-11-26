@@ -6,8 +6,6 @@ import { receiptBankAccountOptions, receiptFormValues, receiptPayments } from '.
 const request = { arInvoiceId: '2471', values: receiptFormValues }
 const saveError = { message: '', fieldErrors: { amount: 'Too much' } }
 const history = { arInvoiceId: '2471', payments: receiptPayments }
-const lookup = { salesInvoiceId: '3', customerId: 'C001', invoiceNumber: 'INV-2026-0003' }
-const salesInvoicePayments = { salesInvoiceId: '3', payments: receiptPayments }
 
 describe('receipts actions', () => {
   it.each([
@@ -24,16 +22,6 @@ describe('receipts actions', () => {
     ['loadPaymentHistorySuccess', actions.loadPaymentHistorySuccess(history), { type: RECEIPT_ACTIONS.LOAD_PAYMENT_HISTORY_SUCCESS, payload: history }],
     ['loadPaymentHistoryFailure', actions.loadPaymentHistoryFailure('nope'), { type: RECEIPT_ACTIONS.LOAD_PAYMENT_HISTORY_FAILURE, payload: 'nope' }],
     ['clearPaymentHistory', actions.clearPaymentHistory(), { type: RECEIPT_ACTIONS.CLEAR_PAYMENT_HISTORY }],
-    ['loadSalesInvoicePayments', actions.loadSalesInvoicePayments(lookup), { type: RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS, payload: lookup }],
-    ['loadSalesInvoicePaymentsSuccess', actions.loadSalesInvoicePaymentsSuccess(salesInvoicePayments),
-      { type: RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS_SUCCESS, payload: salesInvoicePayments }],
-    ['loadSalesInvoicePaymentsFailure', actions.loadSalesInvoicePaymentsFailure('nope'), { type: RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS_FAILURE, payload: 'nope' }],
-    ['clearSalesInvoicePayments', actions.clearSalesInvoicePayments(), { type: RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_PAYMENTS }],
-    ['findSalesInvoiceAr', actions.findSalesInvoiceAr(lookup), { type: RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR, payload: lookup }],
-    ['findSalesInvoiceArSuccess', actions.findSalesInvoiceArSuccess({ salesInvoiceId: '3', arInvoiceId: '2471' }),
-      { type: RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR_SUCCESS, payload: { salesInvoiceId: '3', arInvoiceId: '2471' } }],
-    ['findSalesInvoiceArFailure', actions.findSalesInvoiceArFailure('nope'), { type: RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR_FAILURE, payload: 'nope' }],
-    ['clearSalesInvoiceAr', actions.clearSalesInvoiceAr(), { type: RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_AR }],
   ])('%s', (_, action, expected) => {
     expect(action).toEqual(expected)
   })

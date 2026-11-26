@@ -1,0 +1,65 @@
+/* Bank Receipt screen — matches the Figma Make "Car Dealership Management System" BankReceiptForm design */
+.bank-receipts-page {
+  --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-300: #cbd5e1; --slate-400: #94a3b8;
+  --slate-500: #64748b; --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b; --slate-900: #0f172a;
+  --blue-600: #2563eb;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  max-width: 960px;
+  padding: 20px;
+  color: var(--slate-900);
+  font-size: 14px;
+}
+
+/* Shared primitives */
+.bank-receipts-page .card { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; }
+
+/* Text helpers */
+.bank-receipts-page .mono { font-family: var(--mono); }
+.bank-receipts-page .strong { font-weight: 600; }
+
+/* Header */
+.bank-receipts-header { margin-bottom: 16px; }
+.bank-receipts-header h1 { margin: 0; font-size: 20px; font-weight: 600; color: var(--slate-900); }
+.bank-receipts-header p { margin: 0; font-size: 14px; color: var(--slate-500); }
+
+/* Form + side column */
+.bank-receipts-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+
+.bank-receipt-form { padding: 20px; }
+.bank-receipt-form__message { margin-bottom: 16px; }
+.bank-receipt-form__fields { display: flex; flex-direction: column; gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.bank-receipt-form__row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.bank-receipt-form__party { display: flex; flex-direction: column; gap: 12px; }
+.bank-receipts-page .bank-receipt-form .fui-Dropdown { min-width: 0; }
+.bank-receipts-page .bank-receipt-form .mono input { font-family: var(--mono); }
+.bank-receipts-page .bank-receipt-form__amount input { font-size: 18px; }
+
+.bank-receipts-side { display: flex; flex-direction: column; gap: 12px; }
+
+.bank-receipt-summary { padding: 16px; }
+.bank-receipt-summary h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: var(--slate-700); }
+.bank-receipt-summary__amount { font-family: var(--mono); font-size: 24px; font-weight: 700; color: var(--blue-600); }
+.bank-receipt-summary__method,
+.bank-receipt-summary__note { margin-top: 4px; font-size: 12px; color: var(--slate-500); }
+
+.bank-receipt-actions { display: flex; flex-direction: column; gap: 8px; padding: 16px; }
+.bank-receipts-page .bank-receipt-actions__submit { width: 100%; }
+
+/* Success card */
+.bank-receipt-posted { max-width: 512px; padding: 24px; text-align: center; }
+.bank-receipt-posted__check { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; margin: 0 auto 12px; border-radius: 50%; background: #d1fae5; color: #059669; }
+.bank-receipt-posted h2 { margin: 0 0 4px; font-size: 16px; font-weight: 600; color: var(--slate-900); }
+.bank-receipt-posted p { margin: 0 0 16px; font-size: 14px; color: var(--slate-500); }
+.bank-receipt-posted__facts { display: flex; flex-direction: column; gap: 4px; margin: 0 0 16px; padding: 12px; border-radius: 8px; background: var(--slate-50); text-align: left; }
+.bank-receipt-posted__facts div { display: flex; justify-content: space-between; gap: 12px; }
+.bank-receipt-posted__facts dt { color: var(--slate-500); }
+.bank-receipt-posted__facts dd { margin: 0; color: var(--slate-800); text-align: right; }
+
+@media (max-width: 900px) {
+  .bank-receipts-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .bank-receipts-page { padding: 70px 16px 32px; }
+  .bank-receipt-form__row { grid-template-columns: 1fr; }
+}

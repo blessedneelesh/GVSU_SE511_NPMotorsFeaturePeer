@@ -81,6 +81,24 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Miscellaneous bank payments (Bank Payments page, "Paid To: Other Party"), same API. Capitalised with a trailing slash, so the /bank-payment page route is unaffected.
+      '/BankPayment/': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
+      // AP bill endpoints (Accounts Payable page), same API. Capitalised with a trailing slash, so the /accounts-payable page route is unaffected.
+      '/APBill/': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
+      // AP bill lookup (GetApById, the Accounts Payable detail view), same API. Capitalised with a trailing slash, so it can't catch /accounts-payable.
+      '/Ap/': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   test: {

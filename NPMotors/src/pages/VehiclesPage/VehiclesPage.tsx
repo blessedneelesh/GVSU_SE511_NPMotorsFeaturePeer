@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Button,
   Dropdown,
@@ -19,11 +20,11 @@ import {
 } from '@fluentui/react-components'
 import { Add20Regular } from '@fluentui/react-icons'
 import { useVehicleDetail } from '../../hooks/useVehicleDetail'
-import { useVehicleMutations } from '../../hooks/useVehicleMutations'
+import { useVehiclePurchase } from '../../hooks/useVehiclePurchase'
 import { useVehicles } from '../../hooks/useVehicles'
-import type { Vehicle, VehicleStatusFilter } from '../../types/vehicles'
+import type { Vehicle, VehiclePurchaseResult, VehicleStatusFilter } from '../../types/vehicles'
+import { formatAmount } from '../PurchaseVehiclePage/purchaseVehicleForm'
 import { VehicleDetail } from './VehicleDetail'
-import { VehicleFormDialog } from './VehicleFormDialog'
 import { formatCurrency, shortVin, VEHICLE_STATUS_BADGES, VEHICLE_STATUS_LABELS } from './vehicleMetrics'
 import { TablePagination } from '../../components/TablePagination/TablePagination'
 import './VehiclesPage.css'
@@ -41,6 +42,14 @@ const statusOptions: { value: VehicleStatusFilter; label: string }[] = [
 
 const isStatusFilter = (value: unknown): value is VehicleStatusFilter =>
   statusOptions.some((option) => option.value === value)
+
+// "2024 Honda Accord was added to inventory. Paid $10,000.00 (BP-0012); $16,720.00 is on AP bill AP-0042."
+function purchaseSummary(result: VehiclePurchaseResult): string {
+  const parts = [`${result.title} was added to inventory.`]
+  if (result.amountPaid > 0) parts.push(`Paid ${formatAmount(result.amountPaid)}${result.paymentNumber ? ` (${result.paymentNumber})` : ''}.`)
+  if (result.balanceDue > 0) parts.push(`${formatAmount(result.balanceDue)} is on ${result.apBillNumber ? `AP bill ${result.apBillNumber}` : 'Accounts Payable'}.`)
+  return parts.join(' ')
+}
 
 function exportVehicles(rows: Vehicle[]) {
   const header = ['ID', 'VIN', 'Year', 'Make', 'Model', 'Color', 'Warehouse', 'Purchase Date', 'Vendor', 'Purchase Price', 'Additional Costs', 'Total Cost', 'List Price', 'Gross Profit', 'Status']
@@ -73,25 +82,16 @@ export function VehiclesPage() {
     retry,
   } = useVehicles()
   const { selectedId, openVehicle } = useVehicleDetail()
-  const { saveStatus, resetSave } = useVehicleMutations()
-  const [isAddOpen, setAddOpen] = useState(false)
+  const { purchaseStatus, purchaseResult, resetPurchase } = useVehiclePurchase()
+  const navigate = useNavigate()
 
-  const openAdd = () => {
-    resetSave()
-    setAddOpen(true)
-  }
-  const closeAdd = useCallback(() => {
-    resetSave()
-    setAddOpen(false)
-  }, [resetSave])
-
-  // A successful save swaps the dialog for the success banner, which hides itself after a few seconds
-  const isSaved = isAddOpen && saveStatus === 'success'
+  // Coming back from Purchase Vehicle: confirm what was posted, then hide the banner after a few seconds
+  const isPurchased = purchaseStatus === 'success' && purchaseResult !== null
   useEffect(() => {
-    if (!isSaved) return
-    const timer = window.setTimeout(closeAdd, SAVED_BANNER_MS)
+    if (!isPurchased) return
+    const timer = window.setTimeout(resetPurchase, SAVED_BANNER_MS)
     return () => window.clearTimeout(timer)
-  }, [isSaved, closeAdd])
+  }, [isPurchased, resetPurchase])
 
   // The list hook stays mounted while the detail view is open, so its query and page are kept
   if (selectedId) return <VehicleDetail />
@@ -110,18 +110,19 @@ export function VehiclesPage() {
           <p>{vehicles.length} {vehicles.length === 1 ? 'vehicle' : 'vehicles'} on this page</p>
         </div>
         <div className="vehicles-header__actions">
-          <Button appearance="primary" icon={<Add20Regular />} onClick={openAdd}>Add Vehicle</Button>
+          <Button appearance="primary" icon={<Add20Regular />} onClick={() => navigate('/purchase-vehicle')}>Purchase Vehicle</Button>
           <Button disabled={vehicles.length === 0} onClick={() => exportVehicles(vehicles)}>Export</Button>
         </div>
       </header>
 
-      {isAddOpen && !isSaved && <VehicleFormDialog onClose={closeAdd} />}
-
-      {isSaved && (
+      {isPurchased && (
         <MessageBar intent="success" className="vehicles-message">
-          <MessageBarBody>Vehicle added to inventory.</MessageBarBody>
+          <MessageBarBody>
+            <MessageBarTitle>Purchase posted</MessageBarTitle>
+            {purchaseSummary(purchaseResult)}
+          </MessageBarBody>
           <MessageBarActions>
-            <Button appearance="transparent" size="small" onClick={closeAdd}>Dismiss</Button>
+            <Button appearance="transparent" size="small" onClick={resetPurchase}>Dismiss</Button>
           </MessageBarActions>
         </MessageBar>
       )}

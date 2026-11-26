@@ -1,0 +1,67 @@
+/* Bank Payment screen — matches the Figma Make "Car Dealership Management System" BankPaymentForm design */
+.bank-payments-page {
+  --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-300: #cbd5e1; --slate-400: #94a3b8;
+  --slate-500: #64748b; --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b; --slate-900: #0f172a;
+  --red-600: #dc2626;
+  --green-700: #047857;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  max-width: 960px;
+  padding: 20px;
+  color: var(--slate-900);
+  font-size: 14px;
+}
+
+/* Shared primitives */
+.bank-payments-page .card { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; }
+
+/* Text helpers */
+.bank-payments-page .mono { font-family: var(--mono); }
+.bank-payments-page .strong { font-weight: 600; }
+.bank-payments-page .text-green { color: var(--green-700); }
+
+/* Header */
+.bank-payments-header { margin-bottom: 16px; }
+.bank-payments-header h1 { margin: 0; font-size: 20px; font-weight: 600; color: var(--slate-900); }
+.bank-payments-header p { margin: 0; font-size: 14px; color: var(--slate-500); }
+
+/* Form + side column */
+.bank-payments-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+
+.bank-payment-form { padding: 20px; }
+.bank-payment-form__message { margin-bottom: 16px; }
+.bank-payment-form__fields { display: flex; flex-direction: column; gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.bank-payment-form__row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.bank-payment-form__party { display: flex; flex-direction: column; gap: 12px; }
+.bank-payments-page .bank-payment-form .fui-Dropdown { min-width: 0; }
+.bank-payments-page .bank-payment-form .mono input { font-family: var(--mono); }
+.bank-payments-page .bank-payment-form__amount input { font-size: 18px; }
+
+.bank-payments-side { display: flex; flex-direction: column; gap: 12px; }
+
+.bank-payment-summary { padding: 16px; }
+.bank-payment-summary h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: var(--slate-700); }
+.bank-payment-summary__amount { font-family: var(--mono); font-size: 24px; font-weight: 700; color: var(--red-600); }
+.bank-payment-summary__note { margin-top: 4px; font-size: 12px; color: var(--slate-500); }
+
+.bank-payment-actions { display: flex; flex-direction: column; gap: 8px; padding: 16px; }
+.bank-payments-page .bank-payment-actions__submit { width: 100%; }
+
+/* Success card */
+.bank-payment-posted { max-width: 512px; padding: 24px; text-align: center; }
+.bank-payment-posted__check { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; margin: 0 auto 12px; border-radius: 50%; background: #d1fae5; color: #059669; }
+.bank-payment-posted h2 { margin: 0 0 4px; font-size: 16px; font-weight: 600; color: var(--slate-900); }
+.bank-payment-posted p { margin: 0 0 16px; font-size: 14px; color: var(--slate-500); }
+.bank-payment-posted__facts { display: flex; flex-direction: column; gap: 4px; margin: 0 0 16px; padding: 12px; border-radius: 8px; background: var(--slate-50); text-align: left; }
+.bank-payment-posted__facts div { display: flex; justify-content: space-between; gap: 12px; }
+.bank-payment-posted__facts dt { color: var(--slate-500); }
+.bank-payment-posted__facts dd { margin: 0; color: var(--slate-800); text-align: right; }
+.bank-payment-posted__facts .bank-payment-posted__total { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--slate-200); }
+
+@media (max-width: 900px) {
+  .bank-payments-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .bank-payments-page { padding: 70px 16px 32px; }
+  .bank-payment-form__row { grid-template-columns: 1fr; }
+}

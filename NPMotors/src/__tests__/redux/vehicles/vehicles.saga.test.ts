@@ -5,9 +5,6 @@ import { all, call, cancelled, put, select, takeLatest, takeLeading } from 'redu
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearVehicleSelection,
-  createVehicle,
-  createVehicleFailure,
-  createVehicleSuccess,
   loadVehicleByIdFailure,
   loadVehicleByIdSuccess,
   loadVehicles,
@@ -16,6 +13,12 @@ import {
   loadVehicleVendorOptions,
   loadVehicleVendorOptionsFailure,
   loadVehicleVendorOptionsSuccess,
+  loadVehicleBankAccountOptions,
+  loadVehicleBankAccountOptionsFailure,
+  loadVehicleBankAccountOptionsSuccess,
+  purchaseVehicle,
+  purchaseVehicleFailure,
+  purchaseVehicleSuccess,
   selectVehicle,
   setVehicleStatusFilter,
 } from '../../../redux/vehicles/vehicles.actions'
@@ -24,12 +27,31 @@ import vehiclesSaga from '../../../redux/vehicles/vehicles.saga'
 import { selectVehicleQuery } from '../../../redux/vehicles/vehicles.selectors'
 import { rootReducer } from '../../../redux/rootReducer'
 import { vehiclesApi } from '../../../services/vehicles/vehicles.api'
-import { getVehicleErrorMessage, getVehicleSaveError, VENDOR_OPTIONS_FALLBACK_MESSAGE } from '../../../services/vehicles/vehicles.errors'
-import { sparseVehicle, vehicle, vehicleFormValues, vehiclePage, vehicleVendorOptions } from '../../../test/fixtures/vehicles'
+import {
+  BANK_ACCOUNT_OPTIONS_FALLBACK_MESSAGE,
+  getVehicleErrorMessage,
+  getVehiclePurchaseError,
+  VENDOR_OPTIONS_FALLBACK_MESSAGE,
+} from '../../../services/vehicles/vehicles.errors'
+import {
+  sparseVehicle,
+  vehicle,
+  vehicleBankAccountOptions,
+  vehiclePage,
+  vehiclePurchaseFormValues,
+  vehiclePurchaseResult,
+  vehicleVendorOptions,
+} from '../../../test/fixtures/vehicles'
 import type { Vehicle, VehiclePage, VehicleQuery, VehicleVendorOption } from '../../../types/vehicles'
 
 vi.mock('../../../services/vehicles/vehicles.api', () => ({
-  vehiclesApi: { getVehicles: vi.fn(), getVehicleById: vi.fn(), getVendorOptions: vi.fn(), addVehicle: vi.fn() },
+  vehiclesApi: {
+    getVehicles: vi.fn(),
+    getVehicleById: vi.fn(),
+    getVendorOptions: vi.fn(),
+    purchaseVehicle: vi.fn(),
+    getBankAccountOptions: vi.fn(),
+  },
 }))
 
 // The workers aren't exported; take them from the watchers in the root saga's all([...]) effect
@@ -44,7 +66,8 @@ const workerAt = (index: number): Worker => {
 const loadVehiclesWorker = workerAt(0)
 const loadVehicleByIdWorker = workerAt(1)
 const loadVendorOptionsWorker = workerAt(2)
-const createVehicleWorker = workerAt(3)
+const loadBankAccountOptionsWorker = workerAt(3)
+const purchaseVehicleWorker = workerAt(4)
 
 // The error helpers check axios.isAxiosError / axios.isCancel, so failures must be real axios errors
 const httpError = (status: number, data?: unknown) =>
@@ -55,14 +78,15 @@ const canceled = () => new CanceledError()
 const query: VehicleQuery = { pageNumber: 2, pageSize: 10, status: 'available', searchTerm: 'camry' }
 
 describe('vehiclesSaga (root)', () => {
-  it('starts the four watchers with the right patterns and effects', () => {
+  it('starts the five watchers with the right patterns and effects', () => {
     const gen = vehiclesSaga()
     expect(gen.next().value).toStrictEqual(all([
       takeLatest([VEHICLE_ACTIONS.LOAD, VEHICLE_ACTIONS.SET_STATUS_FILTER, VEHICLE_ACTIONS.SET_PAGE,
         VEHICLE_ACTIONS.SET_PAGE_SIZE, VEHICLE_ACTIONS.SET_SEARCH], loadVehiclesWorker),
       takeLatest([VEHICLE_ACTIONS.SELECT, VEHICLE_ACTIONS.CLEAR_SELECTION], loadVehicleByIdWorker),
       takeLatest(VEHICLE_ACTIONS.LOAD_VENDOR_OPTIONS, loadVendorOptionsWorker),
-      takeLeading(VEHICLE_ACTIONS.CREATE, createVehicleWorker),
+      takeLatest(VEHICLE_ACTIONS.LOAD_BANK_ACCOUNT_OPTIONS, loadBankAccountOptionsWorker),
+      takeLeading(VEHICLE_ACTIONS.PURCHASE, purchaseVehicleWorker),
     ]))
     expect(gen.next().done).toBe(true)
   })
@@ -224,64 +248,81 @@ describe('loadVendorOptionsWorker', () => {
   })
 })
 
-describe('createVehicleWorker', () => {
-  const startCreate = () => {
-    const gen = createVehicleWorker(createVehicle(vehicleFormValues))
-    expect(gen.next().value).toStrictEqual(call(vehiclesApi.addVehicle, vehicleFormValues))
+describe('loadBankAccountOptionsWorker', () => {
+  const startLoad = () => {
+    const gen = loadBankAccountOptionsWorker(loadVehicleBankAccountOptions())
+    const effect = gen.next().value
+    expect(effect).toEqual(call(vehiclesApi.getBankAccountOptions, expect.any(AbortSignal)))
+    return { gen, signal: effect.payload.args[0] as AbortSignal }
+  }
+
+  it('dispatches the loaded accounts', () => {
+    const { gen } = startLoad()
+    expect(gen.next(vehicleBankAccountOptions).value).toStrictEqual(put(loadVehicleBankAccountOptionsSuccess(vehicleBankAccountOptions)))
+    expect(gen.next().value).toStrictEqual(cancelled())
+    expect(gen.next(false).done).toBe(true)
+  })
+
+  it('falls back on the bank-account message for an unexplained failure', () => {
+    const { gen } = startLoad()
+    expect(gen.throw(httpError(500, { foo: 1 })).value)
+      .toStrictEqual(put(loadVehicleBankAccountOptionsFailure(BANK_ACCOUNT_OPTIONS_FALLBACK_MESSAGE)))
+  })
+
+  it('aborts the request when cancelled', () => {
+    const { gen, signal } = startLoad()
+    expect(gen.return(undefined).value).toStrictEqual(cancelled())
+    gen.next(true)
+    expect(signal.aborted).toBe(true)
+  })
+})
+
+describe('purchaseVehicleWorker', () => {
+  const startPurchase = () => {
+    const gen = purchaseVehicleWorker(purchaseVehicle(vehiclePurchaseFormValues))
+    expect(gen.next().value).toStrictEqual(call(vehiclesApi.purchaseVehicle, vehiclePurchaseFormValues))
     return gen
   }
 
-  it('dispatches success and then reloads the list', () => {
-    const gen = startCreate()
-    expect(gen.next().value).toStrictEqual(put(createVehicleSuccess()))
+  it('dispatches the result and then reloads the list', () => {
+    const gen = startPurchase()
+    expect(gen.next(vehiclePurchaseResult).value).toStrictEqual(put(purchaseVehicleSuccess(vehiclePurchaseResult)))
     expect(gen.next().value).toStrictEqual(put(loadVehicles()))
     expect(gen.next().done).toBe(true)
   })
 
-  it('maps the 400 keys to their form fields with no banner message', () => {
-    const gen = startCreate()
+  it('maps validation keys to the wizard fields, Additional_Costs onto Other Costs', () => {
+    const gen = startPurchase()
     const err = httpError(400, { errors: {
-      Vin: ['The Vin field is required.'],
-      Purchase_Price: ['Purchase price must be greater than 0.'],
-      Vendor_Id: ['The Vendor_Id field is required.'],
+      Vin: ['VIN must be exactly 17 characters.'],
+      Additional_Costs: ['Additional costs cannot be negative.'],
+      Payment_Condition: ['Payment condition must be PaidInFull, Partial or Credit.'],
+      Bank_Account_Id: ['Not a number'],
     } })
-    expect(gen.throw(err).value).toStrictEqual(put(createVehicleFailure({
+    expect(gen.throw(err).value).toStrictEqual(put(purchaseVehicleFailure({
       message: '',
       fieldErrors: {
-        vin: 'The Vin field is required.',
-        purchasePrice: 'Purchase price must be greater than 0.',
-        vendorId: 'The Vendor_Id field is required.',
+        vin: 'VIN must be exactly 17 characters.',
+        otherCosts: 'Additional costs cannot be negative.',
+        paymentCondition: 'Payment condition must be PaidInFull, Partial or Credit.',
+        bankAccountId: 'Not a number',
       },
     })))
     expect(gen.next().done).toBe(true)
   })
 
-  it('maps a "$.purchase_Price" conversion error to the purchase price field and drops a key no field matches', () => {
-    const gen = startCreate()
-    const err = httpError(400, { errors: { dto: ['The dto field is required.'], '$.purchase_Price': ['Not a number'] } })
-    expect(gen.throw(err).value).toStrictEqual(put(createVehicleFailure({ message: '', fieldErrors: { purchasePrice: 'Not a number' } })))
-    expect(gen.next().done).toBe(true)
+  it('shows a business-rule 400 { message } as the banner message', () => {
+    const gen = startPurchase()
+    const err = httpError(400, { message: 'A vehicle with this VIN already exists.' })
+    expect(gen.throw(err).value)
+      .toStrictEqual(put(purchaseVehicleFailure({ message: 'A vehicle with this VIN already exists.', fieldErrors: {} })))
   })
 
-  it('shows a 400 that matches no field as the banner message', () => {
-    const gen = startCreate()
-    expect(gen.throw(httpError(400, { title: 'Invalid' })).value)
-      .toStrictEqual(put(createVehicleFailure({ message: 'Invalid', fieldErrors: {} })))
-    expect(gen.next().done).toBe(true)
-  })
-
-  it('dispatches the save error for a server error', () => {
-    const gen = startCreate()
-    const err = httpError(500, { title: 'Server error' })
-    expect(gen.throw(err).value).toStrictEqual(put(createVehicleFailure(getVehicleSaveError(err))))
-    expect(gen.next().done).toBe(true)
-  })
-
-  it('dispatches nothing when the request was cancelled', () => {
-    const gen = startCreate()
-    // NOTE: with no message and no field errors nothing is dispatched, so saveStatus would stay 'loading'.
-    // Nothing cancels a create today (the worker passes no signal), so this is latent.
-    expect(gen.throw(canceled()).done).toBe(true)
+  it('falls back on the purchase message for a server error', () => {
+    const gen = startPurchase()
+    const err = httpError(500, { foo: 1 })
+    expect(gen.throw(err).value).toStrictEqual(put(purchaseVehicleFailure(getVehiclePurchaseError(err))))
+    expect(getVehiclePurchaseError(err).message).toBe('The purchase could not be posted. Please try again.')
   })
 })
 
@@ -309,7 +350,7 @@ describe('vehiclesSaga (running)', () => {
     vi.mocked(vehiclesApi.getVehicles).mockResolvedValue(vehiclePage)
     vi.mocked(vehiclesApi.getVehicleById).mockResolvedValue(vehicle)
     vi.mocked(vehiclesApi.getVendorOptions).mockResolvedValue(vehicleVendorOptions)
-    vi.mocked(vehiclesApi.addVehicle).mockResolvedValue(undefined)
+    vi.mocked(vehiclesApi.purchaseVehicle).mockResolvedValue(vehiclePurchaseResult)
     const saga = createSagaMiddleware()
     store = createStore(rootReducer, applyMiddleware(saga))
     task = saga.run(vehiclesSaga)
@@ -319,25 +360,25 @@ describe('vehiclesSaga (running)', () => {
     task.cancel()
   })
 
-  it('ignores a second create while the first is still saving', async () => {
-    const save = deferred<void>()
-    vi.mocked(vehiclesApi.addVehicle).mockReturnValue(save.promise)
+  it('ignores a second purchase while the first is still posting', async () => {
+    const post = deferred<typeof vehiclePurchaseResult>()
+    vi.mocked(vehiclesApi.purchaseVehicle).mockReturnValue(post.promise)
 
-    store.dispatch(createVehicle(vehicleFormValues))
-    store.dispatch(createVehicle(vehicleFormValues))
-    expect(vehiclesApi.addVehicle).toHaveBeenCalledTimes(1)
+    store.dispatch(purchaseVehicle(vehiclePurchaseFormValues))
+    store.dispatch(purchaseVehicle(vehiclePurchaseFormValues))
+    expect(vehiclesApi.purchaseVehicle).toHaveBeenCalledTimes(1)
 
-    save.resolve()
-    await vi.waitFor(() => expect(store.getState().vehicles.saveStatus).toBe('success'))
-    expect(vehiclesApi.addVehicle).toHaveBeenCalledTimes(1)
+    post.resolve(vehiclePurchaseResult)
+    await vi.waitFor(() => expect(store.getState().vehicles.purchaseStatus).toBe('success'))
+    expect(vehiclesApi.purchaseVehicle).toHaveBeenCalledTimes(1)
   })
 
-  it('reloads the list after a successful create', async () => {
-    store.dispatch(createVehicle(vehicleFormValues))
+  it('reloads the list after a successful purchase', async () => {
+    store.dispatch(purchaseVehicle(vehiclePurchaseFormValues))
 
     await vi.waitFor(() => expect(store.getState().vehicles.listStatus).toBe('success'))
-    expect(store.getState().vehicles.saveStatus).toBe('success')
-    expect(vehiclesApi.addVehicle).toHaveBeenCalledWith(vehicleFormValues)
+    expect(store.getState().vehicles.purchaseResult).toEqual(vehiclePurchaseResult)
+    expect(vehiclesApi.purchaseVehicle).toHaveBeenCalledWith(vehiclePurchaseFormValues)
     expect(vehiclesApi.getVehicles).toHaveBeenCalledTimes(1)
     expect(store.getState().vehicles.items).toEqual(vehiclePage.items)
   })

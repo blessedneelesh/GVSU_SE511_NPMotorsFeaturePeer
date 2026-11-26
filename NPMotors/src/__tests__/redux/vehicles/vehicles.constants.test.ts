@@ -20,16 +20,19 @@ describe('VEHICLE_ACTIONS', () => {
     ['LOAD_VENDOR_OPTIONS', 'vehicles/loadVendorOptions'],
     ['LOAD_VENDOR_OPTIONS_SUCCESS', 'vehicles/loadVendorOptionsSuccess'],
     ['LOAD_VENDOR_OPTIONS_FAILURE', 'vehicles/loadVendorOptionsFailure'],
-    ['CREATE', 'vehicles/create'],
-    ['CREATE_SUCCESS', 'vehicles/createSuccess'],
-    ['CREATE_FAILURE', 'vehicles/createFailure'],
-    ['RESET_SAVE', 'vehicles/resetSave'],
+    ['LOAD_BANK_ACCOUNT_OPTIONS', 'vehicles/loadBankAccountOptions'],
+    ['LOAD_BANK_ACCOUNT_OPTIONS_SUCCESS', 'vehicles/loadBankAccountOptionsSuccess'],
+    ['LOAD_BANK_ACCOUNT_OPTIONS_FAILURE', 'vehicles/loadBankAccountOptionsFailure'],
+    ['PURCHASE', 'vehicles/purchase'],
+    ['PURCHASE_SUCCESS', 'vehicles/purchaseSuccess'],
+    ['PURCHASE_FAILURE', 'vehicles/purchaseFailure'],
+    ['RESET_PURCHASE', 'vehicles/resetPurchase'],
   ] as const)('%s equals %s', (key, value) => {
     expect(VEHICLE_ACTIONS[key]).toBe(value)
   })
 
-  it('has 18 action types', () => {
-    expect(Object.keys(VEHICLE_ACTIONS)).toHaveLength(18)
+  it('has 21 action types', () => {
+    expect(Object.keys(VEHICLE_ACTIONS)).toHaveLength(21)
   })
 
   it('has unique values', () => {

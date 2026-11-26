@@ -14,8 +14,8 @@ describe('RECEIPT_ACTIONS', () => {
     expect(RECEIPT_ACTIONS[key]).toBe(value)
   })
 
-  it('has 19 action types', () => {
-    expect(Object.keys(RECEIPT_ACTIONS)).toHaveLength(19)
+  it('has 18 action types', () => {
+    expect(Object.keys(RECEIPT_ACTIONS)).toHaveLength(18)
   })
 
   it('has unique values', () => {

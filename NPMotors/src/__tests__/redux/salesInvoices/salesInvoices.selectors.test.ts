@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as selectors from '../../../redux/salesInvoices/salesInvoices.selectors'
 import { makeSalesInvoiceState } from '../../../test/test-utils'
-import { postedInvoice, salesInvoiceOptions, salesInvoicePage } from '../../../test/fixtures/salesInvoices'
+import { customerSalesInvoices, postedInvoice, salesInvoiceOptions, salesInvoicePage } from '../../../test/fixtures/salesInvoices'
 import { availableVehicle } from '../../../test/fixtures/vehicles'
 
 const query = { pageNumber: 2, pageSize: 10, status: 'unpaid', fromDate: '2026-10-01', toDate: '2026-10-31', searchTerm: 'INV' } as const
@@ -28,6 +28,10 @@ const state = makeSalesInvoiceState({
   fieldErrors,
   cancelStatus: 'error',
   cancelError: 'cancel error',
+  customerInvoicesCustomerId: '3',
+  customerInvoices: customerSalesInvoices,
+  customerInvoicesStatus: 'loading',
+  customerInvoicesError: 'customer invoices error',
 })
 
 describe('salesInvoices selectors', () => {
@@ -55,6 +59,10 @@ describe('salesInvoices selectors', () => {
     ['selectSalesInvoiceFieldErrors', selectors.selectSalesInvoiceFieldErrors, fieldErrors],
     ['selectSalesInvoiceCancelStatus', selectors.selectSalesInvoiceCancelStatus, 'error'],
     ['selectSalesInvoiceCancelError', selectors.selectSalesInvoiceCancelError, 'cancel error'],
+    ['selectCustomerInvoicesCustomerId', selectors.selectCustomerInvoicesCustomerId, '3'],
+    ['selectCustomerInvoices', selectors.selectCustomerInvoices, customerSalesInvoices],
+    ['selectCustomerInvoicesStatus', selectors.selectCustomerInvoicesStatus, 'loading'],
+    ['selectCustomerInvoicesError', selectors.selectCustomerInvoicesError, 'customer invoices error'],
   ] as const)('%s', (_, selector, expected) => {
     expect(selector(state)).toEqual(expected)
   })

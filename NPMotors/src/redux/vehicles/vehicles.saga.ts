@@ -4,15 +4,22 @@ import { vehiclesApi } from '../../services/vehicles/vehicles.api'
 import {
   getVehicleDetailErrorMessage,
   getVehicleErrorMessage,
-  getVehicleSaveError,
+  getVehiclePurchaseError,
+  BANK_ACCOUNT_OPTIONS_FALLBACK_MESSAGE,
   VENDOR_OPTIONS_FALLBACK_MESSAGE,
 } from '../../services/vehicles/vehicles.errors'
-import type { Vehicle, VehiclePage, VehicleQuery, VehicleVendorOption } from '../../types/vehicles'
+import type {
+  Vehicle,
+  VehicleBankAccountOption,
+  VehiclePage,
+  VehiclePurchaseResult,
+  VehicleQuery,
+  VehicleVendorOption,
+} from '../../types/vehicles'
 import {
   type clearVehicleSelection,
-  type createVehicle,
-  createVehicleFailure,
-  createVehicleSuccess,
+  loadVehicleBankAccountOptionsFailure,
+  loadVehicleBankAccountOptionsSuccess,
   loadVehicleByIdFailure,
   loadVehicleByIdSuccess,
   loadVehicles,
@@ -20,6 +27,9 @@ import {
   loadVehiclesSuccess,
   loadVehicleVendorOptionsFailure,
   loadVehicleVendorOptionsSuccess,
+  type purchaseVehicle,
+  purchaseVehicleFailure,
+  purchaseVehicleSuccess,
   type selectVehicle,
 } from './vehicles.actions'
 import { VEHICLE_ACTIONS } from './vehicles.constants'
@@ -73,15 +83,29 @@ function* loadVendorOptionsWorker(): SagaIterator {
   }
 }
 
-function* createVehicleWorker(action: ReturnType<typeof createVehicle>): SagaIterator {
+function* loadBankAccountOptionsWorker(): SagaIterator {
+  const controller = new AbortController()
   try {
-    yield call(vehiclesApi.addVehicle, action.payload)
-    yield put(createVehicleSuccess())
-    // Paging is server-side, so refetch the current page instead of inserting the row locally
+    const options: VehicleBankAccountOption[] = yield call(vehiclesApi.getBankAccountOptions, controller.signal)
+    yield put(loadVehicleBankAccountOptionsSuccess(options))
+  } catch (error) {
+    const message = getVehicleErrorMessage(error, BANK_ACCOUNT_OPTIONS_FALLBACK_MESSAGE)
+    if (message) yield put(loadVehicleBankAccountOptionsFailure(message))
+  } finally {
+    const wasCancelled: boolean = yield cancelled()
+    if (wasCancelled) controller.abort()
+  }
+}
+
+function* purchaseVehicleWorker(action: ReturnType<typeof purchaseVehicle>): SagaIterator {
+  try {
+    const result: VehiclePurchaseResult = yield call(vehiclesApi.purchaseVehicle, action.payload)
+    yield put(purchaseVehicleSuccess(result))
+    // The new vehicle belongs in the inventory list, which is refetched rather than patched
     yield put(loadVehicles())
   } catch (error) {
-    const saveError = getVehicleSaveError(error)
-    if (saveError.message || Object.keys(saveError.fieldErrors).length) yield put(createVehicleFailure(saveError))
+    const purchaseError = getVehiclePurchaseError(error)
+    if (purchaseError.message || Object.keys(purchaseError.fieldErrors).length) yield put(purchaseVehicleFailure(purchaseError))
   }
 }
 
@@ -101,7 +125,9 @@ export default function* vehiclesSaga(): SagaIterator {
     takeLatest([VEHICLE_ACTIONS.SELECT, VEHICLE_ACTIONS.CLEAR_SELECTION], loadVehicleByIdWorker),
     // Reopening the form while vendors are still loading restarts the lookup instead of running two
     takeLatest(VEHICLE_ACTIONS.LOAD_VENDOR_OPTIONS, loadVendorOptionsWorker),
-    // takeLeading ignores repeat submits while a save is in flight, so a double-click can't add the vehicle twice
-    takeLeading(VEHICLE_ACTIONS.CREATE, createVehicleWorker),
+    takeLatest(VEHICLE_ACTIONS.LOAD_BANK_ACCOUNT_OPTIONS, loadBankAccountOptionsWorker),
+    // takeLeading ignores repeat posts while one is in flight: a purchase pays money out and creates an AP bill,
+    // so a double-click must never post it twice
+    takeLeading(VEHICLE_ACTIONS.PURCHASE, purchaseVehicleWorker),
   ])
 }

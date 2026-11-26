@@ -2,8 +2,8 @@ import type { ReceiptBankAccountOption, ReceiptFormValues, ReceiptPayment, Recei
 
 // Active accounts from GetAllBankAccounts, after mapping
 export const receiptBankAccountOptions: ReceiptBankAccountOption[] = [
-  { id: '1', name: 'Operating Checking', bankName: 'Chase', accountNumber: '****4521' },
-  { id: '3', name: 'Payroll', bankName: 'Wells Fargo', accountNumber: '' },
+  { id: '1', name: 'Operating Checking', bankName: 'Chase', accountNumber: '****4521', bookBalance: 262733 },
+  { id: '3', name: 'Payroll', bankName: 'Wells Fargo', accountNumber: '', bookBalance: 48250 },
 ]
 
 // AR invoice 2471: partly paid and 7 days overdue

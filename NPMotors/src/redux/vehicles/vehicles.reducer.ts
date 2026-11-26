@@ -1,6 +1,13 @@
 import type { UnknownAction } from 'redux'
 import type { RequestStatus } from '../../types/common'
-import type { Vehicle, VehicleFieldErrors, VehicleQuery, VehicleVendorOption } from '../../types/vehicles'
+import type {
+  Vehicle,
+  VehicleBankAccountOption,
+  VehiclePurchaseFieldErrors,
+  VehiclePurchaseResult,
+  VehicleQuery,
+  VehicleVendorOption,
+} from '../../types/vehicles'
 import type { VehiclesAction } from './vehicles.actions'
 import { VEHICLE_ACTIONS } from './vehicles.constants'
 
@@ -17,9 +24,15 @@ export interface VehiclesState {
   vendorOptions: VehicleVendorOption[]
   vendorOptionsStatus: RequestStatus
   vendorOptionsError: string | null
-  saveStatus: RequestStatus
-  saveError: string | null
-  fieldErrors: VehicleFieldErrors
+  bankAccountOptions: VehicleBankAccountOption[]
+  bankAccountOptionsStatus: RequestStatus
+  bankAccountOptionsError: string | null
+  // Purchase Vehicle wizard
+  purchaseStatus: RequestStatus
+  purchaseError: string | null
+  purchaseFieldErrors: VehiclePurchaseFieldErrors
+  // Kept after the wizard closes, so Vehicle Inventory can confirm what was posted
+  purchaseResult: VehiclePurchaseResult | null
 }
 
 export const initialVehiclesState: VehiclesState = {
@@ -35,9 +48,13 @@ export const initialVehiclesState: VehiclesState = {
   vendorOptions: [],
   vendorOptionsStatus: 'idle',
   vendorOptionsError: null,
-  saveStatus: 'idle',
-  saveError: null,
-  fieldErrors: {},
+  bankAccountOptions: [],
+  bankAccountOptionsStatus: 'idle',
+  bankAccountOptionsError: null,
+  purchaseStatus: 'idle',
+  purchaseError: null,
+  purchaseFieldErrors: {},
+  purchaseResult: null,
 }
 
 const vehicleActionTypes: ReadonlySet<string> = new Set(Object.values(VEHICLE_ACTIONS))
@@ -77,14 +94,20 @@ export default function vehiclesReducer(state: VehiclesState = initialVehiclesSt
       return { ...state, vendorOptions: action.payload, vendorOptionsStatus: 'success' }
     case VEHICLE_ACTIONS.LOAD_VENDOR_OPTIONS_FAILURE:
       return { ...state, vendorOptionsStatus: 'error', vendorOptionsError: action.payload }
-    case VEHICLE_ACTIONS.CREATE:
-      return { ...state, saveStatus: 'loading', saveError: null, fieldErrors: {} }
-    case VEHICLE_ACTIONS.CREATE_SUCCESS:
-      return { ...state, saveStatus: 'success' }
-    case VEHICLE_ACTIONS.CREATE_FAILURE:
-      return { ...state, saveStatus: 'error', saveError: action.payload.message || null, fieldErrors: action.payload.fieldErrors }
-    case VEHICLE_ACTIONS.RESET_SAVE:
-      return { ...state, saveStatus: 'idle', saveError: null, fieldErrors: {} }
+    case VEHICLE_ACTIONS.LOAD_BANK_ACCOUNT_OPTIONS:
+      return { ...state, bankAccountOptionsStatus: 'loading', bankAccountOptionsError: null }
+    case VEHICLE_ACTIONS.LOAD_BANK_ACCOUNT_OPTIONS_SUCCESS:
+      return { ...state, bankAccountOptions: action.payload, bankAccountOptionsStatus: 'success' }
+    case VEHICLE_ACTIONS.LOAD_BANK_ACCOUNT_OPTIONS_FAILURE:
+      return { ...state, bankAccountOptionsStatus: 'error', bankAccountOptionsError: action.payload }
+    case VEHICLE_ACTIONS.PURCHASE:
+      return { ...state, purchaseStatus: 'loading', purchaseError: null, purchaseFieldErrors: {}, purchaseResult: null }
+    case VEHICLE_ACTIONS.PURCHASE_SUCCESS:
+      return { ...state, purchaseStatus: 'success', purchaseResult: action.payload }
+    case VEHICLE_ACTIONS.PURCHASE_FAILURE:
+      return { ...state, purchaseStatus: 'error', purchaseError: action.payload.message || null, purchaseFieldErrors: action.payload.fieldErrors }
+    case VEHICLE_ACTIONS.RESET_PURCHASE:
+      return { ...state, purchaseStatus: 'idle', purchaseError: null, purchaseFieldErrors: {}, purchaseResult: null }
     default: {
       const unhandled: never = action
       void unhandled

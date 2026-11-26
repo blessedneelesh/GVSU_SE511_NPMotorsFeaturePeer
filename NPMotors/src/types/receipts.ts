@@ -1,5 +1,5 @@
 import type { PaymentMethod } from './common'
-import type { ReceivableAgingStatus } from './receivables'
+import type { Receivable, ReceivableAgingStatus } from './receivables'
 
 // The Deposit To choices, from GetAllBankAccounts (active accounts only; the API rejects an inactive one)
 export interface ReceiptBankAccountOption {
@@ -7,6 +7,8 @@ export interface ReceiptBankAccountOption {
   name: string
   bankName: string
   accountNumber: string
+  // Shown under the Bank Receipts "Bank Account" field
+  bookBalance: number
 }
 
 // The AR invoice a payment is received against: what the dialog shows and checks the amount against
@@ -32,7 +34,23 @@ export interface ReceiptFormValues {
 
 export type ReceiptFormField = keyof ReceiptFormValues
 
-export type ReceiptFieldErrors = Partial<Record<ReceiptFormField, string>>
+// Bank Receipts "Received From": a customer (paid against one of their AR invoices) or any other party (a misc receipt)
+export type ReceiptPartyType = 'customer' | 'other'
+
+// The Bank Receipts form: the shared receipt fields plus who paid. Customer receipts use customerId + arInvoiceId;
+// other-party receipts use payer + description.
+export interface BankReceiptFormValues extends ReceiptFormValues {
+  partyType: ReceiptPartyType
+  customerId: string
+  arInvoiceId: string
+  payer: string
+  description: string
+}
+
+export type BankReceiptFormField = keyof BankReceiptFormValues
+
+// Keyed by every field either form can show; the Receive Payment dialog only uses the ReceiptFormValues ones
+export type ReceiptFieldErrors = Partial<Record<BankReceiptFormField, string>>
 
 export interface ReceiptSaveError {
   message: string
@@ -43,6 +61,19 @@ export interface ReceiptSaveError {
 export interface ArPaymentRequest {
   arInvoiceId: string
   values: ReceiptFormValues
+}
+
+// POST Receipt/RecordMiscReceipt: money received from someone other than a customer invoice
+export interface MiscReceiptRequest {
+  payer: string
+  description: string
+  values: ReceiptFormValues
+}
+
+// A customer's open AR invoices (GetAllAr?CustomerId=), the Bank Receipts "Against Invoice" choices
+export interface ReceiptCustomerInvoices {
+  customerId: string
+  invoices: Receivable[]
 }
 
 // One receipt posted against an AR invoice, from GET Receipt/GetPaymentHistory/{arInvoiceId}
@@ -63,21 +94,3 @@ export interface ReceiptPaymentHistory {
   payments: ReceiptPayment[]
 }
 
-// Finds a sales invoice's AR invoice (to list or post its receipts). GetSalesInvoiceById's ar_Invoice_Id is always
-// null, so the AR invoice is looked up among the customer's receivables by its invoice number
-export interface SalesInvoicePaymentsRequest {
-  salesInvoiceId: string
-  customerId: string
-  invoiceNumber: string
-}
-
-export interface SalesInvoicePayments {
-  salesInvoiceId: string
-  payments: ReceiptPayment[]
-}
-
-// The AR invoice found for a sales invoice; null when it has none
-export interface SalesInvoiceArLookup {
-  salesInvoiceId: string
-  arInvoiceId: string | null
-}

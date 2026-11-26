@@ -1,21 +1,20 @@
-import { act, screen, waitFor, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { VehiclesPage } from '../../../pages/VehiclesPage/VehiclesPage'
 import {
-  createVehicleSuccess,
   loadVehicles,
   loadVehiclesFailure,
   loadVehiclesSuccess,
-  loadVehicleVendorOptions,
-  resetVehicleSave,
+  purchaseVehicleSuccess,
   selectVehicle,
   setVehiclePage,
   setVehicleSearch,
   setVehicleStatusFilter,
 } from '../../../redux/vehicles/vehicles.actions'
 import type { VehiclesState } from '../../../redux/vehicles/vehicles.reducer'
-import { sparseVehicle, vehicle } from '../../../test/fixtures/vehicles'
+import { sparseVehicle, vehicle, vehiclePurchaseResult } from '../../../test/fixtures/vehicles'
 import { makeVehicleState, renderWithProviders } from '../../../test/test-utils'
 import type { Vehicle } from '../../../types/vehicles'
 
@@ -156,46 +155,41 @@ describe('VehiclesPage', () => {
     expect(screen.queryByRole('heading', { name: 'Vehicle Inventory' })).not.toBeInTheDocument()
   })
 
-  describe('Add Vehicle', () => {
-    it('resets the save state, opens the dialog and loads the vendors', async () => {
-      const { actions, user } = renderLoaded([vehicle])
-      await user.click(screen.getByRole('button', { name: 'Add Vehicle' }))
-
-      expect(actions).toContainEqual(resetVehicleSave())
-      expect(actions).toContainEqual(loadVehicleVendorOptions())
-      expect(screen.getByRole('dialog')).toBeInTheDocument()
-      expect(screen.getByText('Add a purchased vehicle to inventory')).toBeInTheDocument()
+  describe('Purchase Vehicle', () => {
+    it('opens the Purchase Vehicle page from the header button', async () => {
+      const result = renderWithProviders(
+        <Routes>
+          <Route path="/vehicle-inventory" element={<VehiclesPage />} />
+          <Route path="/purchase-vehicle" element={<p>Purchase page</p>} />
+        </Routes>,
+        { route: '/vehicle-inventory' },
+      )
+      act(() => { result.store.dispatch(loadVehiclesSuccess({ items: [vehicle], hasNext: false })) })
+      await result.user.click(screen.getByRole('button', { name: 'Purchase Vehicle' }))
+      expect(screen.getByText('Purchase page')).toBeInTheDocument()
     })
 
-    it('closes the dialog on Cancel', async () => {
-      const { user } = renderLoaded([vehicle])
-      await user.click(screen.getByRole('button', { name: 'Add Vehicle' }))
-      await user.click(screen.getByRole('button', { name: 'Cancel' }))
-      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-    })
-
-    it('swaps the dialog for the success banner, which hides itself after 4 seconds', async () => {
+    it('confirms a posted purchase, then hides the banner after 4 seconds', () => {
       vi.useFakeTimers({ shouldAdvanceTime: true })
-      const { store } = renderLoaded([vehicle])
-      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-      await user.click(screen.getByRole('button', { name: 'Add Vehicle' }))
+      const { store } = renderLoaded([vehicle], { purchaseStatus: 'success', purchaseResult: vehiclePurchaseResult })
 
-      act(() => { store.dispatch(createVehicleSuccess()) })
-      expect(screen.getByText('Vehicle added to inventory.')).toBeInTheDocument()
-      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      expect(screen.getByText('Purchase posted')).toBeInTheDocument()
+      expect(screen.getByText(
+        '2024 Ford F-150 was added to inventory. Paid $10,000.00 (BP-0012). $21,200.10 is on AP bill AP-0042.',
+      )).toBeInTheDocument()
 
       act(() => { vi.advanceTimersByTime(4000) })
-      expect(screen.queryByText('Vehicle added to inventory.')).not.toBeInTheDocument()
-      expect(store.getState().vehicles.saveStatus).toBe('idle')
+      expect(screen.queryByText('Purchase posted')).not.toBeInTheDocument()
+      expect(store.getState().vehicles.purchaseStatus).toBe('idle')
     })
 
-    it('dismisses the success banner', async () => {
+    it('dismisses the purchase banner', async () => {
       const { store, user } = renderLoaded([vehicle])
-      await user.click(screen.getByRole('button', { name: 'Add Vehicle' }))
-      act(() => { store.dispatch(createVehicleSuccess()) })
+      act(() => { store.dispatch(purchaseVehicleSuccess({ ...vehiclePurchaseResult, amountPaid: 0, paymentNumber: '', balanceDue: 31200.1 })) })
+      expect(screen.getByText('2024 Ford F-150 was added to inventory. $31,200.10 is on AP bill AP-0042.')).toBeInTheDocument()
 
       await user.click(screen.getByRole('button', { name: 'Dismiss' }))
-      expect(screen.queryByText('Vehicle added to inventory.')).not.toBeInTheDocument()
+      expect(screen.queryByText('Purchase posted')).not.toBeInTheDocument()
     })
   })
 

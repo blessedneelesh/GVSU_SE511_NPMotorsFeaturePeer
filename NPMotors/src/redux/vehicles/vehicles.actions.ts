@@ -1,8 +1,10 @@
 import type {
   Vehicle,
-  VehicleFormValues,
+  VehicleBankAccountOption,
   VehiclePage,
-  VehicleSaveError,
+  VehiclePurchaseFormValues,
+  VehiclePurchaseResult,
+  VehiclePurchaseSaveError,
   VehicleStatusFilter,
   VehicleVendorOption,
 } from '../../types/vehicles'
@@ -31,21 +33,29 @@ export const loadVehicleByIdSuccess = (vehicle: Vehicle) => ({ type: VEHICLE_ACT
 
 export const loadVehicleByIdFailure = (message: string) => ({ type: VEHICLE_ACTIONS.LOAD_BY_ID_FAILURE, payload: message })
 
-// Fetches the vendors the Add Vehicle form offers
+// Fetches the vendors the Purchase Vehicle wizard offers
 export const loadVehicleVendorOptions = () => ({ type: VEHICLE_ACTIONS.LOAD_VENDOR_OPTIONS })
 
 export const loadVehicleVendorOptionsSuccess = (options: VehicleVendorOption[]) => ({ type: VEHICLE_ACTIONS.LOAD_VENDOR_OPTIONS_SUCCESS, payload: options })
 
 export const loadVehicleVendorOptionsFailure = (message: string) => ({ type: VEHICLE_ACTIONS.LOAD_VENDOR_OPTIONS_FAILURE, payload: message })
 
-export const createVehicle = (values: VehicleFormValues) => ({ type: VEHICLE_ACTIONS.CREATE, payload: values })
+// Fetches the bank accounts the Purchase Vehicle payment step can pay from
+export const loadVehicleBankAccountOptions = () => ({ type: VEHICLE_ACTIONS.LOAD_BANK_ACCOUNT_OPTIONS })
 
-export const createVehicleSuccess = () => ({ type: VEHICLE_ACTIONS.CREATE_SUCCESS })
+export const loadVehicleBankAccountOptionsSuccess = (options: VehicleBankAccountOption[]) => ({ type: VEHICLE_ACTIONS.LOAD_BANK_ACCOUNT_OPTIONS_SUCCESS, payload: options })
 
-export const createVehicleFailure = (error: VehicleSaveError) => ({ type: VEHICLE_ACTIONS.CREATE_FAILURE, payload: error })
+export const loadVehicleBankAccountOptionsFailure = (message: string) => ({ type: VEHICLE_ACTIONS.LOAD_BANK_ACCOUNT_OPTIONS_FAILURE, payload: message })
 
-// Clears the save status and errors, e.g. when the form is opened or closed or the success banner is dismissed
-export const resetVehicleSave = () => ({ type: VEHICLE_ACTIONS.RESET_SAVE })
+// Posts the Purchase Vehicle wizard: adds the vehicle and records the payment and/or AP bill
+export const purchaseVehicle = (values: VehiclePurchaseFormValues) => ({ type: VEHICLE_ACTIONS.PURCHASE, payload: values })
+
+export const purchaseVehicleSuccess = (result: VehiclePurchaseResult) => ({ type: VEHICLE_ACTIONS.PURCHASE_SUCCESS, payload: result })
+
+export const purchaseVehicleFailure = (error: VehiclePurchaseSaveError) => ({ type: VEHICLE_ACTIONS.PURCHASE_FAILURE, payload: error })
+
+// Clears the purchase status, errors and result, e.g. when the wizard opens or the confirmation banner is dismissed
+export const resetVehiclePurchase = () => ({ type: VEHICLE_ACTIONS.RESET_PURCHASE })
 
 export type VehiclesAction =
   | ReturnType<typeof loadVehicles>
@@ -62,7 +72,10 @@ export type VehiclesAction =
   | ReturnType<typeof loadVehicleVendorOptions>
   | ReturnType<typeof loadVehicleVendorOptionsSuccess>
   | ReturnType<typeof loadVehicleVendorOptionsFailure>
-  | ReturnType<typeof createVehicle>
-  | ReturnType<typeof createVehicleSuccess>
-  | ReturnType<typeof createVehicleFailure>
-  | ReturnType<typeof resetVehicleSave>
+  | ReturnType<typeof loadVehicleBankAccountOptions>
+  | ReturnType<typeof loadVehicleBankAccountOptionsSuccess>
+  | ReturnType<typeof loadVehicleBankAccountOptionsFailure>
+  | ReturnType<typeof purchaseVehicle>
+  | ReturnType<typeof purchaseVehicleSuccess>
+  | ReturnType<typeof purchaseVehicleFailure>
+  | ReturnType<typeof resetVehiclePurchase>

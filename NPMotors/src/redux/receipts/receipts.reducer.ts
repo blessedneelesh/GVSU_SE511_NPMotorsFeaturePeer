@@ -1,5 +1,6 @@
 import type { UnknownAction } from 'redux'
 import type { RequestStatus } from '../../types/common'
+import type { Receivable } from '../../types/receivables'
 import type { ReceiptBankAccountOption, ReceiptFieldErrors, ReceiptPayment } from '../../types/receipts'
 import type { ReceiptsAction } from './receipts.actions'
 import { RECEIPT_ACTIONS } from './receipts.constants'
@@ -16,16 +17,11 @@ export interface ReceiptsState {
   payments: ReceiptPayment[]
   paymentHistoryStatus: RequestStatus
   paymentHistoryError: string | null
-  // A sales invoice's receipts, keyed by the sales invoice so another invoice's are never shown
-  salesInvoicePaymentsId: string | null
-  salesInvoicePayments: ReceiptPayment[]
-  salesInvoicePaymentsStatus: RequestStatus
-  salesInvoicePaymentsError: string | null
-  // The AR invoice a sales invoice's payment is posted against, found when its payment dialog opens
-  arLookupSalesInvoiceId: string | null
-  arLookupArInvoiceId: string | null
-  arLookupStatus: RequestStatus
-  arLookupError: string | null
+  // The customer the open invoices belong to, so another customer's invoices are never offered
+  customerInvoicesCustomerId: string | null
+  customerInvoices: Receivable[]
+  customerInvoicesStatus: RequestStatus
+  customerInvoicesError: string | null
 }
 
 export const initialReceiptsState: ReceiptsState = {
@@ -39,14 +35,10 @@ export const initialReceiptsState: ReceiptsState = {
   payments: [],
   paymentHistoryStatus: 'idle',
   paymentHistoryError: null,
-  salesInvoicePaymentsId: null,
-  salesInvoicePayments: [],
-  salesInvoicePaymentsStatus: 'idle',
-  salesInvoicePaymentsError: null,
-  arLookupSalesInvoiceId: null,
-  arLookupArInvoiceId: null,
-  arLookupStatus: 'idle',
-  arLookupError: null,
+  customerInvoicesCustomerId: null,
+  customerInvoices: [],
+  customerInvoicesStatus: 'idle',
+  customerInvoicesError: null,
 }
 
 const receiptActionTypes: ReadonlySet<string> = new Set(Object.values(RECEIPT_ACTIONS))
@@ -64,11 +56,15 @@ export default function receiptsReducer(state: ReceiptsState = initialReceiptsSt
       return { ...state, bankAccountOptions: action.payload, bankAccountOptionsStatus: 'success' }
     case RECEIPT_ACTIONS.LOAD_BANK_ACCOUNT_OPTIONS_FAILURE:
       return { ...state, bankAccountOptionsStatus: 'error', bankAccountOptionsError: action.payload }
+    // Both receipt kinds share one save status: only one receipt form is ever open
     case RECEIPT_ACTIONS.RECORD_AR_PAYMENT:
+    case RECEIPT_ACTIONS.RECORD_MISC_RECEIPT:
       return { ...state, saveStatus: 'loading', saveError: null, fieldErrors: {} }
     case RECEIPT_ACTIONS.RECORD_AR_PAYMENT_SUCCESS:
+    case RECEIPT_ACTIONS.RECORD_MISC_RECEIPT_SUCCESS:
       return { ...state, saveStatus: 'success' }
     case RECEIPT_ACTIONS.RECORD_AR_PAYMENT_FAILURE:
+    case RECEIPT_ACTIONS.RECORD_MISC_RECEIPT_FAILURE:
       return { ...state, saveStatus: 'error', saveError: action.payload.message || null, fieldErrors: action.payload.fieldErrors }
     case RECEIPT_ACTIONS.RESET_SAVE:
       return { ...state, saveStatus: 'idle', saveError: null, fieldErrors: {} }
@@ -90,32 +86,24 @@ export default function receiptsReducer(state: ReceiptsState = initialReceiptsSt
       return { ...state, paymentHistoryStatus: 'error', paymentHistoryError: action.payload }
     case RECEIPT_ACTIONS.CLEAR_PAYMENT_HISTORY:
       return { ...state, paymentHistoryInvoiceId: null, payments: [], paymentHistoryStatus: 'idle', paymentHistoryError: null }
-    case RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS: {
-      const isSameInvoice = action.payload.salesInvoiceId === state.salesInvoicePaymentsId
+    case RECEIPT_ACTIONS.LOAD_CUSTOMER_INVOICES: {
+      // Reloading the same customer keeps their invoices on screen; another customer starts empty
+      const isSameCustomer = action.payload === state.customerInvoicesCustomerId
       return {
         ...state,
-        salesInvoicePaymentsId: action.payload.salesInvoiceId,
-        salesInvoicePayments: isSameInvoice ? state.salesInvoicePayments : [],
-        salesInvoicePaymentsStatus: 'loading',
-        salesInvoicePaymentsError: null,
+        customerInvoicesCustomerId: action.payload,
+        customerInvoices: isSameCustomer ? state.customerInvoices : [],
+        customerInvoicesStatus: 'loading',
+        customerInvoicesError: null,
       }
     }
-    case RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS_SUCCESS:
-      if (action.payload.salesInvoiceId !== state.salesInvoicePaymentsId) return state
-      return { ...state, salesInvoicePayments: action.payload.payments, salesInvoicePaymentsStatus: 'success' }
-    case RECEIPT_ACTIONS.LOAD_SALES_INVOICE_PAYMENTS_FAILURE:
-      return { ...state, salesInvoicePaymentsStatus: 'error', salesInvoicePaymentsError: action.payload }
-    case RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_PAYMENTS:
-      return { ...state, salesInvoicePaymentsId: null, salesInvoicePayments: [], salesInvoicePaymentsStatus: 'idle', salesInvoicePaymentsError: null }
-    case RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR:
-      return { ...state, arLookupSalesInvoiceId: action.payload.salesInvoiceId, arLookupArInvoiceId: null, arLookupStatus: 'loading', arLookupError: null }
-    case RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR_SUCCESS:
-      if (action.payload.salesInvoiceId !== state.arLookupSalesInvoiceId) return state
-      return { ...state, arLookupArInvoiceId: action.payload.arInvoiceId, arLookupStatus: 'success' }
-    case RECEIPT_ACTIONS.FIND_SALES_INVOICE_AR_FAILURE:
-      return { ...state, arLookupStatus: 'error', arLookupError: action.payload }
-    case RECEIPT_ACTIONS.CLEAR_SALES_INVOICE_AR:
-      return { ...state, arLookupSalesInvoiceId: null, arLookupArInvoiceId: null, arLookupStatus: 'idle', arLookupError: null }
+    case RECEIPT_ACTIONS.LOAD_CUSTOMER_INVOICES_SUCCESS:
+      if (action.payload.customerId !== state.customerInvoicesCustomerId) return state
+      return { ...state, customerInvoices: action.payload.invoices, customerInvoicesStatus: 'success' }
+    case RECEIPT_ACTIONS.LOAD_CUSTOMER_INVOICES_FAILURE:
+      return { ...state, customerInvoicesStatus: 'error', customerInvoicesError: action.payload }
+    case RECEIPT_ACTIONS.CLEAR_CUSTOMER_INVOICES:
+      return { ...state, customerInvoicesCustomerId: null, customerInvoices: [], customerInvoicesStatus: 'idle', customerInvoicesError: null }
     default: {
       const unhandled: never = action
       void unhandled

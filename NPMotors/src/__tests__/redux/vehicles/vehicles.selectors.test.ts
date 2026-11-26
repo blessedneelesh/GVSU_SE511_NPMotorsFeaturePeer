@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as selectors from '../../../redux/vehicles/vehicles.selectors'
 import { makeVehicleState } from '../../../test/test-utils'
-import { vehicle, vehiclePage, vehicleVendorOptions } from '../../../test/fixtures/vehicles'
+import { vehicle, vehicleBankAccountOptions, vehiclePage, vehiclePurchaseResult, vehicleVendorOptions } from '../../../test/fixtures/vehicles'
 
 const query = { pageNumber: 2, pageSize: 10, status: 'reserved', searchTerm: 'camry' } as const
 
@@ -19,9 +19,13 @@ const state = makeVehicleState({
   vendorOptions: vehicleVendorOptions,
   vendorOptionsStatus: 'success',
   vendorOptionsError: 'vendor error',
-  saveStatus: 'loading',
-  saveError: 'save error',
-  fieldErrors: { vin: 'The Vin field is required.' },
+  bankAccountOptions: vehicleBankAccountOptions,
+  bankAccountOptionsStatus: 'success',
+  bankAccountOptionsError: 'bank error',
+  purchaseStatus: 'loading',
+  purchaseError: 'purchase error',
+  purchaseFieldErrors: { vin: 'The Vin field is required.' },
+  purchaseResult: vehiclePurchaseResult,
 })
 
 describe('vehicles selectors', () => {
@@ -42,9 +46,13 @@ describe('vehicles selectors', () => {
     ['selectVehicleVendorOptions', selectors.selectVehicleVendorOptions, vehicleVendorOptions],
     ['selectVehicleVendorOptionsStatus', selectors.selectVehicleVendorOptionsStatus, 'success'],
     ['selectVehicleVendorOptionsError', selectors.selectVehicleVendorOptionsError, 'vendor error'],
-    ['selectVehicleSaveStatus', selectors.selectVehicleSaveStatus, 'loading'],
-    ['selectVehicleSaveError', selectors.selectVehicleSaveError, 'save error'],
-    ['selectVehicleFieldErrors', selectors.selectVehicleFieldErrors, { vin: 'The Vin field is required.' }],
+    ['selectVehicleBankAccountOptions', selectors.selectVehicleBankAccountOptions, vehicleBankAccountOptions],
+    ['selectVehicleBankAccountOptionsStatus', selectors.selectVehicleBankAccountOptionsStatus, 'success'],
+    ['selectVehicleBankAccountOptionsError', selectors.selectVehicleBankAccountOptionsError, 'bank error'],
+    ['selectVehiclePurchaseStatus', selectors.selectVehiclePurchaseStatus, 'loading'],
+    ['selectVehiclePurchaseError', selectors.selectVehiclePurchaseError, 'purchase error'],
+    ['selectVehiclePurchaseFieldErrors', selectors.selectVehiclePurchaseFieldErrors, { vin: 'The Vin field is required.' }],
+    ['selectVehiclePurchaseResult', selectors.selectVehiclePurchaseResult, vehiclePurchaseResult],
   ] as const)('%s', (_, selector, expected) => {
     expect(selector(state)).toEqual(expected)
   })

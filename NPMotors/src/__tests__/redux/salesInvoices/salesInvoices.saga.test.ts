@@ -26,13 +26,18 @@ import {
   saveSalesInvoiceSuccess,
   selectSalesInvoice,
   setSalesInvoiceStatusFilter,
+  clearCustomerSalesInvoices,
+  loadCustomerSalesInvoices,
+  loadCustomerSalesInvoicesFailure,
+  loadCustomerSalesInvoicesSuccess,
 } from '../../../redux/salesInvoices/salesInvoices.actions'
 import { SALES_INVOICE_ACTIONS } from '../../../redux/salesInvoices/salesInvoices.constants'
 import salesInvoicesSaga from '../../../redux/salesInvoices/salesInvoices.saga'
 import { selectSalesInvoiceQuery, selectSelectedSalesInvoiceId } from '../../../redux/salesInvoices/salesInvoices.selectors'
 import { salesInvoicesApi } from '../../../services/salesInvoices/salesInvoices.api'
-import { getSalesInvoiceErrorMessage, OPTIONS_FALLBACK_MESSAGE } from '../../../services/salesInvoices/salesInvoices.errors'
+import { CUSTOMER_INVOICES_FALLBACK_MESSAGE, getSalesInvoiceErrorMessage, OPTIONS_FALLBACK_MESSAGE } from '../../../services/salesInvoices/salesInvoices.errors'
 import {
+  customerSalesInvoices,
   cancelledInvoice,
   draftInvoice,
   postedInvoice,
@@ -55,6 +60,7 @@ vi.mock('../../../services/salesInvoices/salesInvoices.api', () => ({
     postDraft: vi.fn(),
     cancelSalesInvoice: vi.fn(),
     getOptions: vi.fn(),
+    getSalesInvoicesByCustomer: vi.fn(),
   },
 }))
 
@@ -72,6 +78,7 @@ const loadSalesInvoiceByIdWorker = workerAt(1)
 const loadOptionsWorker = workerAt(2)
 const saveSalesInvoiceWorker = workerAt(3)
 const cancelSalesInvoiceWorker = workerAt(4)
+const loadCustomerInvoicesWorker = workerAt(5)
 
 // The error helpers check axios.isAxiosError / axios.isCancel, so failures must be real axios errors
 const httpError = (status: number, data?: unknown) =>
@@ -83,7 +90,7 @@ const query: SalesInvoiceQuery = { pageNumber: 2, pageSize: 10, status: 'unpaid'
 const cancelRequest = { id: '6', reason: 'Customer financing fell through' }
 
 describe('salesInvoicesSaga (root)', () => {
-  it('starts the five watchers with the right patterns and effects', () => {
+  it('starts the six watchers with the right patterns and effects', () => {
     const gen = salesInvoicesSaga()
     expect(gen.next().value).toStrictEqual(all([
       takeLatest([SALES_INVOICE_ACTIONS.LOAD, SALES_INVOICE_ACTIONS.SET_STATUS_FILTER, SALES_INVOICE_ACTIONS.SET_FROM_DATE,
@@ -94,6 +101,7 @@ describe('salesInvoicesSaga (root)', () => {
       takeLeading([SALES_INVOICE_ACTIONS.CREATE, SALES_INVOICE_ACTIONS.POST, SALES_INVOICE_ACTIONS.UPDATE,
         SALES_INVOICE_ACTIONS.POST_DRAFT], saveSalesInvoiceWorker),
       takeLeading(SALES_INVOICE_ACTIONS.CANCEL, cancelSalesInvoiceWorker),
+      takeLatest([SALES_INVOICE_ACTIONS.LOAD_CUSTOMER_INVOICES, SALES_INVOICE_ACTIONS.CLEAR_CUSTOMER_INVOICES], loadCustomerInvoicesWorker),
     ]))
     expect(gen.next().done).toBe(true)
   })
@@ -420,6 +428,45 @@ function deferred<T>(): Deferred<T> {
 
 // Lets settled promises run through the saga before asserting that nothing changed
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+describe('loadCustomerInvoicesWorker', () => {
+  const start = () => {
+    const gen = loadCustomerInvoicesWorker(loadCustomerSalesInvoices('3'))
+    const effect = gen.next().value
+    expect(effect).toEqual(call(salesInvoicesApi.getSalesInvoicesByCustomer, '3', expect.any(AbortSignal)))
+    return gen
+  }
+
+  it('dispatches the invoices with the customer they belong to', () => {
+    const gen = start()
+    expect(gen.next(customerSalesInvoices).value).toStrictEqual(put(loadCustomerSalesInvoicesSuccess({ customerId: '3', invoices: customerSalesInvoices })))
+    expect(gen.next().value).toStrictEqual(cancelled())
+    expect(gen.next(false).done).toBe(true)
+  })
+
+  it('does nothing on CLEAR_CUSTOMER_INVOICES, which only cancels the previous load', () => {
+    expect(loadCustomerInvoicesWorker(clearCustomerSalesInvoices()).next().done).toBe(true)
+  })
+
+  it('falls back to the customer invoices message when the error has no detail', () => {
+    const gen = start()
+    expect(gen.throw(httpError(400)).value).toStrictEqual(put(loadCustomerSalesInvoicesFailure(CUSTOMER_INVOICES_FALLBACK_MESSAGE)))
+  })
+
+  it('dispatches nothing when the request was cancelled', () => {
+    const gen = start()
+    expect(gen.throw(canceled()).value).toStrictEqual(cancelled())
+  })
+
+  it('aborts the request when the customer is closed or another one opened', () => {
+    const gen = loadCustomerInvoicesWorker(loadCustomerSalesInvoices('3'))
+    const effect = gen.next().value as { payload: { args: [string, AbortSignal] } }
+    const signal = effect.payload.args[1]
+    expect(gen.return(undefined).value).toStrictEqual(cancelled())
+    gen.next(true)
+    expect(signal.aborted).toBe(true)
+  })
+})
 
 describe('salesInvoicesSaga (running)', () => {
   let task: Task

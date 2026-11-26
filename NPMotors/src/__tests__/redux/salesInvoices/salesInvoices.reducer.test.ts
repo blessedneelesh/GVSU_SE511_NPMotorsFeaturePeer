@@ -9,7 +9,7 @@ import salesInvoicesReducer, {
 } from '../../../redux/salesInvoices/salesInvoices.reducer'
 import { loadVehicles } from '../../../redux/vehicles/vehicles.actions'
 import { loadVendors } from '../../../redux/vendors/vendors.actions'
-import {
+import { customerSalesInvoices,
   postedInvoice,
   salesInvoiceFormValues,
   salesInvoiceOptions,
@@ -340,6 +340,42 @@ describe('salesInvoicesReducer', () => {
       const state = frozen({ ...initialSalesInvoicesState, cancelStatus: 'success', cancelError: 'x', saveStatus: 'error' })
       expect(salesInvoicesReducer(state, actions.resetSalesInvoiceCancel()))
         .toEqual({ ...initialSalesInvoicesState, saveStatus: 'error' })
+    })
+  })
+
+  describe('customer invoices', () => {
+    const loaded: SalesInvoicesState = {
+      ...initialSalesInvoicesState,
+      customerInvoicesCustomerId: '3',
+      customerInvoices: customerSalesInvoices,
+      customerInvoicesStatus: 'success',
+    }
+
+    it('LOAD_CUSTOMER_INVOICES for the same customer keeps their invoices while reloading', () => {
+      expect(salesInvoicesReducer({ ...loaded, customerInvoicesError: 'old' }, actions.loadCustomerSalesInvoices('3')))
+        .toMatchObject({ customerInvoicesCustomerId: '3', customerInvoices: customerSalesInvoices, customerInvoicesStatus: 'loading', customerInvoicesError: null })
+    })
+
+    it('LOAD_CUSTOMER_INVOICES for another customer starts empty', () => {
+      expect(salesInvoicesReducer(loaded, actions.loadCustomerSalesInvoices('4')))
+        .toMatchObject({ customerInvoicesCustomerId: '4', customerInvoices: [], customerInvoicesStatus: 'loading' })
+    })
+
+    it('LOAD_CUSTOMER_INVOICES_SUCCESS stores the invoices, and ignores a late answer for another customer', () => {
+      const loading = salesInvoicesReducer(initialSalesInvoicesState, actions.loadCustomerSalesInvoices('3'))
+      expect(salesInvoicesReducer(loading, actions.loadCustomerSalesInvoicesSuccess({ customerId: '3', invoices: customerSalesInvoices })))
+        .toMatchObject({ customerInvoices: customerSalesInvoices, customerInvoicesStatus: 'success' })
+      expect(salesInvoicesReducer(loading, actions.loadCustomerSalesInvoicesSuccess({ customerId: '9', invoices: customerSalesInvoices }))).toBe(loading)
+    })
+
+    it('LOAD_CUSTOMER_INVOICES_FAILURE stores the message', () => {
+      expect(salesInvoicesReducer(loaded, actions.loadCustomerSalesInvoicesFailure('nope')))
+        .toMatchObject({ customerInvoicesStatus: 'error', customerInvoicesError: 'nope' })
+    })
+
+    it('CLEAR_CUSTOMER_INVOICES forgets them and leaves the rest alone', () => {
+      expect(salesInvoicesReducer({ ...loaded, selectedId: '6' }, actions.clearCustomerSalesInvoices()))
+        .toEqual({ ...initialSalesInvoicesState, selectedId: '6' })
     })
   })
 })

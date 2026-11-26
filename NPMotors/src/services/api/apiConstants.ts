@@ -25,11 +25,13 @@ export const EMPLOYEE_ENDPOINTS = {
   getActiveSalespeople: 'Employee/GetActiveSalespeople',
 } as const
 
-// Also on the Customers API origin, so vehicle requests reuse customerClient
+// Also on the Customers API origin, so vehicle requests reuse customerClient.
+// PurchaseVehicle (VehiclePurchaseCreateDto) adds the vehicle and records how it was paid in one transaction:
+// a bank payment for any amount paid, and an AP bill for any balance left on account.
 export const VEHICLE_ENDPOINTS = {
   getAllVehicles: 'Vehicle/GetAllVehicles',
   getVehicleById: 'Vehicle/GetVehicleById',
-  addVehicle: 'Vehicle/AddVehicle',
+  purchaseVehicle: 'Vehicle/PurchaseVehicle',
 } as const
 
 // Also on the Customers API origin, so part requests reuse customerClient.
@@ -48,6 +50,8 @@ export const PART_ENDPOINTS = {
 // CancelSalesInvoice takes ?id= and { reason }, and only accepts posted invoices with nothing paid.
 export const SALES_INVOICE_ENDPOINTS = {
   getAllSalesInvoices: 'SalesInvoice/GetAllSalesInvoices',
+  // ?customerId=; every invoice of the customer in { items } with no paging, and an empty list for an unknown customer
+  getSalesInvoicesByCustomer: 'SalesInvoice/GetSalesInvoiceByCustomer',
   getSalesInvoiceById: 'SalesInvoice/GetSalesInvoiceById',
   addSalesInvoice: 'SalesInvoice/AddSalesInvoice',
   createAndPost: 'SalesInvoice/CreateAndPost',
@@ -87,8 +91,30 @@ export const AR_ENDPOINTS = {
   getArById: 'Ar/GetArById',
 } as const
 
+// Accounts payable (Accounts Payable page), on the Customers API origin. GetAllApBills returns open bills (settled ones
+// only under Status=paid) and takes VendorId, Status (unpaid | partial | overdue | paid) and AsOfDate; it has no SearchTerm.
+// GetApById (?id=) lives under the Ap prefix, not APBill, and answers 404 for an unknown id.
+// GetPaymentHistory takes the bill id in the path and returns the bill with its payments (404 for an unknown id).
+// RecordVendorPayment (POST, bill id in the path, VendorPaymentCreateDto) pays the bill from a bank account.
+export const AP_BILL_ENDPOINTS = {
+  getAllApBills: 'APBill/GetAllApBills',
+  getApById: 'Ap/GetApById',
+  getPaymentHistory: (apBillId: string) => `APBill/GetPaymentHistory/${encodeURIComponent(apBillId)}`,
+  recordVendorPayment: (apBillId: string) => `APBill/RecordVendorPayment/${encodeURIComponent(apBillId)}`,
+} as const
+
+// Receipts, on the Customers API origin. RecordArPayment (AR invoice id in the path, RecordArPaymentRequest) takes a customer's
+// payment against one invoice; RecordMiscReceipt (RecordMiscReceiptRequest: the same fields plus payer and a required
+// description) records money from anyone else. The Bank Receipts page picks one by its "Received From" choice.
+// Bank payments (Bank Payments page, "Paid To: Other Party"), on the Customers API origin. RecordMiscellaneousPayment takes
+// MiscellaneousPaymentCreateDto; vendor payments go to AP_BILL_ENDPOINTS.recordVendorPayment instead.
+export const BANK_PAYMENT_ENDPOINTS = {
+  recordMiscellaneousPayment: 'BankPayment/RecordMiscellaneousPayment',
+} as const
+
 export const RECEIPT_ENDPOINTS = {
   // The AR invoice id goes in the path
   recordArPayment: (arInvoiceId: string) => `Receipt/RecordArPayment/${encodeURIComponent(arInvoiceId)}`,
+  recordMiscReceipt: 'Receipt/RecordMiscReceipt',
   getPaymentHistory: (arInvoiceId: string) => `Receipt/GetPaymentHistory/${encodeURIComponent(arInvoiceId)}`,
 } as const

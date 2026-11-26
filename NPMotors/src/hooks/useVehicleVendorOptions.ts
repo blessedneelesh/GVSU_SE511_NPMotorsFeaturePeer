@@ -16,7 +16,7 @@ export interface UseVehicleVendorOptionsResult {
   retry: () => void
 }
 
-// Loads the vehicle vendors on mount, so the Add Vehicle form always offers the current list
+// Loads the vehicle vendors on mount, so the Purchase Vehicle wizard always offers the current list
 export function useVehicleVendorOptions(): UseVehicleVendorOptionsResult {
   const dispatch = useAppDispatch()
   const vendorOptions = useAppSelector(selectVehicleVendorOptions)
