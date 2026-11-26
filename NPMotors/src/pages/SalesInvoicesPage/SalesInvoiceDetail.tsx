@@ -579,15 +579,22 @@ function PaymentHistoryPanel({ invoice, onReceivePayment }: { invoice: SalesInvo
             </TableRow>
           </TableHeader>
           <TableBody>
-            {newestFirst.length > 0 ? newestFirst.map((payment, index) => (
-              <TableRow key={payment.id || `${payment.receiptNumber}-${index}`}>
-                <TableCell className="text-secondary">{payment.receiptDate || '—'}</TableCell>
-                <TableCell><span className="method-chip">{paymentMethodLabel(payment.paymentMethod)}</span></TableCell>
-                <TableCell className="mono text-xs text-link">{payment.receiptNumber || '—'}</TableCell>
-                <TableCell className="num strong text-green">{formatAmount(payment.amount)}</TableCell>
-                <TableCell className="text-xs text-muted">{paymentNote(payment)}</TableCell>
-              </TableRow>
-            )) : (
+            {newestFirst.length > 0 ? newestFirst.map((payment, index) => {
+              // Reversed receipts stay listed but greyed out; they're already left out of Total Paid
+              const isReversed = payment.status === 'Reversed'
+              return (
+                <TableRow key={payment.id || `${payment.receiptNumber}-${index}`} className={isReversed ? 'payment-row--reversed' : undefined}>
+                  <TableCell className="text-secondary">{payment.receiptDate || '—'}</TableCell>
+                  <TableCell><span className="method-chip">{paymentMethodLabel(payment.paymentMethod)}</span></TableCell>
+                  <TableCell className="mono text-xs text-link">{payment.receiptNumber || '—'}</TableCell>
+                  <TableCell className="num strong text-green payment-row__amount">{formatAmount(payment.amount)}</TableCell>
+                  <TableCell className="text-xs text-muted">
+                    {isReversed && <span className="badge badge-reversed">Reversed</span>}
+                    {paymentNote(payment)}
+                  </TableCell>
+                </TableRow>
+              )
+            }) : (
               <TableRow>
                 <TableCell className="text-secondary">{invoice.invoiceDate || '—'}</TableCell>
                 <TableCell><span className="method-chip">Recorded payment</span></TableCell>

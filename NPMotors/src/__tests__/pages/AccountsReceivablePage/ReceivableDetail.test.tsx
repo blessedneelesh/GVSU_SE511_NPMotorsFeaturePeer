@@ -166,6 +166,30 @@ describe('ReceivableDetail', () => {
     ])
   })
 
+  it('greys out a reversed receipt in the table and the timeline', () => {
+    const { store } = renderLoaded(receivableDetail)
+    const [first, second] = receiptPayments
+    answerHistory(store, '2471', [first!, { ...second!, status: 'Reversed' }])
+
+    const [reversed, posted] = within(screen.getByRole('table', { name: 'Payment history' })).getAllByRole('row').slice(1)
+    expect(reversed).toHaveClass('payment-row--reversed')
+    expect(within(reversed!).getAllByRole('cell')[1]).toHaveTextContent('RCT-2026-000462Reversed')
+    expect(posted).not.toHaveClass('payment-row--reversed')
+
+    const steps = within(screen.getByRole('list')).getAllByRole('listitem')
+    expect(steps[2]).toHaveTextContent('Payment Reversed — $650.00')
+    expect(steps[2]).not.toHaveClass('is-done')
+    expect(steps[1]).toHaveTextContent('Payment Received — $1,200.00')
+    expect(steps[1]).toHaveClass('is-done')
+  })
+
+  it('dates Fully Settled with the last receipt that was not reversed', () => {
+    const { store } = renderLoaded(paidReceivableDetail)
+    const [first, second] = receiptPayments
+    answerHistory(store, '4', [{ ...first!, receiptDate: '2026-11-12' }, { ...second!, receiptDate: '2026-11-20', status: 'Reversed' }])
+    expect(screen.getByText('Fully Settled').nextElementSibling).toHaveTextContent('2026-11-12')
+  })
+
   it('dates Fully Settled with the last payment', () => {
     const { store } = renderLoaded(paidReceivableDetail)
     answerHistory(store, '4', [{ ...receiptPayments[0]!, receiptDate: '2026-11-12' }])

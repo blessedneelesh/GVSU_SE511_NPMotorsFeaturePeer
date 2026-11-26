@@ -1,6 +1,6 @@
 import type { BankAccount } from '../../types/bankAccounts'
 import type { PaymentMethod } from '../../types/common'
-import type { MiscReceiptRequest, ReceiptBankAccountOption, ReceiptFormValues, ReceiptPayment } from '../../types/receipts'
+import type { MiscReceiptRequest, ReceiptBankAccountOption, ReceiptFormValues, ReceiptPayment, ReceiptPaymentStatus } from '../../types/receipts'
 
 // Only active accounts can take a deposit; accounts without an id can't be posted to
 export function toReceiptBankAccountOptions(accounts: BankAccount[]): ReceiptBankAccountOption[] {
@@ -61,6 +61,7 @@ const PAYMENT_FIELDS = {
   paymentMethod: ['paymentMethod', 'PaymentMethod', 'payment_Method', 'Payment_Method'],
   reference: ['reference', 'Reference'],
   bankAccountName: ['bankAccountName', 'BankAccountName', 'bank_Account_Name', 'Bank_Account_Name'],
+  status: ['status', 'Status'],
 } as const
 
 type PaymentField = keyof typeof PAYMENT_FIELDS
@@ -97,6 +98,11 @@ function readPaymentMethod(dto: Record<string, unknown>): PaymentMethod | null {
   return PAYMENT_METHODS.find((method) => method === value) ?? null
 }
 
+// The API sends "Posted" or "Reversed"; anything else (or no status, from an older API) is treated as Posted
+function readPaymentStatus(dto: Record<string, unknown>): ReceiptPaymentStatus {
+  return readPaymentString(dto, 'status').toLowerCase() === 'reversed' ? 'Reversed' : 'Posted'
+}
+
 export function mapReceiptPayment(dto: Record<string, unknown>): ReceiptPayment {
   return {
     id: readPaymentString(dto, 'id'),
@@ -107,6 +113,7 @@ export function mapReceiptPayment(dto: Record<string, unknown>): ReceiptPayment 
     paymentMethod: readPaymentMethod(dto),
     reference: readPaymentString(dto, 'reference'),
     bankAccountName: readPaymentString(dto, 'bankAccountName'),
+    status: readPaymentStatus(dto),
   }
 }
 
