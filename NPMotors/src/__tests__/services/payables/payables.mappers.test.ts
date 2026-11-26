@@ -4,12 +4,13 @@ import {
   mapPayable,
   mapPayableCollection,
   mapPayableDetail,
+  mapPayablePaymentHistory,
   normalizeAgingBucket,
   normalizePayableStatus,
   readHasNext,
   toPayableVendorOptions,
 } from '../../../services/payables/payables.mappers'
-import { overduePayable, overduePayableDetail, partialPayableDetail, sparsePayable, sparsePayableDetail } from '../../../test/fixtures/payables'
+import { overduePayable, overduePayableDetail, partialPayableDetail, payablePayments, sparsePayable, sparsePayableDetail } from '../../../test/fixtures/payables'
 import { vendor } from '../../../test/fixtures/vendors'
 
 // AP bill 4 exactly as GetAllApBills returns it
@@ -63,6 +64,33 @@ describe('mapPayableDetail', () => {
 
   it('falls back to empty values for a non-object', () => {
     expect(mapPayableDetail(undefined)).toEqual(sparsePayableDetail)
+  })
+})
+
+describe('mapPayablePaymentHistory', () => {
+  // AP bill 10 exactly as GetPaymentHistory returns it
+  const historyDto = {
+    id: 10, number: 'AP-2026-000010', vendor_Id: 1, amount: 54000.0, paid: 5500.0, balance: 48500.0, status: 'partial',
+    payments: [
+      { id: 8, payment_Number: 'PAY-2026-000008', payment_Date: '2026-11-23T00:00:00', payment_Method: 'Card', reference: 'string', amount: 5000.0, bank_Account_Id: 1, transaction_Id: 3746, status: 'Posted' },
+      { id: 9, payment_Number: 'PAY-2026-000009', payment_Date: '2026-11-25T00:00:00', payment_Method: 'Check', reference: 'string', amount: 500.0, bank_Account_Id: 1, transaction_Id: 3751, status: 'Posted' },
+    ],
+  }
+
+  it('maps the payments of the returned bill', () => {
+    expect(mapPayablePaymentHistory(historyDto)).toEqual(payablePayments)
+  })
+
+  it('accepts a bare array, and returns [] when there are no payments', () => {
+    expect(mapPayablePaymentHistory(historyDto.payments)).toEqual(payablePayments)
+    expect(mapPayablePaymentHistory({ ...historyDto, payments: [] })).toEqual([])
+    expect(mapPayablePaymentHistory(null)).toEqual([])
+  })
+
+  it('leaves an unknown method out and falls back for missing fields', () => {
+    expect(mapPayablePaymentHistory([{ payment_Method: 'Wire', amount: 'x' }, 'junk'])).toEqual([
+      { id: '', paymentNumber: '', paymentDate: '', paymentMethod: null, reference: '', amount: 0 },
+    ])
   })
 })
 

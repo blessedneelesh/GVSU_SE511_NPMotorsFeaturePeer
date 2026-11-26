@@ -4,6 +4,7 @@ const UNREACHABLE_MESSAGE = 'Accounts payable service is unreachable. Is the API
 const FALLBACK_MESSAGE = 'Payables could not be loaded. Please try again.'
 const DETAIL_FALLBACK_MESSAGE = 'This bill could not be loaded. Please try again.'
 const NOT_FOUND_MESSAGE = 'This bill no longer exists.'
+const PAYMENT_HISTORY_FALLBACK_MESSAGE = 'Payment history could not be loaded. Please try again.'
 export const VENDOR_OPTIONS_FALLBACK_MESSAGE = 'Vendors could not be loaded. Please try again.'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -46,4 +47,10 @@ export function getPayableErrorMessage(error: unknown, fallback: string = FALLBA
 export function getPayableDetailErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error) && error.response?.status === 404) return NOT_FOUND_MESSAGE
   return getPayableErrorMessage(error, DETAIL_FALLBACK_MESSAGE)
+}
+
+// GetPaymentHistory also answers 404 for an unknown bill
+export function getPaymentHistoryErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error) && error.response?.status === 404) return NOT_FOUND_MESSAGE
+  return getPayableErrorMessage(error, PAYMENT_HISTORY_FALLBACK_MESSAGE)
 }

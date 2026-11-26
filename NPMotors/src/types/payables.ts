@@ -1,3 +1,5 @@
+import type { PaymentMethod } from './common'
+
 // The bill's status as the list shows it. GetAllApBills sends "Overdue" once past due, otherwise the bill's own
 // status (in mixed case: "unpaid", "Unpaid", "partial"). Settled bills are never returned, but "Paid" is kept so an
 // unexpected one still gets a sensible badge.
@@ -76,4 +78,23 @@ export interface PayablePage {
 export interface PayableVendorOption {
   id: string
   name: string
+}
+
+// One vendor payment from GetPaymentHistory
+export interface PayablePayment {
+  id: string
+  // PAY-…
+  paymentNumber: string
+  // YYYY-MM-DD
+  paymentDate: string
+  // null when the API sends a method this app doesn't know
+  paymentMethod: PaymentMethod | null
+  reference: string
+  amount: number
+}
+
+// GetPaymentHistory's payments, tagged with the bill they belong to so a late answer for another bill can be ignored
+export interface PayablePaymentHistory {
+  apBillId: string
+  payments: PayablePayment[]
 }

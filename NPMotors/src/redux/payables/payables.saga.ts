@@ -4,13 +4,18 @@ import { payablesApi } from '../../services/payables/payables.api'
 import {
   getPayableDetailErrorMessage,
   getPayableErrorMessage,
+  getPaymentHistoryErrorMessage,
   VENDOR_OPTIONS_FALLBACK_MESSAGE,
 } from '../../services/payables/payables.errors'
-import type { PayableDetail, PayablePage, PayableQuery, PayableVendorOption } from '../../types/payables'
+import type { PayableDetail, PayablePage, PayablePayment, PayableQuery, PayableVendorOption } from '../../types/payables'
 import {
+  type clearPayablePaymentHistory,
   type clearPayableSelection,
+  type loadPayablePaymentHistory,
   loadPayableByIdFailure,
   loadPayableByIdSuccess,
+  loadPayablePaymentHistoryFailure,
+  loadPayablePaymentHistorySuccess,
   loadPayablesFailure,
   loadPayablesSuccess,
   loadPayableVendorOptionsFailure,
@@ -54,6 +59,25 @@ function* loadPayableByIdWorker(action: PayableDetailAction): SagaIterator {
   }
 }
 
+type PaymentHistoryAction = ReturnType<typeof loadPayablePaymentHistory> | ReturnType<typeof clearPayablePaymentHistory>
+
+function* loadPaymentHistoryWorker(action: PaymentHistoryAction): SagaIterator {
+  // CLEAR_PAYMENT_HISTORY only exists so takeLatest cancels an in-flight load when the bill is closed
+  if (action.type !== PAYABLE_ACTIONS.LOAD_PAYMENT_HISTORY) return
+  const apBillId = action.payload
+  const controller = new AbortController()
+  try {
+    const payments: PayablePayment[] = yield call(payablesApi.getPaymentHistory, apBillId, controller.signal)
+    yield put(loadPayablePaymentHistorySuccess({ apBillId, payments }))
+  } catch (error) {
+    const message = getPaymentHistoryErrorMessage(error)
+    if (message) yield put(loadPayablePaymentHistoryFailure(message))
+  } finally {
+    const wasCancelled: boolean = yield cancelled()
+    if (wasCancelled) controller.abort()
+  }
+}
+
 function* loadVendorOptionsWorker(): SagaIterator {
   const controller = new AbortController()
   try {
@@ -84,6 +108,7 @@ export default function* payablesSaga(): SagaIterator {
     ),
     // Leaving the detail view cancels an in-flight lookup, so a late response can't fill a closed view
     takeLatest([PAYABLE_ACTIONS.SELECT, PAYABLE_ACTIONS.CLEAR_SELECTION], loadPayableByIdWorker),
+    takeLatest([PAYABLE_ACTIONS.LOAD_PAYMENT_HISTORY, PAYABLE_ACTIONS.CLEAR_PAYMENT_HISTORY], loadPaymentHistoryWorker),
     takeLatest(PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS, loadVendorOptionsWorker),
   ])
 }

@@ -94,9 +94,11 @@ export const AR_ENDPOINTS = {
 // Accounts payable (Accounts Payable page), on the Customers API origin. GetAllApBills returns open bills only and
 // takes VendorId, Status (unpaid | partial | overdue) and AsOfDate; it has no SearchTerm.
 // GetApById (?id=) lives under the Ap prefix, not APBill, and answers 404 for an unknown id.
+// GetPaymentHistory takes the bill id in the path and returns the bill with its payments (404 for an unknown id).
 export const AP_BILL_ENDPOINTS = {
   getAllApBills: 'APBill/GetAllApBills',
   getApById: 'Ap/GetApById',
+  getPaymentHistory: (apBillId: string) => `APBill/GetPaymentHistory/${encodeURIComponent(apBillId)}`,
 } as const
 
 export const RECEIPT_ENDPOINTS = {

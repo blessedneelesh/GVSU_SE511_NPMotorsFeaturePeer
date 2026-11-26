@@ -6,6 +6,12 @@ import {
   MessageBarTitle,
   ProgressBar,
   Spinner,
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
 } from '@fluentui/react-components'
 import {
   BuildingFactory24Regular,
@@ -17,12 +23,22 @@ import {
 } from '@fluentui/react-icons'
 import type { ReactElement } from 'react'
 import { usePayableDetail } from '../../hooks/usePayableDetail'
-import type { PayableDetail as PayableDetailData } from '../../types/payables'
-import { formatCurrencyExact, paidPercent, payableAgingClass, statusBadgeClass } from './payableMetrics'
+import { type UsePayablePaymentHistoryResult, usePayablePaymentHistory } from '../../hooks/usePayablePaymentHistory'
+import type { PayableDetail as PayableDetailData, PayablePayment } from '../../types/payables'
+import {
+  formatCurrencyExact,
+  paidPercent,
+  payableAgingClass,
+  paymentMethodLabel,
+  sortPaymentsOldestFirst,
+  statusBadgeClass,
+} from './payableMetrics'
 
 // Loads the selected bill from GetApById via Redux; the list page decides when it's shown
 export function PayableDetail() {
-  const { payable, detailStatus, detailError, closePayable, retry } = usePayableDetail()
+  const { selectedId, payable, detailStatus, detailError, closePayable, retry } = usePayableDetail()
+  // Loaded beside GetApById, by the selected id
+  const paymentHistory = usePayablePaymentHistory(selectedId)
 
   return (
     <div className="payables-page">
@@ -50,7 +66,7 @@ export function PayableDetail() {
         </section>
       )}
 
-      {detailStatus === 'success' && payable && <PayableProfile payable={payable} />}
+      {detailStatus === 'success' && payable && <PayableProfile payable={payable} paymentHistory={paymentHistory} />}
     </div>
   )
 }
@@ -62,20 +78,30 @@ interface TimelineStep {
   done: boolean
 }
 
-function PayableProfile({ payable }: { payable: PayableDetailData }) {
+interface PayableProfileProps {
+  payable: PayableDetailData
+  paymentHistory: UsePayablePaymentHistoryResult
+}
+
+function PayableProfile({ payable, paymentHistory }: PayableProfileProps) {
   const isSettled = payable.balance <= 0
   const isOverdue = !isSettled && payable.daysOverdue > 0
   const percent = paidPercent(payable.paid, payable.amount)
   const dash = (value: string) => value || '—'
 
-  // GetApById has no payments or payment dates, so a payment shows as one undated step for the total paid
+  const paymentsOldestFirst = sortPaymentsOldestFirst(paymentHistory.payments)
+  const lastPayment = paymentsOldestFirst.at(-1)
+
   const timeline: TimelineStep[] = [
     { label: 'Bill Received', date: payable.date, icon: <Document16Regular />, done: true },
-    ...(payable.paid > 0 && !isSettled
-      ? [{ label: `Partial Payment — ${formatCurrencyExact(payable.paid)}`, date: '', icon: <Payment16Regular />, done: true }]
-      : []),
+    ...paymentsOldestFirst.map((payment) => ({
+      label: `Payment Made — ${formatCurrencyExact(payment.amount)}`,
+      date: payment.paymentDate,
+      icon: <Payment16Regular />,
+      done: true,
+    })),
     isSettled
-      ? { label: 'Fully Settled', date: '', icon: <CheckmarkCircle16Regular />, done: true }
+      ? { label: 'Fully Settled', date: lastPayment?.paymentDate ?? '', icon: <CheckmarkCircle16Regular />, done: true }
       : { label: 'Payment Due', date: payable.dueDate, icon: isOverdue ? <Warning16Regular /> : <Clock16Regular />, done: false },
   ]
 
@@ -135,6 +161,13 @@ function PayableProfile({ payable }: { payable: PayableDetailData }) {
               </dl>
             </div>
           </section>
+
+          <PaymentHistory
+            payments={[...paymentsOldestFirst].reverse()}
+            status={paymentHistory.paymentHistoryStatus}
+            error={paymentHistory.paymentHistoryError}
+            onRetry={paymentHistory.retry}
+          />
         </div>
 
         <aside className="payable-layout__side">
@@ -150,8 +183,9 @@ function PayableProfile({ payable }: { payable: PayableDetailData }) {
           <section className="card payable-section">
             <h2 className="section-title">Timeline</h2>
             <ol className="payable-timeline">
-              {timeline.map((step) => (
-                <li key={step.label} className={step.done ? 'is-done' : ''}>
+              {timeline.map((step, index) => (
+                // Two same-day payments of the same amount would share a label, so the position is part of the key
+                <li key={`${index}-${step.label}`} className={step.done ? 'is-done' : ''}>
                   <span className="payable-timeline__icon" aria-hidden="true">{step.icon}</span>
                   <div>
                     <div className="payable-timeline__label">{step.label}</div>
@@ -173,5 +207,73 @@ function PayableProfile({ payable }: { payable: PayableDetailData }) {
         </aside>
       </div>
     </>
+  )
+}
+
+interface PaymentHistoryProps {
+  // Newest first, as the design lists them
+  payments: PayablePayment[]
+  status: UsePayablePaymentHistoryResult['paymentHistoryStatus']
+  error: string | null
+  onRetry: () => void
+}
+
+// Vendor payments from GetPaymentHistory. A reload keeps the old rows until the new ones arrive.
+function PaymentHistory({ payments, status, error, onRetry }: PaymentHistoryProps) {
+  const isFirstLoad = (status === 'loading' || status === 'idle') && payments.length === 0
+  const dash = (value: string) => value || '—'
+
+  return (
+    <section className="card payable-payments" aria-labelledby="payable-payments-title">
+      <header className="payable-payments__header">
+        <h2 id="payable-payments-title">Payment History</h2>
+      </header>
+
+      {status === 'error' ? (
+        <MessageBar intent="error" className="payable-payments__message">
+          <MessageBarBody>
+            <MessageBarTitle>Couldn&apos;t load payments</MessageBarTitle>
+            {error}
+          </MessageBarBody>
+          <MessageBarActions>
+            <Button onClick={onRetry}>Retry</Button>
+          </MessageBarActions>
+        </MessageBar>
+      ) : isFirstLoad ? (
+        <div className="payable-payments__empty">
+          <Spinner size="small" label="Loading payments…" />
+        </div>
+      ) : payments.length === 0 ? (
+        <div className="payable-payments__empty">
+          <Payment16Regular aria-hidden="true" />
+          <span>No payments recorded yet</span>
+        </div>
+      ) : (
+        <div className={`table-scroll${status === 'loading' ? ' is-refreshing' : ''}`}>
+          <Table className="data-table payable-payments-table" aria-label="Payment history" aria-busy={status === 'loading'}>
+            <TableHeader>
+              <TableRow>
+                <TableHeaderCell>Date</TableHeaderCell>
+                <TableHeaderCell>Payment #</TableHeaderCell>
+                <TableHeaderCell>Method</TableHeaderCell>
+                <TableHeaderCell>Reference</TableHeaderCell>
+                <TableHeaderCell className="num">Amount</TableHeaderCell>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {payments.map((payment, index) => (
+                <TableRow key={payment.id || `${payment.paymentNumber}-${index}`}>
+                  <TableCell className="text-xs text-muted">{dash(payment.paymentDate)}</TableCell>
+                  <TableCell className="mono text-xs text-link">{dash(payment.paymentNumber)}</TableCell>
+                  <TableCell className="text-secondary">{paymentMethodLabel(payment.paymentMethod)}</TableCell>
+                  <TableCell className="mono text-xs text-muted">{dash(payment.reference)}</TableCell>
+                  <TableCell className="num text-red payable-payments__amount">{formatCurrencyExact(payment.amount)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </section>
   )
 }

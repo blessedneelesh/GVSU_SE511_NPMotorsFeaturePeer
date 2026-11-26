@@ -1,4 +1,11 @@
-import type { PayableDetail, PayablePage, PayableStatusFilter, PayableVendorFilter, PayableVendorOption } from '../../types/payables'
+import type {
+  PayableDetail,
+  PayablePage,
+  PayablePaymentHistory,
+  PayableStatusFilter,
+  PayableVendorFilter,
+  PayableVendorOption,
+} from '../../types/payables'
 import { PAYABLE_ACTIONS } from './payables.constants'
 
 export const loadPayables = () => ({ type: PAYABLE_ACTIONS.LOAD })
@@ -31,6 +38,16 @@ export const loadPayableByIdSuccess = (payable: PayableDetail) => ({ type: PAYAB
 
 export const loadPayableByIdFailure = (message: string) => ({ type: PAYABLE_ACTIONS.LOAD_BY_ID_FAILURE, payload: message })
 
+// Loads the payments of the given bill from GetPaymentHistory
+export const loadPayablePaymentHistory = (apBillId: string) => ({ type: PAYABLE_ACTIONS.LOAD_PAYMENT_HISTORY, payload: apBillId })
+
+export const loadPayablePaymentHistorySuccess = (history: PayablePaymentHistory) => ({ type: PAYABLE_ACTIONS.LOAD_PAYMENT_HISTORY_SUCCESS, payload: history })
+
+export const loadPayablePaymentHistoryFailure = (message: string) => ({ type: PAYABLE_ACTIONS.LOAD_PAYMENT_HISTORY_FAILURE, payload: message })
+
+// Forgets the payments when the bill is closed; also cancels an in-flight load
+export const clearPayablePaymentHistory = () => ({ type: PAYABLE_ACTIONS.CLEAR_PAYMENT_HISTORY })
+
 // The vendors offered in the vendor filter
 export const loadPayableVendorOptions = () => ({ type: PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS })
 
@@ -52,6 +69,10 @@ export type PayablesAction =
   | ReturnType<typeof clearPayableSelection>
   | ReturnType<typeof loadPayableByIdSuccess>
   | ReturnType<typeof loadPayableByIdFailure>
+  | ReturnType<typeof loadPayablePaymentHistory>
+  | ReturnType<typeof loadPayablePaymentHistorySuccess>
+  | ReturnType<typeof loadPayablePaymentHistoryFailure>
+  | ReturnType<typeof clearPayablePaymentHistory>
   | ReturnType<typeof loadPayableVendorOptions>
   | ReturnType<typeof loadPayableVendorOptionsSuccess>
   | ReturnType<typeof loadPayableVendorOptionsFailure>

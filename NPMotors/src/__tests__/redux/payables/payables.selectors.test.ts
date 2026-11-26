@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as selectors from '../../../redux/payables/payables.selectors'
 import { makePayableState } from '../../../test/test-utils'
-import { overduePayableDetail, payablePage, payableVendorOptions } from '../../../test/fixtures/payables'
+import { overduePayableDetail, payablePage, payablePayments, payableVendorOptions } from '../../../test/fixtures/payables'
 
 const query = { pageNumber: 2, pageSize: 10, status: 'overdue', vendorId: '3', asOfDate: '2024-04-01' } as const
 
@@ -16,6 +16,10 @@ const state = makePayableState({
   selected: overduePayableDetail,
   detailStatus: 'success',
   detailError: 'detail error',
+  paymentHistoryBillId: '10',
+  payments: payablePayments,
+  paymentHistoryStatus: 'error',
+  paymentHistoryError: 'history error',
   vendorOptions: payableVendorOptions,
   vendorOptionsStatus: 'error',
   vendorOptionsError: 'options error',
@@ -36,6 +40,10 @@ describe('payables selectors', () => {
     ['selectSelectedPayable', selectors.selectSelectedPayable, overduePayableDetail],
     ['selectPayableDetailStatus', selectors.selectPayableDetailStatus, 'success'],
     ['selectPayableDetailError', selectors.selectPayableDetailError, 'detail error'],
+    ['selectPayablePaymentHistoryBillId', selectors.selectPayablePaymentHistoryBillId, '10'],
+    ['selectPayablePayments', selectors.selectPayablePayments, payablePayments],
+    ['selectPayablePaymentHistoryStatus', selectors.selectPayablePaymentHistoryStatus, 'error'],
+    ['selectPayablePaymentHistoryError', selectors.selectPayablePaymentHistoryError, 'history error'],
     ['selectPayableVendorOptions', selectors.selectPayableVendorOptions, payableVendorOptions],
     ['selectPayableVendorOptionsStatus', selectors.selectPayableVendorOptionsStatus, 'error'],
     ['selectPayableVendorOptionsError', selectors.selectPayableVendorOptionsError, 'options error'],

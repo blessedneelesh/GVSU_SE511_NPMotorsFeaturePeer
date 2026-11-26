@@ -1,4 +1,4 @@
-import type { Payable, PayableDetail, PayablePage, PayableVendorOption } from '../../types/payables'
+import type { Payable, PayableDetail, PayablePage, PayablePayment, PayableVendorOption } from '../../types/payables'
 
 // Matches AP bill 4 of the running API's sample data, after mapping: unpaid and long overdue
 export const overduePayable: Payable = {
@@ -150,3 +150,9 @@ export const sparsePayableDetail: PayableDetail = {
   email: '',
   address: '',
 }
+
+// GetPaymentHistory for AP bill 10, after mapping (in the API's order: oldest first)
+export const payablePayments: PayablePayment[] = [
+  { id: '8', paymentNumber: 'PAY-2026-000008', paymentDate: '2026-11-23', paymentMethod: 'card', reference: 'string', amount: 5000 },
+  { id: '9', paymentNumber: 'PAY-2026-000009', paymentDate: '2026-11-25', paymentMethod: 'check', reference: 'string', amount: 500 },
+]

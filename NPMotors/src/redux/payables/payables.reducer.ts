@@ -1,6 +1,6 @@
 import type { UnknownAction } from 'redux'
 import type { RequestStatus } from '../../types/common'
-import type { Payable, PayableDetail, PayableQuery, PayableVendorOption } from '../../types/payables'
+import type { Payable, PayableDetail, PayablePayment, PayableQuery, PayableVendorOption } from '../../types/payables'
 import type { PayablesAction } from './payables.actions'
 import { PAYABLE_ACTIONS } from './payables.constants'
 
@@ -14,6 +14,11 @@ export interface PayablesState {
   selected: PayableDetail | null
   detailStatus: RequestStatus
   detailError: string | null
+  // The bill whose payments are loaded (or loading); null when no bill is open
+  paymentHistoryBillId: string | null
+  payments: PayablePayment[]
+  paymentHistoryStatus: RequestStatus
+  paymentHistoryError: string | null
   vendorOptions: PayableVendorOption[]
   vendorOptionsStatus: RequestStatus
   vendorOptionsError: string | null
@@ -29,6 +34,10 @@ export const initialPayablesState: PayablesState = {
   selected: null,
   detailStatus: 'idle',
   detailError: null,
+  paymentHistoryBillId: null,
+  payments: [],
+  paymentHistoryStatus: 'idle',
+  paymentHistoryError: null,
   vendorOptions: [],
   vendorOptionsStatus: 'idle',
   vendorOptionsError: null,
@@ -74,6 +83,24 @@ export default function payablesReducer(state: PayablesState = initialPayablesSt
       return { ...state, selected: action.payload, detailStatus: 'success' }
     case PAYABLE_ACTIONS.LOAD_BY_ID_FAILURE:
       return { ...state, detailStatus: 'error', detailError: action.payload }
+    case PAYABLE_ACTIONS.LOAD_PAYMENT_HISTORY: {
+      // Reloading the same bill keeps its payments on screen; another bill starts empty
+      const isSameBill = action.payload === state.paymentHistoryBillId
+      return {
+        ...state,
+        paymentHistoryBillId: action.payload,
+        payments: isSameBill ? state.payments : [],
+        paymentHistoryStatus: 'loading',
+        paymentHistoryError: null,
+      }
+    }
+    case PAYABLE_ACTIONS.LOAD_PAYMENT_HISTORY_SUCCESS:
+      if (action.payload.apBillId !== state.paymentHistoryBillId) return state
+      return { ...state, payments: action.payload.payments, paymentHistoryStatus: 'success' }
+    case PAYABLE_ACTIONS.LOAD_PAYMENT_HISTORY_FAILURE:
+      return { ...state, paymentHistoryStatus: 'error', paymentHistoryError: action.payload }
+    case PAYABLE_ACTIONS.CLEAR_PAYMENT_HISTORY:
+      return { ...state, paymentHistoryBillId: null, payments: [], paymentHistoryStatus: 'idle', paymentHistoryError: null }
     case PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS:
       return { ...state, vendorOptionsStatus: 'loading', vendorOptionsError: null }
     case PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS_SUCCESS:

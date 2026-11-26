@@ -16,6 +16,10 @@ describe('PAYABLE_ACTIONS', () => {
     ['CLEAR_SELECTION', 'payables/clearSelection'],
     ['LOAD_BY_ID_SUCCESS', 'payables/loadByIdSuccess'],
     ['LOAD_BY_ID_FAILURE', 'payables/loadByIdFailure'],
+    ['LOAD_PAYMENT_HISTORY', 'payables/loadPaymentHistory'],
+    ['LOAD_PAYMENT_HISTORY_SUCCESS', 'payables/loadPaymentHistorySuccess'],
+    ['LOAD_PAYMENT_HISTORY_FAILURE', 'payables/loadPaymentHistoryFailure'],
+    ['CLEAR_PAYMENT_HISTORY', 'payables/clearPaymentHistory'],
     ['LOAD_VENDOR_OPTIONS', 'payables/loadVendorOptions'],
     ['LOAD_VENDOR_OPTIONS_SUCCESS', 'payables/loadVendorOptionsSuccess'],
     ['LOAD_VENDOR_OPTIONS_FAILURE', 'payables/loadVendorOptionsFailure'],
@@ -23,8 +27,8 @@ describe('PAYABLE_ACTIONS', () => {
     expect(PAYABLE_ACTIONS[key]).toBe(value)
   })
 
-  it('has 16 action types', () => {
-    expect(Object.keys(PAYABLE_ACTIONS)).toHaveLength(16)
+  it('has 20 action types', () => {
+    expect(Object.keys(PAYABLE_ACTIONS)).toHaveLength(20)
   })
 
   it('has unique values', () => {

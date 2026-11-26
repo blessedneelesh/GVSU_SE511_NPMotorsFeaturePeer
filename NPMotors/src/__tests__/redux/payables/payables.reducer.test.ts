@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as actions from '../../../redux/payables/payables.actions'
 import payablesReducer, { initialPayablesState, type PayablesState } from '../../../redux/payables/payables.reducer'
-import { overduePayable, overduePayableDetail, payablePage, payableVendorOptions } from '../../../test/fixtures/payables'
+import { overduePayable, overduePayableDetail, payablePage, payablePayments, payableVendorOptions } from '../../../test/fixtures/payables'
 
 // A page-3 state with every filter set, so each reducer case can be shown to reset or keep them
 const filtered: PayablesState = {
@@ -72,6 +72,36 @@ describe('payablesReducer', () => {
     const open = { ...filtered, selectedId: '4', selected: overduePayableDetail, detailStatus: 'success' as const }
     expect(payablesReducer(open, actions.clearPayableSelection()))
       .toMatchObject({ selectedId: null, selected: null, detailStatus: 'idle', detailError: null })
+  })
+
+  describe('payment history', () => {
+    const loaded: PayablesState = {
+      ...initialPayablesState, paymentHistoryBillId: '10', payments: payablePayments, paymentHistoryStatus: 'success',
+    }
+
+    it('keeps the payments on screen while the same bill reloads', () => {
+      expect(payablesReducer(loaded, actions.loadPayablePaymentHistory('10')))
+        .toMatchObject({ paymentHistoryBillId: '10', payments: payablePayments, paymentHistoryStatus: 'loading', paymentHistoryError: null })
+    })
+
+    it('starts empty for another bill', () => {
+      expect(payablesReducer(loaded, actions.loadPayablePaymentHistory('11')))
+        .toMatchObject({ paymentHistoryBillId: '11', payments: [], paymentHistoryStatus: 'loading' })
+    })
+
+    it('stores the payments of the bill being loaded, ignoring a late answer for another bill', () => {
+      const loading = payablesReducer(initialPayablesState, actions.loadPayablePaymentHistory('10'))
+      expect(payablesReducer(loading, actions.loadPayablePaymentHistorySuccess({ apBillId: '10', payments: payablePayments })))
+        .toMatchObject({ payments: payablePayments, paymentHistoryStatus: 'success' })
+      expect(payablesReducer(loading, actions.loadPayablePaymentHistorySuccess({ apBillId: '4', payments: payablePayments }))).toBe(loading)
+    })
+
+    it('stores the error, and clears everything on close', () => {
+      expect(payablesReducer(loaded, actions.loadPayablePaymentHistoryFailure('down')))
+        .toMatchObject({ paymentHistoryStatus: 'error', paymentHistoryError: 'down' })
+      expect(payablesReducer(loaded, actions.clearPayablePaymentHistory()))
+        .toMatchObject({ paymentHistoryBillId: null, payments: [], paymentHistoryStatus: 'idle', paymentHistoryError: null })
+    })
   })
 
   it('tracks the vendor options request', () => {

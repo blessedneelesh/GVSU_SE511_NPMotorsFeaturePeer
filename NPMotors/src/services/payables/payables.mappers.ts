@@ -1,5 +1,13 @@
 import type { Vendor } from '../../types/vendors'
-import type { Payable, PayableAgingBucket, PayableDetail, PayableStatus, PayableVendorOption } from '../../types/payables'
+import type { PaymentMethod } from '../../types/common'
+import type {
+  Payable,
+  PayableAgingBucket,
+  PayableDetail,
+  PayablePayment,
+  PayableStatus,
+  PayableVendorOption,
+} from '../../types/payables'
 
 // Accepted spellings per field: the API's snake-ish camelCase first, then camelCase and PascalCase.
 // GetAllApBills and GetApById name some fields differently (vendor_Name vs vendor, days_Overdue vs days), so both are listed.
@@ -162,4 +170,58 @@ export function toPayableVendorOptions(vendors: Vendor[]): PayableVendorOption[]
     .filter((vendor) => vendor.id)
     .map((vendor) => ({ id: vendor.id, name: vendor.name }))
     .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+// GetPaymentHistory's payment fields, spelled as the API sends them first
+const PAYMENT_FIELDS = {
+  id: ['id', 'Id', 'payment_Id', 'paymentId', 'PaymentId'],
+  paymentNumber: ['payment_Number', 'paymentNumber', 'PaymentNumber', 'Payment_Number', 'number', 'Number'],
+  paymentDate: ['payment_Date', 'paymentDate', 'PaymentDate', 'Payment_Date', 'date', 'Date'],
+  paymentMethod: ['payment_Method', 'paymentMethod', 'PaymentMethod', 'Payment_Method', 'method', 'Method'],
+  reference: ['reference', 'Reference'],
+  amount: ['amount', 'Amount'],
+} as const
+
+type PaymentField = keyof typeof PAYMENT_FIELDS
+
+function readPaymentField(dto: Record<string, unknown>, field: PaymentField): unknown {
+  for (const key of PAYMENT_FIELDS[field]) {
+    const value = dto[key]
+    if (value !== undefined && value !== null) return value
+  }
+  return undefined
+}
+
+function readPaymentString(dto: Record<string, unknown>, field: PaymentField): string {
+  const value = readPaymentField(dto, field)
+  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'number') return String(value)
+  return ''
+}
+
+const PAYMENT_METHODS: readonly PaymentMethod[] = ['cash', 'card', 'transfer', 'check']
+
+// The API sends "Check", "Card", "Cash" and "Transfer"
+function readPaymentMethod(dto: Record<string, unknown>): PaymentMethod | null {
+  const value = readPaymentString(dto, 'paymentMethod').toLowerCase()
+  return PAYMENT_METHODS.find((method) => method === value) ?? null
+}
+
+export function mapPayablePayment(dto: Record<string, unknown>): PayablePayment {
+  const amount = readPaymentField(dto, 'amount')
+  const parsed = typeof amount === 'number' ? amount : typeof amount === 'string' && amount.trim() ? Number(amount) : NaN
+  return {
+    id: readPaymentString(dto, 'id'),
+    paymentNumber: readPaymentString(dto, 'paymentNumber'),
+    paymentDate: toDateOnly(readPaymentString(dto, 'paymentDate')),
+    paymentMethod: readPaymentMethod(dto),
+    reference: readPaymentString(dto, 'reference'),
+    amount: Number.isFinite(parsed) ? parsed : 0,
+  }
+}
+
+// GetPaymentHistory returns the whole bill with its payments in a "payments" array; a bare array is accepted too
+export function mapPayablePaymentHistory(body: unknown): PayablePayment[] {
+  const list = Array.isArray(body) ? body : isRecord(body) ? (body.payments ?? body.Payments) : undefined
+  return Array.isArray(list) ? list.filter(isRecord).map(mapPayablePayment) : []
 }
