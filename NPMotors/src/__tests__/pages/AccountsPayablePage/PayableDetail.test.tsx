@@ -69,11 +69,10 @@ describe('PayableDetail', () => {
     expect(screen.queryByText(/Partial Payment/)).not.toBeInTheDocument()
   })
 
-  it('books the bill total to inventory and accounts payable', () => {
+  it('has no accounting entry section', () => {
     renderLoaded(overduePayableDetail)
-    const rows = within(screen.getByRole('table', { name: 'Accounting entry' })).getAllByRole('row')
-    expect(rows[1]).toHaveTextContent('Inventory / ExpenseAsset$12,400.00—')
-    expect(rows[2]).toHaveTextContent('Accounts PayableLiability—$12,400.00')
+    expect(screen.queryByText('Accounting Entry')).not.toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })
 
   it('renders a partly paid vehicle bill that is not yet due', () => {

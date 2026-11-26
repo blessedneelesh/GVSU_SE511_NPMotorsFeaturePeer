@@ -6,12 +6,6 @@ import {
   MessageBarTitle,
   ProgressBar,
   Spinner,
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableHeaderCell,
-  TableRow,
 } from '@fluentui/react-components'
 import {
   BuildingFactory24Regular,
@@ -139,36 +133,6 @@ function PayableProfile({ payable }: { payable: PayableDetailData }) {
                 {/* The API has no vendor type here; vehicle purchases say which vehicle the bill is for instead */}
                 {payable.vehicleId && <div><dt>Vehicle</dt><dd>Vehicle #{payable.vehicleId}</dd></div>}
               </dl>
-            </div>
-          </section>
-
-          <section className="card payable-section">
-            <h2 className="section-title">Accounting Entry</h2>
-            <div className="table-scroll">
-              <Table className="data-table payable-entry-table" aria-label="Accounting entry">
-                <TableHeader>
-                  <TableRow>
-                    <TableHeaderCell>Account</TableHeaderCell>
-                    <TableHeaderCell>Type</TableHeaderCell>
-                    <TableHeaderCell className="num">Debit</TableHeaderCell>
-                    <TableHeaderCell className="num">Credit</TableHeaderCell>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell className="strong text-dark">Inventory / Expense</TableCell>
-                    <TableCell><span className="account-chip account-chip--asset">Asset</span></TableCell>
-                    <TableCell className="num text-red">{formatCurrencyExact(payable.amount)}</TableCell>
-                    <TableCell className="num text-faint">—</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="strong text-dark">Accounts Payable</TableCell>
-                    <TableCell><span className="account-chip account-chip--liability">Liability</span></TableCell>
-                    <TableCell className="num text-faint">—</TableCell>
-                    <TableCell className="num text-green">{formatCurrencyExact(payable.amount)}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
             </div>
           </section>
         </div>
