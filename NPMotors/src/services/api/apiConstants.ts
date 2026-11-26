@@ -106,6 +106,12 @@ export const AP_BILL_ENDPOINTS = {
 // Receipts, on the Customers API origin. RecordArPayment (AR invoice id in the path, RecordArPaymentRequest) takes a customer's
 // payment against one invoice; RecordMiscReceipt (RecordMiscReceiptRequest: the same fields plus payer and a required
 // description) records money from anyone else. The Bank Receipts page picks one by its "Received From" choice.
+// Bank payments (Bank Payments page, "Paid To: Other Party"), on the Customers API origin. RecordMiscellaneousPayment takes
+// MiscellaneousPaymentCreateDto; vendor payments go to AP_BILL_ENDPOINTS.recordVendorPayment instead.
+export const BANK_PAYMENT_ENDPOINTS = {
+  recordMiscellaneousPayment: 'BankPayment/RecordMiscellaneousPayment',
+} as const
+
 export const RECEIPT_ENDPOINTS = {
   // The AR invoice id goes in the path
   recordArPayment: (arInvoiceId: string) => `Receipt/RecordArPayment/${encodeURIComponent(arInvoiceId)}`,

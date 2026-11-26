@@ -8,6 +8,7 @@ import {
   normalizeAgingBucket,
   normalizePayableStatus,
   readHasNext,
+  toMiscellaneousPaymentDto,
   toPayableVendorOptions,
   toVendorPaymentDto,
 } from '../../../services/payables/payables.mappers'
@@ -162,5 +163,27 @@ describe('toVendorPaymentDto', () => {
 
   it('sends a blank reference as null', () => {
     expect(toVendorPaymentDto({ ...vendorPaymentFormValues, reference: '   ' }).reference).toBeNull()
+  })
+})
+
+describe('toMiscellaneousPaymentDto', () => {
+  it('builds MiscellaneousPaymentCreateDto: the vendor payment fields plus a trimmed payee, category and description', () => {
+    expect(toMiscellaneousPaymentDto({ payee: ' City Properties LLC ', paymentCategory: 'Rent Expense', description: ' March rent ', values: vendorPaymentFormValues }))
+      .toEqual({
+        payee: 'City Properties LLC',
+        payment_Category: 'Rent Expense',
+        vendor_Id: null,
+        payment_Date: '2026-11-26',
+        amount: 2000.5,
+        payment_Method: 'Check',
+        reference: 'CHK-1042',
+        bank_Account_Id: 1,
+        description: 'March rent',
+      })
+  })
+
+  it('defaults a blank description to "Payment to <payee>"', () => {
+    expect(toMiscellaneousPaymentDto({ payee: 'City Properties LLC', paymentCategory: 'Rent Expense', description: ' ', values: vendorPaymentFormValues }).description)
+      .toBe('Payment to City Properties LLC')
   })
 })

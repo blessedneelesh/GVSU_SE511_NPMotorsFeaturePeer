@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { VendorPaymentFieldErrors, VendorPaymentFormField, VendorPaymentSaveError } from '../../types/payables'
+import type { BankPaymentFormField, VendorPaymentFieldErrors, VendorPaymentSaveError } from '../../types/payables'
 
 const UNREACHABLE_MESSAGE = 'Accounts payable service is unreachable. Is the API running on https://localhost:7003?'
 const FALLBACK_MESSAGE = 'Payables could not be loaded. Please try again.'
@@ -8,6 +8,8 @@ const NOT_FOUND_MESSAGE = 'This bill no longer exists.'
 const PAYMENT_FALLBACK_MESSAGE = 'The payment could not be posted. Please try again.'
 const PAYMENT_HISTORY_FALLBACK_MESSAGE = 'Payment history could not be loaded. Please try again.'
 export const VENDOR_OPTIONS_FALLBACK_MESSAGE = 'Vendors could not be loaded. Please try again.'
+export const VENDOR_BILLS_FALLBACK_MESSAGE = "The vendor's open bills could not be loaded. Please try again."
+const MISC_PAYMENT_FALLBACK_MESSAGE = 'The payment could not be posted. Please try again.'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -59,7 +61,9 @@ export function getPaymentHistoryErrorMessage(error: unknown): string {
   return getPayableErrorMessage(error, PAYMENT_HISTORY_FALLBACK_MESSAGE)
 }
 
-const PAYMENT_FORM_FIELDS: readonly VendorPaymentFormField[] = ['paymentDate', 'amount', 'paymentMethod', 'bankAccountId', 'reference']
+const PAYMENT_FORM_FIELDS: readonly BankPaymentFormField[] = [
+  'paymentDate', 'amount', 'paymentMethod', 'bankAccountId', 'reference', 'payee', 'paymentCategory', 'description',
+]
 
 // ProblemDetails keys look like "Payment_Date" or "$.bank_Account_Id"; match them to form fields ignoring case and underscores
 const normalizeKey = (key: string) => key.replace(/^\$\./, '').replace(/_/g, '').toLowerCase()
@@ -79,7 +83,16 @@ function readPaymentFieldErrors(body: unknown): VendorPaymentFieldErrors {
 // the banner message. An unknown bill answers 404.
 export function getVendorPaymentSaveError(error: unknown): VendorPaymentSaveError {
   if (axios.isAxiosError(error) && error.response?.status === 404) return { message: NOT_FOUND_MESSAGE, fieldErrors: {} }
+  return readPaymentSaveError(error, PAYMENT_FALLBACK_MESSAGE)
+}
+
+// RecordMiscellaneousPayment has no bill, so a 404 is just an error like any other
+export function getMiscellaneousPaymentSaveError(error: unknown): VendorPaymentSaveError {
+  return readPaymentSaveError(error, MISC_PAYMENT_FALLBACK_MESSAGE)
+}
+
+function readPaymentSaveError(error: unknown, fallback: string): VendorPaymentSaveError {
   const fieldErrors = axios.isAxiosError(error) && error.response?.status === 400 ? readPaymentFieldErrors(error.response.data) : {}
-  const message = Object.keys(fieldErrors).length ? '' : getPayableErrorMessage(error, PAYMENT_FALLBACK_MESSAGE)
+  const message = Object.keys(fieldErrors).length ? '' : getPayableErrorMessage(error, fallback)
   return { message, fieldErrors }
 }

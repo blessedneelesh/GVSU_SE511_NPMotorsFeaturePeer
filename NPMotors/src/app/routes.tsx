@@ -4,6 +4,7 @@ import { navigationItems } from './navigation'
 import { AccountsReceivablePage } from '../pages/AccountsReceivablePage/AccountsReceivablePage'
 import { AccountsPayablePage } from '../pages/AccountsPayablePage/AccountsPayablePage'
 import { BankAccountsPage } from '../pages/BankAccountsPage/BankAccountsPage'
+import { BankPaymentsPage } from '../pages/BankPaymentsPage/BankPaymentsPage'
 import { BankReceiptsPage } from '../pages/BankReceiptsPage/BankReceiptsPage'
 import { ComingSoonPage } from '../pages/ComingSoonPage/ComingSoonPage'
 import { CustomersPage } from '../pages/CustomersPage/CustomersPage'
@@ -19,7 +20,7 @@ import { SalesInvoicesPage } from '../pages/SalesInvoicesPage/SalesInvoicesPage'
 import { VehiclesPage } from '../pages/VehiclesPage/VehiclesPage'
 import { VendorsPage } from '../pages/VendorsPage/VendorsPage'
 
-const builtPaths = new Set(['/dashboard', '/customers', '/vendors', '/employees', '/vehicle-inventory', '/parts-inventory', '/sales-invoices', '/banks', '/transactions', '/bank-statement', '/bank-receipt', '/bank-transfer', '/accounts-receivable', '/purchase-vehicle', '/accounts-payable'])
+const builtPaths = new Set(['/dashboard', '/customers', '/vendors', '/employees', '/vehicle-inventory', '/parts-inventory', '/sales-invoices', '/banks', '/transactions', '/bank-statement', '/bank-receipt', '/bank-payment', '/bank-transfer', '/accounts-receivable', '/purchase-vehicle', '/accounts-payable'])
 
 export function AppRoutes() {
   return (
@@ -37,6 +38,7 @@ export function AppRoutes() {
         <Route path="/transactions" element={<TransactionsPage />} />
         <Route path="/bank-statement" element={<StatementLinesPage />} />
         <Route path="/bank-receipt" element={<BankReceiptsPage />} />
+        <Route path="/bank-payment" element={<BankPaymentsPage />} />
         <Route path="/bank-transfer" element={<TransfersPage />} />
         <Route path="/accounts-receivable" element={<AccountsReceivablePage />} />
         <Route path="/accounts-payable" element={<AccountsPayablePage />} />

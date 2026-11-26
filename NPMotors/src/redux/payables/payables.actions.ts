@@ -1,4 +1,6 @@
 import type {
+  MiscellaneousPaymentRequest,
+  PaymentVendorBills,
   PayableDetail,
   PayablePage,
   PayablePaymentHistory,
@@ -67,6 +69,23 @@ export const loadPayableVendorOptionsSuccess = (options: PayableVendorOption[]) 
 
 export const loadPayableVendorOptionsFailure = (message: string) => ({ type: PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS_FAILURE, payload: message })
 
+// Bank Payments to someone other than against a vendor bill
+export const recordMiscellaneousPayment = (request: MiscellaneousPaymentRequest) => ({ type: PAYABLE_ACTIONS.RECORD_MISC_PAYMENT, payload: request })
+
+export const recordMiscellaneousPaymentSuccess = () => ({ type: PAYABLE_ACTIONS.RECORD_MISC_PAYMENT_SUCCESS })
+
+export const recordMiscellaneousPaymentFailure = (error: VendorPaymentSaveError) => ({ type: PAYABLE_ACTIONS.RECORD_MISC_PAYMENT_FAILURE, payload: error })
+
+// The open AP bills of the vendor picked on Bank Payments
+export const loadPaymentVendorBills = (vendorId: string) => ({ type: PAYABLE_ACTIONS.LOAD_VENDOR_BILLS, payload: vendorId })
+
+export const loadPaymentVendorBillsSuccess = (result: PaymentVendorBills) => ({ type: PAYABLE_ACTIONS.LOAD_VENDOR_BILLS_SUCCESS, payload: result })
+
+export const loadPaymentVendorBillsFailure = (message: string) => ({ type: PAYABLE_ACTIONS.LOAD_VENDOR_BILLS_FAILURE, payload: message })
+
+// No vendor picked any more: cancels an in-flight load and forgets the bills
+export const clearPaymentVendorBills = () => ({ type: PAYABLE_ACTIONS.CLEAR_VENDOR_BILLS })
+
 export type PayablesAction =
   | ReturnType<typeof loadPayables>
   | ReturnType<typeof loadPayablesSuccess>
@@ -92,3 +111,10 @@ export type PayablesAction =
   | ReturnType<typeof loadPayableVendorOptions>
   | ReturnType<typeof loadPayableVendorOptionsSuccess>
   | ReturnType<typeof loadPayableVendorOptionsFailure>
+  | ReturnType<typeof recordMiscellaneousPayment>
+  | ReturnType<typeof recordMiscellaneousPaymentSuccess>
+  | ReturnType<typeof recordMiscellaneousPaymentFailure>
+  | ReturnType<typeof loadPaymentVendorBills>
+  | ReturnType<typeof loadPaymentVendorBillsSuccess>
+  | ReturnType<typeof loadPaymentVendorBillsFailure>
+  | ReturnType<typeof clearPaymentVendorBills>

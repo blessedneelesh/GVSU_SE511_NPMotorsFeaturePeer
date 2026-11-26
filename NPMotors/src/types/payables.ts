@@ -120,7 +120,25 @@ export interface VendorPaymentFormValues {
 
 export type VendorPaymentFormField = keyof VendorPaymentFormValues
 
-export type VendorPaymentFieldErrors = Partial<Record<VendorPaymentFormField, string>>
+// Bank Payments "Paid To": a vendor (paid against one of their AP bills) or any other party (a miscellaneous payment)
+export type PaymentPayeeType = 'vendor' | 'other'
+
+// The Bank Payments form: the shared payment fields plus who was paid. Vendor payments use vendorId + apBillId;
+// other-party payments use payee, paymentCategory and description.
+export interface BankPaymentFormValues extends VendorPaymentFormValues {
+  payeeType: PaymentPayeeType
+  vendorId: string
+  apBillId: string
+  payee: string
+  // The design's "Payment Purpose / Debit Account"; sent as payment_Category
+  paymentCategory: string
+  description: string
+}
+
+export type BankPaymentFormField = keyof BankPaymentFormValues
+
+// Keyed by every field either form can show; the Make Payment dialog only uses the VendorPaymentFormValues ones
+export type VendorPaymentFieldErrors = Partial<Record<BankPaymentFormField, string>>
 
 export interface VendorPaymentSaveError {
   message: string
@@ -131,4 +149,18 @@ export interface VendorPaymentSaveError {
 export interface VendorPaymentRequest {
   apBillId: string
   values: VendorPaymentFormValues
+}
+
+// POST BankPayment/RecordMiscellaneousPayment: money paid to someone other than against a vendor bill
+export interface MiscellaneousPaymentRequest {
+  payee: string
+  paymentCategory: string
+  description: string
+  values: VendorPaymentFormValues
+}
+
+// A vendor's open AP bills (GetAllApBills?VendorId=), the Bank Payments "Against AP Bill" choices
+export interface PaymentVendorBills {
+  vendorId: string
+  bills: Payable[]
 }

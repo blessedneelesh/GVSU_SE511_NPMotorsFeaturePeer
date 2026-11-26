@@ -2,6 +2,7 @@ import { AxiosError, AxiosHeaders, CanceledError } from 'axios'
 import { describe, expect, it } from 'vitest'
 import {
   getPayableDetailErrorMessage,
+  getMiscellaneousPaymentSaveError,
   getPayableErrorMessage,
   getVendorPaymentSaveError,
   VENDOR_OPTIONS_FALLBACK_MESSAGE,
@@ -67,5 +68,23 @@ describe('getVendorPaymentSaveError', () => {
   it('says the bill no longer exists on a 404, and falls back to the payment message', () => {
     expect(getVendorPaymentSaveError(httpError(404))).toEqual({ message: 'This bill no longer exists.', fieldErrors: {} })
     expect(getVendorPaymentSaveError(httpError(400))).toEqual({ message: 'The payment could not be posted. Please try again.', fieldErrors: {} })
+  })
+})
+
+describe('getMiscellaneousPaymentSaveError', () => {
+  it('maps payee, category and description keys onto the form', () => {
+    const error = httpError(400, { errors: { Payee: ['Required'], Payment_Category: ['Required'], Description: ['Too long'] } })
+    expect(getMiscellaneousPaymentSaveError(error)).toEqual({
+      message: '',
+      fieldErrors: { payee: 'Required', paymentCategory: 'Required', description: 'Too long' },
+    })
+  })
+
+  it('reads a 404 like any other error, since there is no bill', () => {
+    expect(getMiscellaneousPaymentSaveError(httpError(404, { title: 'Not Found' }))).toEqual({ message: 'Not Found', fieldErrors: {} })
+  })
+
+  it('falls back to the payment message', () => {
+    expect(getMiscellaneousPaymentSaveError(new Error('boom'))).toEqual({ message: 'The payment could not be posted. Please try again.', fieldErrors: {} })
   })
 })

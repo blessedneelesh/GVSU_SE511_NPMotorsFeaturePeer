@@ -1,7 +1,9 @@
-import { AP_BILL_ENDPOINTS } from '../api/apiConstants'
+import { AP_BILL_ENDPOINTS, BANK_PAYMENT_ENDPOINTS } from '../api/apiConstants'
 import { customerClient } from '../api/customerClient'
 import { vendorsApi } from '../vendors/vendors.api'
 import type {
+  MiscellaneousPaymentRequest,
+  Payable,
   PayableDetail,
   PayablePage,
   PayablePayment,
@@ -15,6 +17,7 @@ import {
   mapPayablePaymentHistory,
   readHasNext,
   toPayableVendorOptions,
+  toMiscellaneousPaymentDto,
   toVendorPaymentDto,
 } from './payables.mappers'
 
@@ -56,9 +59,31 @@ async function recordVendorPayment({ apBillId, values }: VendorPaymentRequest, s
   await customerClient.post(AP_BILL_ENDPOINTS.recordVendorPayment(apBillId), toVendorPaymentDto(values), { signal })
 }
 
+// The response body isn't shown, so it isn't read
+async function recordMiscellaneousPayment(request: MiscellaneousPaymentRequest, signal?: AbortSignal): Promise<void> {
+  await customerClient.post(BANK_PAYMENT_ENDPOINTS.recordMiscellaneousPayment, toMiscellaneousPaymentDto(request), { signal })
+}
+
+// The API's largest page; a vendor's open bills past the first 100 can't be picked
+const VENDOR_BILLS_PAGE_SIZE = 100
+
+// A vendor's open AP bills (GetAllApBills leaves settled ones out by default), for the Against AP Bill list
+async function getVendorBills(vendorId: string, signal?: AbortSignal): Promise<Payable[]> {
+  const page = await getPayables({ pageNumber: 1, pageSize: VENDOR_BILLS_PAGE_SIZE, status: 'all', vendorId, asOfDate: '' }, signal)
+  return page.items.filter((bill) => bill.id && bill.balance > 0)
+}
+
 async function getVendorOptions(signal?: AbortSignal): Promise<PayableVendorOption[]> {
   const page = await vendorsApi.getVendors({ pageNumber: 1, pageSize: VENDOR_OPTIONS_PAGE_SIZE, type: 'all', searchTerm: '' }, signal)
   return toPayableVendorOptions(page.items)
 }
 
-export const payablesApi = { getPayables, getPayableById, getPaymentHistory, recordVendorPayment, getVendorOptions }
+export const payablesApi = {
+  getPayables,
+  getPayableById,
+  getPaymentHistory,
+  recordVendorPayment,
+  recordMiscellaneousPayment,
+  getVendorBills,
+  getVendorOptions,
+}

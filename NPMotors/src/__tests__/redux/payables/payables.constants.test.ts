@@ -32,7 +32,7 @@ describe('PAYABLE_ACTIONS', () => {
   })
 
   it('has 24 action types', () => {
-    expect(Object.keys(PAYABLE_ACTIONS)).toHaveLength(24)
+    expect(Object.keys(PAYABLE_ACTIONS)).toHaveLength(31)
   })
 
   it('has unique values', () => {

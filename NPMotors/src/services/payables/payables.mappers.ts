@@ -7,6 +7,7 @@ import type {
   PayablePayment,
   PayableStatus,
   PayableVendorOption,
+  MiscellaneousPaymentRequest,
   VendorPaymentFormValues,
 } from '../../types/payables'
 
@@ -247,5 +248,26 @@ export function toVendorPaymentDto(values: VendorPaymentFormValues): VendorPayme
     payment_Method: PAYMENT_METHOD_DTO[values.paymentMethod],
     reference: values.reference.trim() || null,
     bank_Account_Id: Number(values.bankAccountId),
+  }
+}
+
+// MiscellaneousPaymentCreateDto: the vendor payment fields plus payee (100 max), payment_Category (50 max) and an optional
+// description (200 max). vendor_Id links a vendor without a bill; other-party payments have none, so it is null.
+// As in the design, an empty description becomes "Payment to <payee>".
+export interface MiscellaneousPaymentCreateDto extends VendorPaymentCreateDto {
+  payee: string
+  payment_Category: string
+  vendor_Id: null
+  description: string
+}
+
+export function toMiscellaneousPaymentDto({ payee, paymentCategory, description, values }: MiscellaneousPaymentRequest): MiscellaneousPaymentCreateDto {
+  const trimmedPayee = payee.trim()
+  return {
+    payee: trimmedPayee,
+    payment_Category: paymentCategory.trim(),
+    vendor_Id: null,
+    ...toVendorPaymentDto(values),
+    description: description.trim() || `Payment to ${trimmedPayee}`,
   }
 }

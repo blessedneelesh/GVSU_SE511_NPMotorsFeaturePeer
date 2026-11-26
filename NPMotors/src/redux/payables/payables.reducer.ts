@@ -33,6 +33,11 @@ export interface PayablesState {
   vendorOptions: PayableVendorOption[]
   vendorOptionsStatus: RequestStatus
   vendorOptionsError: string | null
+  // Bank Payments: the vendor the open bills belong to, so another vendor's bills are never offered
+  vendorBillsVendorId: string | null
+  vendorBills: Payable[]
+  vendorBillsStatus: RequestStatus
+  vendorBillsError: string | null
 }
 
 export const initialPayablesState: PayablesState = {
@@ -55,6 +60,10 @@ export const initialPayablesState: PayablesState = {
   vendorOptions: [],
   vendorOptionsStatus: 'idle',
   vendorOptionsError: null,
+  vendorBillsVendorId: null,
+  vendorBills: [],
+  vendorBillsStatus: 'idle',
+  vendorBillsError: null,
 }
 
 const payableActionTypes: ReadonlySet<string> = new Set(Object.values(PAYABLE_ACTIONS))
@@ -115,11 +124,15 @@ export default function payablesReducer(state: PayablesState = initialPayablesSt
       return { ...state, paymentHistoryStatus: 'error', paymentHistoryError: action.payload }
     case PAYABLE_ACTIONS.CLEAR_PAYMENT_HISTORY:
       return { ...state, paymentHistoryBillId: null, payments: [], paymentHistoryStatus: 'idle', paymentHistoryError: null }
+    // Both payment kinds share one save status: only one payment form is ever open
     case PAYABLE_ACTIONS.RECORD_PAYMENT:
+    case PAYABLE_ACTIONS.RECORD_MISC_PAYMENT:
       return { ...state, saveStatus: 'loading', saveError: null, fieldErrors: {} }
     case PAYABLE_ACTIONS.RECORD_PAYMENT_SUCCESS:
+    case PAYABLE_ACTIONS.RECORD_MISC_PAYMENT_SUCCESS:
       return { ...state, saveStatus: 'success' }
     case PAYABLE_ACTIONS.RECORD_PAYMENT_FAILURE:
+    case PAYABLE_ACTIONS.RECORD_MISC_PAYMENT_FAILURE:
       return { ...state, saveStatus: 'error', saveError: action.payload.message || null, fieldErrors: action.payload.fieldErrors }
     case PAYABLE_ACTIONS.RESET_SAVE:
       return { ...state, saveStatus: 'idle', saveError: null, fieldErrors: {} }
@@ -129,6 +142,24 @@ export default function payablesReducer(state: PayablesState = initialPayablesSt
       return { ...state, vendorOptions: action.payload, vendorOptionsStatus: 'success' }
     case PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS_FAILURE:
       return { ...state, vendorOptionsStatus: 'error', vendorOptionsError: action.payload }
+    case PAYABLE_ACTIONS.LOAD_VENDOR_BILLS: {
+      // Reloading the same vendor keeps their bills on screen; another vendor starts empty
+      const isSameVendor = action.payload === state.vendorBillsVendorId
+      return {
+        ...state,
+        vendorBillsVendorId: action.payload,
+        vendorBills: isSameVendor ? state.vendorBills : [],
+        vendorBillsStatus: 'loading',
+        vendorBillsError: null,
+      }
+    }
+    case PAYABLE_ACTIONS.LOAD_VENDOR_BILLS_SUCCESS:
+      if (action.payload.vendorId !== state.vendorBillsVendorId) return state
+      return { ...state, vendorBills: action.payload.bills, vendorBillsStatus: 'success' }
+    case PAYABLE_ACTIONS.LOAD_VENDOR_BILLS_FAILURE:
+      return { ...state, vendorBillsStatus: 'error', vendorBillsError: action.payload }
+    case PAYABLE_ACTIONS.CLEAR_VENDOR_BILLS:
+      return { ...state, vendorBillsVendorId: null, vendorBills: [], vendorBillsStatus: 'idle', vendorBillsError: null }
     default: {
       const unhandled: never = action
       void unhandled

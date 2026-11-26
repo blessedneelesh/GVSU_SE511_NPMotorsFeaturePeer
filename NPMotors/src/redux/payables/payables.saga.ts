@@ -5,11 +5,21 @@ import {
   getPayableDetailErrorMessage,
   getPayableErrorMessage,
   getPaymentHistoryErrorMessage,
+  getMiscellaneousPaymentSaveError,
   getVendorPaymentSaveError,
+  VENDOR_BILLS_FALLBACK_MESSAGE,
   VENDOR_OPTIONS_FALLBACK_MESSAGE,
 } from '../../services/payables/payables.errors'
-import type { PayableDetail, PayablePage, PayablePayment, PayableQuery, PayableVendorOption } from '../../types/payables'
+import { loadReceiptBankAccountOptions } from '../receipts/receipts.actions'
+import type { Payable, PayableDetail, PayablePage, PayablePayment, PayableQuery, PayableVendorOption } from '../../types/payables'
 import {
+  type clearPaymentVendorBills,
+  loadPaymentVendorBills,
+  loadPaymentVendorBillsFailure,
+  loadPaymentVendorBillsSuccess,
+  type recordMiscellaneousPayment,
+  recordMiscellaneousPaymentFailure,
+  recordMiscellaneousPaymentSuccess,
   type clearPayablePaymentHistory,
   type clearPayableSelection,
   loadPayablePaymentHistory,
@@ -28,7 +38,12 @@ import {
   selectPayable,
 } from './payables.actions'
 import { PAYABLE_ACTIONS } from './payables.constants'
-import { selectPayablePaymentHistoryBillId, selectPayableQuery, selectSelectedPayableId } from './payables.selectors'
+import {
+  selectPayablePaymentHistoryBillId,
+  selectPayableQuery,
+  selectPaymentVendorBillsVendorId,
+  selectSelectedPayableId,
+} from './payables.selectors'
 
 function* loadPayablesWorker(): SagaIterator {
   const query: PayableQuery = yield select(selectPayableQuery)
@@ -94,6 +109,12 @@ function* recordVendorPaymentWorker(action: ReturnType<typeof recordVendorPaymen
     if (selectedId === paidBillId) yield put(selectPayable(selectedId))
     const historyBillId: string | null = yield select(selectPayablePaymentHistoryBillId)
     if (historyBillId === paidBillId) yield put(loadPayablePaymentHistory(paidBillId))
+    // Paid from Bank Payments: the vendor's open bills and the account balances changed
+    const billsVendorId: string | null = yield select(selectPaymentVendorBillsVendorId)
+    if (billsVendorId) {
+      yield put(loadPaymentVendorBills(billsVendorId))
+      yield put(loadReceiptBankAccountOptions())
+    }
   } catch (error) {
     const saveError = getVendorPaymentSaveError(error)
     if (saveError.message || Object.keys(saveError.fieldErrors).length) yield put(recordVendorPaymentFailure(saveError))
@@ -108,6 +129,35 @@ function* loadVendorOptionsWorker(): SagaIterator {
   } catch (error) {
     const message = getPayableErrorMessage(error, VENDOR_OPTIONS_FALLBACK_MESSAGE)
     if (message) yield put(loadPayableVendorOptionsFailure(message))
+  } finally {
+    const wasCancelled: boolean = yield cancelled()
+    if (wasCancelled) controller.abort()
+  }
+}
+
+function* recordMiscellaneousPaymentWorker(action: ReturnType<typeof recordMiscellaneousPayment>): SagaIterator {
+  try {
+    yield call(payablesApi.recordMiscellaneousPayment, action.payload)
+    yield put(recordMiscellaneousPaymentSuccess())
+    // The paying account's balance changed (the accounts live in the receipts slice)
+    yield put(loadReceiptBankAccountOptions())
+  } catch (error) {
+    const saveError = getMiscellaneousPaymentSaveError(error)
+    if (saveError.message || Object.keys(saveError.fieldErrors).length) yield put(recordMiscellaneousPaymentFailure(saveError))
+  }
+}
+
+function* loadVendorBillsWorker(action: ReturnType<typeof loadPaymentVendorBills> | ReturnType<typeof clearPaymentVendorBills>): SagaIterator {
+  // CLEAR_VENDOR_BILLS only exists so takeLatest cancels an in-flight load when the vendor is unpicked
+  if (action.type !== PAYABLE_ACTIONS.LOAD_VENDOR_BILLS) return
+  const vendorId = action.payload
+  const controller = new AbortController()
+  try {
+    const bills: Payable[] = yield call(payablesApi.getVendorBills, vendorId, controller.signal)
+    yield put(loadPaymentVendorBillsSuccess({ vendorId, bills }))
+  } catch (error) {
+    const message = getPayableErrorMessage(error, VENDOR_BILLS_FALLBACK_MESSAGE)
+    if (message) yield put(loadPaymentVendorBillsFailure(message))
   } finally {
     const wasCancelled: boolean = yield cancelled()
     if (wasCancelled) controller.abort()
@@ -134,5 +184,7 @@ export default function* payablesSaga(): SagaIterator {
     // takeLeading ignores repeat submits while a post is in flight, so a double-click can't pay the bill twice
     takeLeading(PAYABLE_ACTIONS.RECORD_PAYMENT, recordVendorPaymentWorker),
     takeLatest(PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS, loadVendorOptionsWorker),
+    takeLeading(PAYABLE_ACTIONS.RECORD_MISC_PAYMENT, recordMiscellaneousPaymentWorker),
+    takeLatest([PAYABLE_ACTIONS.LOAD_VENDOR_BILLS, PAYABLE_ACTIONS.CLEAR_VENDOR_BILLS], loadVendorBillsWorker),
   ])
 }

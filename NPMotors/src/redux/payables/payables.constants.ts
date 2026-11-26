@@ -23,4 +23,11 @@ export const PAYABLE_ACTIONS = {
   LOAD_VENDOR_OPTIONS: 'payables/loadVendorOptions',
   LOAD_VENDOR_OPTIONS_SUCCESS: 'payables/loadVendorOptionsSuccess',
   LOAD_VENDOR_OPTIONS_FAILURE: 'payables/loadVendorOptionsFailure',
+  RECORD_MISC_PAYMENT: 'payables/recordMiscPayment',
+  RECORD_MISC_PAYMENT_SUCCESS: 'payables/recordMiscPaymentSuccess',
+  RECORD_MISC_PAYMENT_FAILURE: 'payables/recordMiscPaymentFailure',
+  LOAD_VENDOR_BILLS: 'payables/loadVendorBills',
+  LOAD_VENDOR_BILLS_SUCCESS: 'payables/loadVendorBillsSuccess',
+  LOAD_VENDOR_BILLS_FAILURE: 'payables/loadVendorBillsFailure',
+  CLEAR_VENDOR_BILLS: 'payables/clearVendorBills',
 } as const

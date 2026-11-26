@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as actions from '../../../redux/payables/payables.actions'
 import payablesReducer, { initialPayablesState, type PayablesState } from '../../../redux/payables/payables.reducer'
-import { overduePayable, overduePayableDetail, payablePage, payablePayments, payableVendorOptions, vendorPaymentFormValues } from '../../../test/fixtures/payables'
+import { overduePayable, overduePayableDetail, partialPayable, payablePage, payablePayments, payableVendorOptions, vendorPaymentFormValues } from '../../../test/fixtures/payables'
 
 // A page-3 state with every filter set, so each reducer case can be shown to reset or keep them
 const filtered: PayablesState = {
@@ -134,5 +134,51 @@ describe('payablesReducer', () => {
       .toMatchObject({ vendorOptions: payableVendorOptions, vendorOptionsStatus: 'success' })
     expect(payablesReducer(loading, actions.loadPayableVendorOptionsFailure('no vendors')))
       .toMatchObject({ vendorOptionsStatus: 'error', vendorOptionsError: 'no vendors' })
+  })
+})
+
+describe('payablesReducer: Bank Payments', () => {
+  const failed: PayablesState = { ...initialPayablesState, saveStatus: 'error', saveError: 'old error', fieldErrors: { payee: 'old' } }
+  const miscRequest = { payee: 'City Properties LLC', paymentCategory: 'Rent Expense', description: '', values: vendorPaymentFormValues }
+
+  it('RECORD_MISC_PAYMENT sets saving and clears the previous errors', () => {
+    expect(payablesReducer(failed, actions.recordMiscellaneousPayment(miscRequest)))
+      .toMatchObject({ saveStatus: 'loading', saveError: null, fieldErrors: {} })
+  })
+
+  it('RECORD_MISC_PAYMENT_SUCCESS marks the save done', () => {
+    expect(payablesReducer({ ...initialPayablesState, saveStatus: 'loading' }, actions.recordMiscellaneousPaymentSuccess()).saveStatus).toBe('success')
+  })
+
+  it('RECORD_MISC_PAYMENT_FAILURE stores the banner message and field errors', () => {
+    expect(payablesReducer(initialPayablesState, actions.recordMiscellaneousPaymentFailure({ message: '', fieldErrors: { paymentCategory: 'Required' } })))
+      .toMatchObject({ saveStatus: 'error', saveError: null, fieldErrors: { paymentCategory: 'Required' } })
+  })
+
+  const loaded: PayablesState = { ...initialPayablesState, vendorBillsVendorId: '4', vendorBills: [partialPayable], vendorBillsStatus: 'success' }
+
+  it('LOAD_VENDOR_BILLS for the same vendor keeps their bills while reloading', () => {
+    expect(payablesReducer(loaded, actions.loadPaymentVendorBills('4')))
+      .toMatchObject({ vendorBillsVendorId: '4', vendorBills: [partialPayable], vendorBillsStatus: 'loading', vendorBillsError: null })
+  })
+
+  it('LOAD_VENDOR_BILLS for another vendor starts empty', () => {
+    expect(payablesReducer(loaded, actions.loadPaymentVendorBills('3')))
+      .toMatchObject({ vendorBillsVendorId: '3', vendorBills: [], vendorBillsStatus: 'loading' })
+  })
+
+  it('LOAD_VENDOR_BILLS_SUCCESS stores the bills of the current vendor only', () => {
+    const loading = payablesReducer(initialPayablesState, actions.loadPaymentVendorBills('4'))
+    expect(payablesReducer(loading, actions.loadPaymentVendorBillsSuccess({ vendorId: '3', bills: [overduePayable] }))).toBe(loading)
+    expect(payablesReducer(loading, actions.loadPaymentVendorBillsSuccess({ vendorId: '4', bills: [partialPayable] })))
+      .toMatchObject({ vendorBills: [partialPayable], vendorBillsStatus: 'success' })
+  })
+
+  it('LOAD_VENDOR_BILLS_FAILURE stores the message', () => {
+    expect(payablesReducer(loaded, actions.loadPaymentVendorBillsFailure('nope'))).toMatchObject({ vendorBillsStatus: 'error', vendorBillsError: 'nope' })
+  })
+
+  it('CLEAR_VENDOR_BILLS forgets the vendor and their bills', () => {
+    expect(payablesReducer(loaded, actions.clearPaymentVendorBills())).toEqual(initialPayablesState)
   })
 })
