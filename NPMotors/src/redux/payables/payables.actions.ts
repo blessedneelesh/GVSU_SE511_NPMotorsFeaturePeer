@@ -5,6 +5,8 @@ import type {
   PayableStatusFilter,
   PayableVendorFilter,
   PayableVendorOption,
+  VendorPaymentRequest,
+  VendorPaymentSaveError,
 } from '../../types/payables'
 import { PAYABLE_ACTIONS } from './payables.constants'
 
@@ -48,6 +50,16 @@ export const loadPayablePaymentHistoryFailure = (message: string) => ({ type: PA
 // Forgets the payments when the bill is closed; also cancels an in-flight load
 export const clearPayablePaymentHistory = () => ({ type: PAYABLE_ACTIONS.CLEAR_PAYMENT_HISTORY })
 
+// Pays a bill (POST APBill/RecordVendorPayment/{apBillId})
+export const recordVendorPayment = (request: VendorPaymentRequest) => ({ type: PAYABLE_ACTIONS.RECORD_PAYMENT, payload: request })
+
+export const recordVendorPaymentSuccess = () => ({ type: PAYABLE_ACTIONS.RECORD_PAYMENT_SUCCESS })
+
+export const recordVendorPaymentFailure = (error: VendorPaymentSaveError) => ({ type: PAYABLE_ACTIONS.RECORD_PAYMENT_FAILURE, payload: error })
+
+// Clears the payment status and errors when the dialog opens or closes
+export const resetPayableSave = () => ({ type: PAYABLE_ACTIONS.RESET_SAVE })
+
 // The vendors offered in the vendor filter
 export const loadPayableVendorOptions = () => ({ type: PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS })
 
@@ -73,6 +85,10 @@ export type PayablesAction =
   | ReturnType<typeof loadPayablePaymentHistorySuccess>
   | ReturnType<typeof loadPayablePaymentHistoryFailure>
   | ReturnType<typeof clearPayablePaymentHistory>
+  | ReturnType<typeof recordVendorPayment>
+  | ReturnType<typeof recordVendorPaymentSuccess>
+  | ReturnType<typeof recordVendorPaymentFailure>
+  | ReturnType<typeof resetPayableSave>
   | ReturnType<typeof loadPayableVendorOptions>
   | ReturnType<typeof loadPayableVendorOptionsSuccess>
   | ReturnType<typeof loadPayableVendorOptionsFailure>

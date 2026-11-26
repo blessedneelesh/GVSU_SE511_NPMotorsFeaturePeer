@@ -56,7 +56,8 @@
 .payables-message { margin-bottom: 16px; }
 .payables-loading { display: flex; justify-content: center; padding: 48px 16px; }
 
-.payables-page .payables-table { min-width: 900px; }
+.payables-page .payables-table { min-width: 960px; }
+.payables-page .payables-table .payable-actions { width: 1%; }
 
 /* Page totals, as the design's "Total Outstanding" footer (the API has no totals, so only this page is summed) */
 .payables-page .data-table .payables-total-row td { background: var(--slate-50); font-weight: 600; color: var(--slate-600); }
@@ -132,6 +133,7 @@
 .payable-summary dd { margin: 0; font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--slate-800); }
 .payables-page .payable-summary .text-green { color: var(--green); }
 .payable-summary__total { border-top: 1px solid var(--slate-100); padding-top: 10px; }
+.payables-page .payable-summary__pay { width: 100%; margin-top: 16px; }
 .payables-page .payable-summary__total dt, .payables-page .payable-summary__total dd { font-weight: 700; color: #b91c1c; }
 
 .payable-timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }

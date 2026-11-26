@@ -9,8 +9,9 @@ import {
   normalizePayableStatus,
   readHasNext,
   toPayableVendorOptions,
+  toVendorPaymentDto,
 } from '../../../services/payables/payables.mappers'
-import { overduePayable, overduePayableDetail, partialPayableDetail, payablePayments, sparsePayable, sparsePayableDetail } from '../../../test/fixtures/payables'
+import { overduePayable, overduePayableDetail, partialPayableDetail, payablePayments, sparsePayable, sparsePayableDetail, vendorPaymentFormValues } from '../../../test/fixtures/payables'
 import { vendor } from '../../../test/fixtures/vendors'
 
 // AP bill 4 exactly as GetAllApBills returns it
@@ -145,5 +146,21 @@ describe('toPayableVendorOptions', () => {
       { ...vendor, id: '4', name: 'AutoNation Wholesale', type: 'vehicles' },
     ])
     expect(options).toEqual([{ id: '4', name: 'AutoNation Wholesale' }, { id: '3', name: 'Honda Auto Parts' }])
+  })
+})
+
+describe('toVendorPaymentDto', () => {
+  it('converts the form to VendorPaymentCreateDto, with numbers, the API\'s method spelling and a trimmed reference', () => {
+    expect(toVendorPaymentDto(vendorPaymentFormValues)).toEqual({
+      payment_Date: '2026-11-26', amount: 2000.5, payment_Method: 'Check', reference: 'CHK-1042', bank_Account_Id: 1,
+    })
+  })
+
+  it.each([['cash', 'Cash'], ['card', 'Card'], ['transfer', 'Transfer']] as const)('sends %s as %s', (method, expected) => {
+    expect(toVendorPaymentDto({ ...vendorPaymentFormValues, paymentMethod: method }).payment_Method).toBe(expected)
+  })
+
+  it('sends a blank reference as null', () => {
+    expect(toVendorPaymentDto({ ...vendorPaymentFormValues, reference: '   ' }).reference).toBeNull()
   })
 })

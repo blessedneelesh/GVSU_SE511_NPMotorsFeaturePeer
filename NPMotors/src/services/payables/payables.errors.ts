@@ -1,9 +1,11 @@
 import axios from 'axios'
+import type { VendorPaymentFieldErrors, VendorPaymentFormField, VendorPaymentSaveError } from '../../types/payables'
 
 const UNREACHABLE_MESSAGE = 'Accounts payable service is unreachable. Is the API running on https://localhost:7003?'
 const FALLBACK_MESSAGE = 'Payables could not be loaded. Please try again.'
 const DETAIL_FALLBACK_MESSAGE = 'This bill could not be loaded. Please try again.'
 const NOT_FOUND_MESSAGE = 'This bill no longer exists.'
+const PAYMENT_FALLBACK_MESSAGE = 'The payment could not be posted. Please try again.'
 const PAYMENT_HISTORY_FALLBACK_MESSAGE = 'Payment history could not be loaded. Please try again.'
 export const VENDOR_OPTIONS_FALLBACK_MESSAGE = 'Vendors could not be loaded. Please try again.'
 
@@ -18,13 +20,15 @@ function readProblemDetails(body: unknown): string {
   if (isNonEmptyString(body)) return body.trim().startsWith('<') ? '' : body.trim()
   if (!isRecord(body)) return ''
 
-  const { errors, detail, title } = body
+  const { errors, detail, title, message } = body
   if (isRecord(errors) || Array.isArray(errors)) {
     const messages = Object.values(errors)
       .flatMap((value) => (Array.isArray(value) ? value : [value]))
       .filter(isNonEmptyString)
     if (messages.length) return messages.join(' ')
   }
+  // Business-rule rejections come back as { message }
+  if (isNonEmptyString(message)) return message
   if (isNonEmptyString(detail)) return detail
   if (isNonEmptyString(title)) return title
   return ''
@@ -53,4 +57,29 @@ export function getPayableDetailErrorMessage(error: unknown): string {
 export function getPaymentHistoryErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error) && error.response?.status === 404) return NOT_FOUND_MESSAGE
   return getPayableErrorMessage(error, PAYMENT_HISTORY_FALLBACK_MESSAGE)
+}
+
+const PAYMENT_FORM_FIELDS: readonly VendorPaymentFormField[] = ['paymentDate', 'amount', 'paymentMethod', 'bankAccountId', 'reference']
+
+// ProblemDetails keys look like "Payment_Date" or "$.bank_Account_Id"; match them to form fields ignoring case and underscores
+const normalizeKey = (key: string) => key.replace(/^\$\./, '').replace(/_/g, '').toLowerCase()
+
+function readPaymentFieldErrors(body: unknown): VendorPaymentFieldErrors {
+  const fieldErrors: VendorPaymentFieldErrors = {}
+  if (!isRecord(body) || !isRecord(body.errors)) return fieldErrors
+  for (const [key, value] of Object.entries(body.errors)) {
+    const field = PAYMENT_FORM_FIELDS.find((name) => name.toLowerCase() === normalizeKey(key))
+    const text = (Array.isArray(value) ? value : [value]).find(isNonEmptyString)
+    if (field && text) fieldErrors[field] = text
+  }
+  return fieldErrors
+}
+
+// Validation errors go next to their fields; only errors no field can show (overpayment, inactive account, ...) become
+// the banner message. An unknown bill answers 404.
+export function getVendorPaymentSaveError(error: unknown): VendorPaymentSaveError {
+  if (axios.isAxiosError(error) && error.response?.status === 404) return { message: NOT_FOUND_MESSAGE, fieldErrors: {} }
+  const fieldErrors = axios.isAxiosError(error) && error.response?.status === 400 ? readPaymentFieldErrors(error.response.data) : {}
+  const message = Object.keys(fieldErrors).length ? '' : getPayableErrorMessage(error, PAYMENT_FALLBACK_MESSAGE)
+  return { message, fieldErrors }
 }

@@ -29,6 +29,12 @@ export const selectPayablePaymentHistoryStatus = createSelector([selectPayableSt
 
 export const selectPayablePaymentHistoryError = createSelector([selectPayableState], (payables) => payables.paymentHistoryError)
 
+export const selectPayableSaveStatus = createSelector([selectPayableState], (payables) => payables.saveStatus)
+
+export const selectPayableSaveError = createSelector([selectPayableState], (payables) => payables.saveError)
+
+export const selectPayableFieldErrors = createSelector([selectPayableState], (payables) => payables.fieldErrors)
+
 export const selectPayableVendorOptions = createSelector([selectPayableState], (payables) => payables.vendorOptions)
 
 export const selectPayableVendorOptionsStatus = createSelector([selectPayableState], (payables) => payables.vendorOptionsStatus)

@@ -1,7 +1,7 @@
 import { AxiosError, AxiosHeaders, CanceledError } from 'axios'
 import { applyMiddleware, legacy_createStore as createStore, type UnknownAction } from 'redux'
 import createSagaMiddleware, { type SagaIterator, type Task } from 'redux-saga'
-import { all, call, cancelled, put, select, takeLatest } from 'redux-saga/effects'
+import { all, call, cancelled, put, select, takeLatest, takeLeading } from 'redux-saga/effects'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearPayablePaymentHistory,
@@ -17,6 +17,9 @@ import {
   loadPayableVendorOptions,
   loadPayableVendorOptionsFailure,
   loadPayableVendorOptionsSuccess,
+  recordVendorPayment,
+  recordVendorPaymentFailure,
+  recordVendorPaymentSuccess,
   resetPayableFilters,
   selectPayable,
   setPayableAsOfDate,
@@ -24,15 +27,15 @@ import {
 } from '../../../redux/payables/payables.actions'
 import { PAYABLE_ACTIONS } from '../../../redux/payables/payables.constants'
 import payablesSaga from '../../../redux/payables/payables.saga'
-import { selectPayableQuery } from '../../../redux/payables/payables.selectors'
+import { selectPayablePaymentHistoryBillId, selectPayableQuery, selectSelectedPayableId } from '../../../redux/payables/payables.selectors'
 import { rootReducer } from '../../../redux/rootReducer'
 import { payablesApi } from '../../../services/payables/payables.api'
 import { getPayableErrorMessage } from '../../../services/payables/payables.errors'
-import { overduePayable, overduePayableDetail, partialPayable, payablePage, payablePayments, payableVendorOptions } from '../../../test/fixtures/payables'
+import { overduePayable, overduePayableDetail, partialPayable, payablePage, payablePayments, payableVendorOptions, vendorPaymentFormValues } from '../../../test/fixtures/payables'
 import type { PayableDetail, PayablePage, PayablePayment, PayableQuery } from '../../../types/payables'
 
 vi.mock('../../../services/payables/payables.api', () => ({
-  payablesApi: { getPayables: vi.fn(), getPayableById: vi.fn(), getPaymentHistory: vi.fn(), getVendorOptions: vi.fn() },
+  payablesApi: { getPayables: vi.fn(), getPayableById: vi.fn(), getPaymentHistory: vi.fn(), recordVendorPayment: vi.fn(), getVendorOptions: vi.fn() },
 }))
 
 // The workers aren't exported; take them from the watchers in the root saga's all([...]) effect
@@ -47,7 +50,8 @@ const workerAt = (index: number): Worker => {
 const loadPayablesWorker = workerAt(0)
 const loadPayableByIdWorker = workerAt(1)
 const loadPaymentHistoryWorker = workerAt(2)
-const loadVendorOptionsWorker = workerAt(3)
+const recordVendorPaymentWorker = workerAt(3)
+const loadVendorOptionsWorker = workerAt(4)
 
 // The error helpers check axios.isAxiosError / axios.isCancel, so failures must be real axios errors
 const httpError = (status: number, data?: unknown) =>
@@ -58,7 +62,7 @@ const canceled = () => new CanceledError()
 const query: PayableQuery = { pageNumber: 2, pageSize: 10, status: 'overdue', vendorId: '3', asOfDate: '' }
 
 describe('payablesSaga (root)', () => {
-  it('starts the four watchers with the right patterns and effects', () => {
+  it('starts the five watchers with the right patterns and effects', () => {
     const gen = payablesSaga()
     expect(gen.next().value).toStrictEqual(all([
       takeLatest([PAYABLE_ACTIONS.LOAD, PAYABLE_ACTIONS.SET_STATUS_FILTER, PAYABLE_ACTIONS.SET_VENDOR_FILTER,
@@ -66,6 +70,7 @@ describe('payablesSaga (root)', () => {
         PAYABLE_ACTIONS.SET_PAGE, PAYABLE_ACTIONS.SET_PAGE_SIZE], loadPayablesWorker),
       takeLatest([PAYABLE_ACTIONS.SELECT, PAYABLE_ACTIONS.CLEAR_SELECTION], loadPayableByIdWorker),
       takeLatest([PAYABLE_ACTIONS.LOAD_PAYMENT_HISTORY, PAYABLE_ACTIONS.CLEAR_PAYMENT_HISTORY], loadPaymentHistoryWorker),
+      takeLeading(PAYABLE_ACTIONS.RECORD_PAYMENT, recordVendorPaymentWorker),
       takeLatest(PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS, loadVendorOptionsWorker),
     ]))
     expect(gen.next().done).toBe(true)
@@ -197,6 +202,51 @@ describe('loadPaymentHistoryWorker', () => {
   })
 })
 
+describe('recordVendorPaymentWorker', () => {
+  const request = { apBillId: '11', values: vendorPaymentFormValues }
+  const startPost = () => {
+    const gen = recordVendorPaymentWorker(recordVendorPayment(request))
+    expect(gen.next().value).toEqual(call(payablesApi.recordVendorPayment, request))
+    return gen
+  }
+
+  it('refetches the list, and the open bill and its history when they are the one paid', () => {
+    const gen = startPost()
+    expect(gen.next().value).toStrictEqual(put(recordVendorPaymentSuccess()))
+    expect(gen.next().value).toStrictEqual(put(loadPayables()))
+    expect(gen.next().value).toStrictEqual(select(selectSelectedPayableId))
+    expect(gen.next('11').value).toStrictEqual(put(selectPayable('11')))
+    expect(gen.next().value).toStrictEqual(select(selectPayablePaymentHistoryBillId))
+    expect(gen.next('11').value).toStrictEqual(put(loadPayablePaymentHistory('11')))
+    expect(gen.next().done).toBe(true)
+  })
+
+  it('refetches only the list when paid from the list', () => {
+    const gen = startPost()
+    gen.next()
+    gen.next()
+    expect(gen.next().value).toStrictEqual(select(selectSelectedPayableId))
+    expect(gen.next(null).value).toStrictEqual(select(selectPayablePaymentHistoryBillId))
+    expect(gen.next(null).done).toBe(true)
+  })
+
+  it('puts field errors next to their fields', () => {
+    const gen = startPost()
+    expect(gen.throw(httpError(400, { errors: { Amount: ['The field amount must be between 0.01 and 999999999999.99.'] } })).value)
+      .toStrictEqual(put(recordVendorPaymentFailure({ message: '', fieldErrors: { amount: 'The field amount must be between 0.01 and 999999999999.99.' } })))
+  })
+
+  it('shows a business-rule rejection as the banner message', () => {
+    const gen = startPost()
+    expect(gen.throw(httpError(400, { message: 'Payment exceeds the bill balance.' })).value)
+      .toStrictEqual(put(recordVendorPaymentFailure({ message: 'Payment exceeds the bill balance.', fieldErrors: {} })))
+  })
+
+  it('dispatches nothing when the request was cancelled', () => {
+    expect(startPost().throw(canceled()).done).toBe(true)
+  })
+})
+
 describe('loadVendorOptionsWorker', () => {
   const startOptions = () => {
     const gen = loadVendorOptionsWorker(loadPayableVendorOptions())
@@ -315,6 +365,20 @@ describe('payablesSaga (running)', () => {
     pending.resolve(payablePayments)
     await flush()
     expect(store.getState().payables).toMatchObject({ paymentHistoryBillId: null, payments: [], paymentHistoryStatus: 'idle' })
+  })
+
+  it('posts a double-clicked payment only once', async () => {
+    let resolvePost: () => void = () => {}
+    vi.mocked(payablesApi.recordVendorPayment).mockReturnValueOnce(new Promise<void>((resolve) => { resolvePost = resolve }))
+
+    store.dispatch(recordVendorPayment({ apBillId: '11', values: vendorPaymentFormValues }))
+    store.dispatch(recordVendorPayment({ apBillId: '11', values: vendorPaymentFormValues }))
+    expect(payablesApi.recordVendorPayment).toHaveBeenCalledTimes(1)
+
+    resolvePost()
+    await vi.waitFor(() => expect(store.getState().payables.saveStatus).toBe('success'))
+    // The AP list is refetched afterwards
+    expect(payablesApi.getPayables).toHaveBeenCalled()
   })
 
   it('stores the loaded vendor options', async () => {

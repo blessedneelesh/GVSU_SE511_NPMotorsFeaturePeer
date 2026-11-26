@@ -98,3 +98,38 @@ export interface PayablePaymentHistory {
   apBillId: string
   payments: PayablePayment[]
 }
+
+// The bill a vendor payment is made against: what the Make Payment dialog shows and checks the amount against
+export interface VendorPaymentTarget {
+  id: string
+  number: string
+  vendorName: string
+  amount: number
+  paid: number
+  balance: number
+}
+
+// Form state: what the user types (ids and amount stay strings until the DTO), before it becomes VendorPaymentCreateDto
+export interface VendorPaymentFormValues {
+  // YYYY-MM-DD
+  paymentDate: string
+  amount: string
+  paymentMethod: PaymentMethod
+  bankAccountId: string
+  reference: string
+}
+
+export type VendorPaymentFormField = keyof VendorPaymentFormValues
+
+export type VendorPaymentFieldErrors = Partial<Record<VendorPaymentFormField, string>>
+
+export interface VendorPaymentSaveError {
+  message: string
+  fieldErrors: VendorPaymentFieldErrors
+}
+
+// POST APBill/RecordVendorPayment/{apBillId}
+export interface VendorPaymentRequest {
+  apBillId: string
+  values: VendorPaymentFormValues
+}

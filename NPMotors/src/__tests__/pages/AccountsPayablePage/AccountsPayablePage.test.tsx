@@ -12,6 +12,7 @@ import {
   setPayableStatusFilter,
   setPayableVendorFilter,
   selectPayable,
+  resetPayableSave,
 } from '../../../redux/payables/payables.actions'
 import type { PayablesState } from '../../../redux/payables/payables.reducer'
 import {
@@ -165,8 +166,22 @@ describe('AccountsPayablePage', () => {
   it('labels the columns as the design does', () => {
     renderLoaded([overduePayable])
     expect(within(getTable()).getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([
-      'Bill #', 'Vendor', 'Date', 'Due Date', 'Amount', 'Paid', 'Balance', 'Age', 'Status',
+      'Bill #', 'Vendor', 'Date', 'Due Date', 'Amount', 'Paid', 'Balance', 'Age', 'Status', 'Actions',
     ])
+  })
+
+  it('offers Pay on bills with a balance, and opens the payment dialog for the row', async () => {
+    const { actions, user } = renderLoaded([overduePayable, { ...partialPayable, balance: 0, id: '99', number: 'AP-PAID' }, sparsePayable])
+    expect(screen.getAllByRole('button', { name: /^Pay / }).map((button) => button.getAttribute('aria-label'))).toEqual(['Pay BILL-0020'])
+
+    await user.click(screen.getByRole('button', { name: 'Pay BILL-0020' }))
+    expect(actions).toContainEqual(resetPayableSave())
+    const dialog = screen.getByRole('dialog', { name: 'Make Payment' })
+    expect(within(dialog).getByText('BILL-0020 · Honda Auto Parts')).toBeInTheDocument()
+    expect(within(dialog).getByRole('spinbutton', { name: /Payment Amount/ })).toHaveValue(12400)
+
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog', { name: 'Make Payment' })).not.toBeInTheDocument()
   })
 
   describe('filters', () => {

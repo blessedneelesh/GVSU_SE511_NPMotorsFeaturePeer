@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as actions from '../../../redux/payables/payables.actions'
 import payablesReducer, { initialPayablesState, type PayablesState } from '../../../redux/payables/payables.reducer'
-import { overduePayable, overduePayableDetail, payablePage, payablePayments, payableVendorOptions } from '../../../test/fixtures/payables'
+import { overduePayable, overduePayableDetail, payablePage, payablePayments, payableVendorOptions, vendorPaymentFormValues } from '../../../test/fixtures/payables'
 
 // A page-3 state with every filter set, so each reducer case can be shown to reset or keep them
 const filtered: PayablesState = {
@@ -101,6 +101,28 @@ describe('payablesReducer', () => {
         .toMatchObject({ paymentHistoryStatus: 'error', paymentHistoryError: 'down' })
       expect(payablesReducer(loaded, actions.clearPayablePaymentHistory()))
         .toMatchObject({ paymentHistoryBillId: null, payments: [], paymentHistoryStatus: 'idle', paymentHistoryError: null })
+    })
+  })
+
+  describe('make payment', () => {
+    const failed: PayablesState = { ...initialPayablesState, saveStatus: 'error', saveError: 'old', fieldErrors: { amount: 'old' } }
+
+    it('RECORD_PAYMENT starts saving and clears the old errors', () => {
+      expect(payablesReducer(failed, actions.recordVendorPayment({ apBillId: '11', values: vendorPaymentFormValues })))
+        .toMatchObject({ saveStatus: 'loading', saveError: null, fieldErrors: {} })
+    })
+
+    it('stores success, or the banner message and field errors', () => {
+      expect(payablesReducer(failed, actions.recordVendorPaymentSuccess()).saveStatus).toBe('success')
+      expect(payablesReducer(initialPayablesState, actions.recordVendorPaymentFailure({ message: '', fieldErrors: { amount: 'Too much' } })))
+        .toMatchObject({ saveStatus: 'error', saveError: null, fieldErrors: { amount: 'Too much' } })
+      expect(payablesReducer(initialPayablesState, actions.recordVendorPaymentFailure({ message: 'Inactive account', fieldErrors: {} })))
+        .toMatchObject({ saveStatus: 'error', saveError: 'Inactive account' })
+    })
+
+    it('RESET_SAVE clears the payment state', () => {
+      expect(payablesReducer(failed, actions.resetPayableSave()))
+        .toMatchObject({ saveStatus: 'idle', saveError: null, fieldErrors: {} })
     })
   })
 

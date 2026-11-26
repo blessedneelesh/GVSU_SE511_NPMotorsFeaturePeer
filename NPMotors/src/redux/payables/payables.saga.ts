@@ -1,17 +1,19 @@
-import { all, call, cancelled, put, select, takeLatest } from 'redux-saga/effects'
+import { all, call, cancelled, put, select, takeLatest, takeLeading } from 'redux-saga/effects'
 import type { SagaIterator } from 'redux-saga'
 import { payablesApi } from '../../services/payables/payables.api'
 import {
   getPayableDetailErrorMessage,
   getPayableErrorMessage,
   getPaymentHistoryErrorMessage,
+  getVendorPaymentSaveError,
   VENDOR_OPTIONS_FALLBACK_MESSAGE,
 } from '../../services/payables/payables.errors'
 import type { PayableDetail, PayablePage, PayablePayment, PayableQuery, PayableVendorOption } from '../../types/payables'
 import {
   type clearPayablePaymentHistory,
   type clearPayableSelection,
-  type loadPayablePaymentHistory,
+  loadPayablePaymentHistory,
+  loadPayables,
   loadPayableByIdFailure,
   loadPayableByIdSuccess,
   loadPayablePaymentHistoryFailure,
@@ -20,10 +22,13 @@ import {
   loadPayablesSuccess,
   loadPayableVendorOptionsFailure,
   loadPayableVendorOptionsSuccess,
-  type selectPayable,
+  type recordVendorPayment,
+  recordVendorPaymentFailure,
+  recordVendorPaymentSuccess,
+  selectPayable,
 } from './payables.actions'
 import { PAYABLE_ACTIONS } from './payables.constants'
-import { selectPayableQuery } from './payables.selectors'
+import { selectPayablePaymentHistoryBillId, selectPayableQuery, selectSelectedPayableId } from './payables.selectors'
 
 function* loadPayablesWorker(): SagaIterator {
   const query: PayableQuery = yield select(selectPayableQuery)
@@ -78,6 +83,23 @@ function* loadPaymentHistoryWorker(action: PaymentHistoryAction): SagaIterator {
   }
 }
 
+function* recordVendorPaymentWorker(action: ReturnType<typeof recordVendorPayment>): SagaIterator {
+  try {
+    yield call(payablesApi.recordVendorPayment, action.payload)
+    yield put(recordVendorPaymentSuccess())
+    const paidBillId = action.payload.apBillId
+    // The paid amount, balance and status changed: refetch the AP page, and the open bill and its history if it's the one paid
+    yield put(loadPayables())
+    const selectedId: string | null = yield select(selectSelectedPayableId)
+    if (selectedId === paidBillId) yield put(selectPayable(selectedId))
+    const historyBillId: string | null = yield select(selectPayablePaymentHistoryBillId)
+    if (historyBillId === paidBillId) yield put(loadPayablePaymentHistory(paidBillId))
+  } catch (error) {
+    const saveError = getVendorPaymentSaveError(error)
+    if (saveError.message || Object.keys(saveError.fieldErrors).length) yield put(recordVendorPaymentFailure(saveError))
+  }
+}
+
 function* loadVendorOptionsWorker(): SagaIterator {
   const controller = new AbortController()
   try {
@@ -109,6 +131,8 @@ export default function* payablesSaga(): SagaIterator {
     // Leaving the detail view cancels an in-flight lookup, so a late response can't fill a closed view
     takeLatest([PAYABLE_ACTIONS.SELECT, PAYABLE_ACTIONS.CLEAR_SELECTION], loadPayableByIdWorker),
     takeLatest([PAYABLE_ACTIONS.LOAD_PAYMENT_HISTORY, PAYABLE_ACTIONS.CLEAR_PAYMENT_HISTORY], loadPaymentHistoryWorker),
+    // takeLeading ignores repeat submits while a post is in flight, so a double-click can't pay the bill twice
+    takeLeading(PAYABLE_ACTIONS.RECORD_PAYMENT, recordVendorPaymentWorker),
     takeLatest(PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS, loadVendorOptionsWorker),
   ])
 }

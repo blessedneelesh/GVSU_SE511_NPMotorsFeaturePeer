@@ -23,7 +23,9 @@ import { usePayableVendorOptions } from '../../hooks/usePayableVendorOptions'
 import type { Payable, PayableStatusFilter } from '../../types/payables'
 import { daysClass, formatCurrency, formatDays, statusBadgeClass, sumPage } from './payableMetrics'
 import { TablePagination } from '../../components/TablePagination/TablePagination'
+import { MakePaymentDialog } from './MakePaymentDialog'
 import { PayableDetail } from './PayableDetail'
+import { useMakePaymentDialog } from './useMakePaymentDialog'
 import './AccountsPayablePage.css'
 
 const pageSizeOptions = [5, 10, 25, 50]
@@ -72,6 +74,7 @@ export function AccountsPayablePage() {
   } = usePayables()
   const { vendorOptions } = usePayableVendorOptions()
   const { selectedId, openPayable } = usePayableDetail()
+  const { paying, openPay, closePay } = useMakePaymentDialog()
 
   // The list hook stays mounted, so the filters and page survive the round trip
   if (selectedId) return <PayableDetail />
@@ -160,6 +163,7 @@ export function AccountsPayablePage() {
                   <TableHeaderCell className="num">Balance</TableHeaderCell>
                   <TableHeaderCell>Age</TableHeaderCell>
                   <TableHeaderCell>Status</TableHeaderCell>
+                  <TableHeaderCell className="payable-actions">Actions</TableHeaderCell>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -180,11 +184,24 @@ export function AccountsPayablePage() {
                     <TableCell>
                       <span className={`badge ${statusBadgeClass(payable.status)}`}>{payable.status}</span>
                     </TableCell>
+                    <TableCell className="payable-actions">
+                      {/* Only bills with something left to pay can take a payment */}
+                      {payable.balance > 0 && payable.id && (
+                        <Button
+                          size="small"
+                          appearance="subtle"
+                          aria-label={`Pay ${payable.number || 'this bill'}`}
+                          onClick={() => openPay(payable)}
+                        >
+                          Pay
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
                 {payables.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="table-empty">
+                    <TableCell colSpan={10} className="table-empty">
                       {query.pageNumber > 1
                         ? 'No more payables on this page.'
                         : <>No outstanding payables found.{hasActiveFilters && ' Try clearing the filters.'}</>}
@@ -199,7 +216,7 @@ export function AccountsPayablePage() {
                     <TableCell className="num">{formatCurrency(pageTotals.amount)}</TableCell>
                     <TableCell className="num text-green">{formatCurrency(pageTotals.paid)}</TableCell>
                     <TableCell className="num text-red">{formatCurrency(pageTotals.balance)}</TableCell>
-                    <TableCell colSpan={2} />
+                    <TableCell colSpan={3} />
                   </TableRow>
                 )}
               </TableBody>
@@ -218,6 +235,8 @@ export function AccountsPayablePage() {
           />
         </section>
       )}
+
+      {paying && <MakePaymentDialog bill={paying} onClose={closePay} />}
     </div>
   )
 }

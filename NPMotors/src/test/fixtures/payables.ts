@@ -1,4 +1,12 @@
-import type { Payable, PayableDetail, PayablePage, PayablePayment, PayableVendorOption } from '../../types/payables'
+import type {
+  Payable,
+  PayableDetail,
+  PayablePage,
+  PayablePayment,
+  PayableVendorOption,
+  VendorPaymentFormValues,
+  VendorPaymentTarget,
+} from '../../types/payables'
 
 // Matches AP bill 4 of the running API's sample data, after mapping: unpaid and long overdue
 export const overduePayable: Payable = {
@@ -156,3 +164,22 @@ export const payablePayments: PayablePayment[] = [
   { id: '8', paymentNumber: 'PAY-2026-000008', paymentDate: '2026-11-23', paymentMethod: 'card', reference: 'string', amount: 5000 },
   { id: '9', paymentNumber: 'PAY-2026-000009', paymentDate: '2026-11-25', paymentMethod: 'check', reference: 'string', amount: 500 },
 ]
+
+// AP bill 11 as the Make Payment dialog receives it: partly paid
+export const vendorPaymentTarget: VendorPaymentTarget = {
+  id: '11',
+  number: 'AP-2026-000011',
+  vendorName: 'ABC Auto Auction',
+  amount: 52320,
+  paid: 5000,
+  balance: 47320,
+}
+
+// A partial payment by check from account 1
+export const vendorPaymentFormValues: VendorPaymentFormValues = {
+  paymentDate: '2026-11-26',
+  amount: '2000.50',
+  paymentMethod: 'check',
+  bankAccountId: '1',
+  reference: ' CHK-1042 ',
+}

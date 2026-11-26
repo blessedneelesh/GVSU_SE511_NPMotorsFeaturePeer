@@ -7,6 +7,7 @@ import type {
   PayablePayment,
   PayableStatus,
   PayableVendorOption,
+  VendorPaymentFormValues,
 } from '../../types/payables'
 
 // Accepted spellings per field: the API's snake-ish camelCase first, then camelCase and PascalCase.
@@ -224,4 +225,27 @@ export function mapPayablePayment(dto: Record<string, unknown>): PayablePayment 
 export function mapPayablePaymentHistory(body: unknown): PayablePayment[] {
   const list = Array.isArray(body) ? body : isRecord(body) ? (body.payments ?? body.Payments) : undefined
   return Array.isArray(list) ? list.filter(isRecord).map(mapPayablePayment) : []
+}
+
+// VendorPaymentCreateDto. payment_Method is a plain string on this endpoint, spelled as the API stores it
+// ("Cash", "Check", "Card", "Transfer"); amount and bank_Account_Id must be JSON numbers.
+export interface VendorPaymentCreateDto {
+  // YYYY-MM-DD; ASP.NET binds it to a midnight DateTime
+  payment_Date: string
+  amount: number
+  payment_Method: string
+  reference: string | null
+  bank_Account_Id: number
+}
+
+const PAYMENT_METHOD_DTO: Record<PaymentMethod, string> = { cash: 'Cash', check: 'Check', card: 'Card', transfer: 'Transfer' }
+
+export function toVendorPaymentDto(values: VendorPaymentFormValues): VendorPaymentCreateDto {
+  return {
+    payment_Date: values.paymentDate,
+    amount: Number(values.amount),
+    payment_Method: PAYMENT_METHOD_DTO[values.paymentMethod],
+    reference: values.reference.trim() || null,
+    bank_Account_Id: Number(values.bankAccountId),
+  }
 }

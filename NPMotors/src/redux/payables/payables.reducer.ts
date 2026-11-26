@@ -1,6 +1,13 @@
 import type { UnknownAction } from 'redux'
 import type { RequestStatus } from '../../types/common'
-import type { Payable, PayableDetail, PayablePayment, PayableQuery, PayableVendorOption } from '../../types/payables'
+import type {
+  Payable,
+  PayableDetail,
+  PayablePayment,
+  PayableQuery,
+  PayableVendorOption,
+  VendorPaymentFieldErrors,
+} from '../../types/payables'
 import type { PayablesAction } from './payables.actions'
 import { PAYABLE_ACTIONS } from './payables.constants'
 
@@ -19,6 +26,10 @@ export interface PayablesState {
   payments: PayablePayment[]
   paymentHistoryStatus: RequestStatus
   paymentHistoryError: string | null
+  // Make Payment
+  saveStatus: RequestStatus
+  saveError: string | null
+  fieldErrors: VendorPaymentFieldErrors
   vendorOptions: PayableVendorOption[]
   vendorOptionsStatus: RequestStatus
   vendorOptionsError: string | null
@@ -38,6 +49,9 @@ export const initialPayablesState: PayablesState = {
   payments: [],
   paymentHistoryStatus: 'idle',
   paymentHistoryError: null,
+  saveStatus: 'idle',
+  saveError: null,
+  fieldErrors: {},
   vendorOptions: [],
   vendorOptionsStatus: 'idle',
   vendorOptionsError: null,
@@ -101,6 +115,14 @@ export default function payablesReducer(state: PayablesState = initialPayablesSt
       return { ...state, paymentHistoryStatus: 'error', paymentHistoryError: action.payload }
     case PAYABLE_ACTIONS.CLEAR_PAYMENT_HISTORY:
       return { ...state, paymentHistoryBillId: null, payments: [], paymentHistoryStatus: 'idle', paymentHistoryError: null }
+    case PAYABLE_ACTIONS.RECORD_PAYMENT:
+      return { ...state, saveStatus: 'loading', saveError: null, fieldErrors: {} }
+    case PAYABLE_ACTIONS.RECORD_PAYMENT_SUCCESS:
+      return { ...state, saveStatus: 'success' }
+    case PAYABLE_ACTIONS.RECORD_PAYMENT_FAILURE:
+      return { ...state, saveStatus: 'error', saveError: action.payload.message || null, fieldErrors: action.payload.fieldErrors }
+    case PAYABLE_ACTIONS.RESET_SAVE:
+      return { ...state, saveStatus: 'idle', saveError: null, fieldErrors: {} }
     case PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS:
       return { ...state, vendorOptionsStatus: 'loading', vendorOptionsError: null }
     case PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS_SUCCESS:

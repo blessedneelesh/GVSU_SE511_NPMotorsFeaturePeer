@@ -95,6 +95,10 @@ export const makeReceiptState = (overrides: Partial<ReceiptsState> = {}, receiva
 export const makePayableState = (overrides: Partial<PayablesState> = {}): RootState =>
   makeState({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, overrides)
 
+// Shorthand for make-payment tests: an overridden payables slice and receipts slice (the Pay From accounts live there)
+export const makeVendorPaymentState = (overrides: Partial<PayablesState> = {}, receiptOverrides: Partial<ReceiptsState> = {}): RootState =>
+  makeState({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, receiptOverrides, overrides)
+
 interface RenderOptions {
   preloadedState?: RootState
   route?: string

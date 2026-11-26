@@ -7,6 +7,7 @@ import {
   loadPayablePaymentHistory,
   loadPayablePaymentHistoryFailure,
   loadPayablePaymentHistorySuccess,
+  resetPayableSave,
   selectPayable,
 } from '../../../redux/payables/payables.actions'
 import {
@@ -166,5 +167,34 @@ describe('PayableDetail', () => {
     expect(screen.getByRole('heading', { level: 1, name: '—' })).toBeInTheDocument()
     expect(fact('Name')).toHaveTextContent('—')
     expect(fact('Contact')).toHaveTextContent('—')
+  })
+})
+
+describe('PayableDetail make payment', () => {
+  it('offers Make Payment in the header, the payment history and the summary of an unpaid bill', () => {
+    const { store } = renderLoaded(partialPayableDetail)
+    answerHistory(store, '11')
+    expect(screen.getAllByRole('button', { name: 'Make Payment' })).toHaveLength(3)
+  })
+
+  it('also offers it in the empty payment history', () => {
+    const { store } = renderLoaded(overduePayableDetail)
+    answerHistory(store, '4', [])
+    // header, history header, empty state and summary
+    expect(screen.getAllByRole('button', { name: 'Make Payment' })).toHaveLength(4)
+  })
+
+  it('offers no payment on a settled bill', () => {
+    renderLoaded(paidPayableDetail)
+    expect(screen.queryByRole('button', { name: 'Make Payment' })).not.toBeInTheDocument()
+  })
+
+  it('opens the dialog for the bill, starting from a clean save state', async () => {
+    const { actions, user } = renderLoaded(partialPayableDetail)
+    await user.click(screen.getAllByRole('button', { name: 'Make Payment' })[0]!)
+    expect(actions).toContainEqual(resetPayableSave())
+    const dialog = screen.getByRole('dialog', { name: 'Make Payment' })
+    expect(within(dialog).getByText('AP-2026-000011 · ABC Auto Auction')).toBeInTheDocument()
+    expect(within(dialog).getByRole('spinbutton', { name: /Payment Amount/ })).toHaveValue(47320)
   })
 })

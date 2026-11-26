@@ -1,6 +1,11 @@
 import { AxiosError, AxiosHeaders, CanceledError } from 'axios'
 import { describe, expect, it } from 'vitest'
-import { getPayableDetailErrorMessage, getPayableErrorMessage, VENDOR_OPTIONS_FALLBACK_MESSAGE } from '../../../services/payables/payables.errors'
+import {
+  getPayableDetailErrorMessage,
+  getPayableErrorMessage,
+  getVendorPaymentSaveError,
+  VENDOR_OPTIONS_FALLBACK_MESSAGE,
+} from '../../../services/payables/payables.errors'
 
 const httpError = (status: number, data?: unknown) =>
   new AxiosError('Request failed', 'ERR_BAD_REQUEST', undefined, undefined,
@@ -42,5 +47,25 @@ describe('getPayableDetailErrorMessage', () => {
     expect(getPayableDetailErrorMessage(httpError(400, { errors: { id: ["The value 'abc' is not valid."] } }))).toBe("The value 'abc' is not valid.")
     expect(getPayableDetailErrorMessage(httpError(400))).toBe('This bill could not be loaded. Please try again.')
     expect(getPayableDetailErrorMessage(new CanceledError())).toBe('')
+  })
+})
+
+describe('getVendorPaymentSaveError', () => {
+  it('maps ProblemDetails keys onto the form fields, ignoring case, underscores and a $. prefix', () => {
+    expect(getVendorPaymentSaveError(httpError(400, {
+      errors: { Payment_Date: ['Date is invalid.'], '$.bank_Account_Id': ['Account is invalid.'], Reference: ['Too long.'] },
+    }))).toEqual({ message: '', fieldErrors: { paymentDate: 'Date is invalid.', bankAccountId: 'Account is invalid.', reference: 'Too long.' } })
+  })
+
+  it('shows errors no field can hold, and { message } rejections, as the banner', () => {
+    expect(getVendorPaymentSaveError(httpError(400, { message: 'Bank account is inactive.' })))
+      .toEqual({ message: 'Bank account is inactive.', fieldErrors: {} })
+    expect(getVendorPaymentSaveError(httpError(400, { errors: { Other: ['Something else.'] } })))
+      .toEqual({ message: 'Something else.', fieldErrors: {} })
+  })
+
+  it('says the bill no longer exists on a 404, and falls back to the payment message', () => {
+    expect(getVendorPaymentSaveError(httpError(404))).toEqual({ message: 'This bill no longer exists.', fieldErrors: {} })
+    expect(getVendorPaymentSaveError(httpError(400))).toEqual({ message: 'The payment could not be posted. Please try again.', fieldErrors: {} })
   })
 })

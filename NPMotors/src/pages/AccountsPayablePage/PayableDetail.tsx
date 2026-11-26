@@ -14,6 +14,7 @@ import {
   TableRow,
 } from '@fluentui/react-components'
 import {
+  Add16Regular,
   BuildingFactory24Regular,
   CheckmarkCircle16Regular,
   Clock16Regular,
@@ -33,12 +34,16 @@ import {
   sortPaymentsOldestFirst,
   statusBadgeClass,
 } from './payableMetrics'
+import { MakePaymentDialog } from './MakePaymentDialog'
+import { useMakePaymentDialog } from './useMakePaymentDialog'
 
 // Loads the selected bill from GetApById via Redux; the list page decides when it's shown
 export function PayableDetail() {
   const { selectedId, payable, detailStatus, detailError, closePayable, retry } = usePayableDetail()
   // Loaded beside GetApById, by the selected id
   const paymentHistory = usePayablePaymentHistory(selectedId)
+  // Kept here, not in the profile: a payment refetches the bill, which unmounts the profile while it loads
+  const { paying, openPay, closePay } = useMakePaymentDialog()
 
   return (
     <div className="payables-page">
@@ -66,7 +71,11 @@ export function PayableDetail() {
         </section>
       )}
 
-      {detailStatus === 'success' && payable && <PayableProfile payable={payable} paymentHistory={paymentHistory} />}
+      {detailStatus === 'success' && payable && (
+        <PayableProfile payable={payable} paymentHistory={paymentHistory} onPay={() => openPay(payable)} />
+      )}
+
+      {paying && <MakePaymentDialog bill={paying} onClose={closePay} />}
     </div>
   )
 }
@@ -81,10 +90,13 @@ interface TimelineStep {
 interface PayableProfileProps {
   payable: PayableDetailData
   paymentHistory: UsePayablePaymentHistoryResult
+  onPay: () => void
 }
 
-function PayableProfile({ payable, paymentHistory }: PayableProfileProps) {
+function PayableProfile({ payable, paymentHistory, onPay }: PayableProfileProps) {
   const isSettled = payable.balance <= 0
+  // Only a bill with something left to pay, and an id to post against, can take a payment
+  const canPay = !isSettled && Boolean(payable.id)
   const isOverdue = !isSettled && payable.daysOverdue > 0
   const percent = paidPercent(payable.paid, payable.amount)
   const dash = (value: string) => value || '—'
@@ -119,6 +131,7 @@ function PayableProfile({ payable, paymentHistory }: PayableProfileProps) {
           </div>
           <div className="payable-hero__actions">
             <span className={`badge ${statusBadgeClass(payable.status)}`}>{payable.status}</span>
+            {canPay && <Button appearance="primary" onClick={onPay}>Make Payment</Button>}
             <Button onClick={() => window.print()}>Print</Button>
           </div>
         </div>
@@ -166,7 +179,9 @@ function PayableProfile({ payable, paymentHistory }: PayableProfileProps) {
             payments={[...paymentsOldestFirst].reverse()}
             status={paymentHistory.paymentHistoryStatus}
             error={paymentHistory.paymentHistoryError}
+            canPay={canPay}
             onRetry={paymentHistory.retry}
+            onPay={onPay}
           />
         </div>
 
@@ -203,6 +218,9 @@ function PayableProfile({ payable, paymentHistory }: PayableProfileProps) {
               <div><dt>Paid</dt><dd className="text-green">{formatCurrencyExact(payable.paid)}</dd></div>
               <div className="payable-summary__total"><dt>Balance Due</dt><dd>{formatCurrencyExact(payable.balance)}</dd></div>
             </dl>
+            {canPay && (
+              <Button appearance="primary" className="payable-summary__pay" onClick={onPay}>Make Payment</Button>
+            )}
           </section>
         </aside>
       </div>
@@ -215,11 +233,13 @@ interface PaymentHistoryProps {
   payments: PayablePayment[]
   status: UsePayablePaymentHistoryResult['paymentHistoryStatus']
   error: string | null
+  canPay: boolean
   onRetry: () => void
+  onPay: () => void
 }
 
-// Vendor payments from GetPaymentHistory. A reload keeps the old rows until the new ones arrive.
-function PaymentHistory({ payments, status, error, onRetry }: PaymentHistoryProps) {
+// Vendor payments from GetPaymentHistory. A reload after a payment keeps the old rows until the new ones arrive.
+function PaymentHistory({ payments, status, error, canPay, onRetry, onPay }: PaymentHistoryProps) {
   const isFirstLoad = (status === 'loading' || status === 'idle') && payments.length === 0
   const dash = (value: string) => value || '—'
 
@@ -227,6 +247,9 @@ function PaymentHistory({ payments, status, error, onRetry }: PaymentHistoryProp
     <section className="card payable-payments" aria-labelledby="payable-payments-title">
       <header className="payable-payments__header">
         <h2 id="payable-payments-title">Payment History</h2>
+        {canPay && (
+          <Button appearance="primary" size="small" icon={<Add16Regular />} onClick={onPay}>Make Payment</Button>
+        )}
       </header>
 
       {status === 'error' ? (
@@ -247,6 +270,7 @@ function PaymentHistory({ payments, status, error, onRetry }: PaymentHistoryProp
         <div className="payable-payments__empty">
           <Payment16Regular aria-hidden="true" />
           <span>No payments recorded yet</span>
+          {canPay && <Button appearance="primary" size="small" onClick={onPay}>Make Payment</Button>}
         </div>
       ) : (
         <div className={`table-scroll${status === 'loading' ? ' is-refreshing' : ''}`}>
