@@ -161,6 +161,11 @@
 .receivable-payments__header h2 { margin: 0; font-size: 15px; font-weight: 600; color: var(--slate-800); }
 .receivables-page .receivable-payments-table { min-width: 620px; }
 .receivables-page .data-table .receivable-payments__amount { font-weight: 600; }
+/* A reversed receipt: greyed out with its amount struck through (it no longer counts toward the paid amount) */
+.receivables-page .data-table .payment-row--reversed .fui-TableCell { color: var(--slate-400); }
+.receivables-page .data-table .payment-row--reversed .receivable-payments__amount { color: var(--slate-400); text-decoration: line-through; }
+.receivables-page .data-table .payment-row--reversed .payment-number { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.receivables-page .data-table .payment-row--reversed .badge-reversed { background: var(--slate-100); color: var(--slate-600); font-family: inherit; }
 .receivable-payments__empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 32px 20px; font-size: 14px; color: var(--slate-400); }
 .receivable-payments__empty svg { width: 28px; height: 28px; }
 .receivables-page .receivable-payments__message { margin: 16px 20px; }

@@ -58,12 +58,18 @@ describe('payment history mapper', () => {
 
   it('accepts a bare array and PascalCase fields', () => {
     expect(mapPaymentHistory([{ Id: 9, ReceiptNumber: 'RCT-9', ReceiptDate: '2026-01-02T00:00:00', Amount: '10.5', PaymentMethod: 'Cash' }]))
-      .toEqual([{ id: '9', receiptNumber: 'RCT-9', receiptDate: '2026-01-02', amount: 10.5, paymentMethod: 'cash', reference: '', bankAccountName: '' }])
+      .toEqual([{ id: '9', receiptNumber: 'RCT-9', receiptDate: '2026-01-02', amount: 10.5, paymentMethod: 'cash', reference: '', bankAccountName: '', status: 'Posted' }])
   })
 
   it('keeps an unknown method as null and skips rows that are not objects', () => {
     expect(mapPaymentHistory({ payments: [{ id: 1, paymentMethod: 'finance', amount: 'abc' }, null, 'x'] }))
-      .toEqual([{ id: '1', receiptNumber: '', receiptDate: '', amount: 0, paymentMethod: null, reference: '', bankAccountName: '' }])
+      .toEqual([{ id: '1', receiptNumber: '', receiptDate: '', amount: 0, paymentMethod: null, reference: '', bankAccountName: '', status: 'Posted' }])
+  })
+
+  it('reads the receipt status: Reversed in any casing, and anything else (or none) as Posted', () => {
+    const statuses = mapPaymentHistory([{ id: 1, status: 'Reversed' }, { id: 2, Status: 'REVERSED' }, { id: 3, status: 'Posted' }, { id: 4 }, { id: 5, status: 'odd' }])
+      .map((payment) => payment.status)
+    expect(statuses).toEqual(['Reversed', 'Reversed', 'Posted', 'Posted', 'Posted'])
   })
 
   it('reads an invoice with no payments, or an unexpected body, as none', () => {

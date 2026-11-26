@@ -102,15 +102,17 @@ function PayableProfile({ payable, paymentHistory, onPay }: PayableProfileProps)
   const dash = (value: string) => value || '—'
 
   const paymentsOldestFirst = sortPaymentsOldestFirst(paymentHistory.payments)
-  const lastPayment = paymentsOldestFirst.at(-1)
+  // Fully Settled is dated by the last payment that still counts, not a reversed one
+  const lastPayment = paymentsOldestFirst.filter((payment) => payment.status !== 'Reversed').at(-1)
 
   const timeline: TimelineStep[] = [
     { label: 'Bill Received', date: payable.date, icon: <Document16Regular />, done: true },
     ...paymentsOldestFirst.map((payment) => ({
-      label: `Payment Made — ${formatCurrencyExact(payment.amount)}`,
+      label: `${payment.status === 'Reversed' ? 'Payment Reversed' : 'Payment Made'} — ${formatCurrencyExact(payment.amount)}`,
       date: payment.paymentDate,
       icon: <Payment16Regular />,
-      done: true,
+      // A reversed payment shows as a grey (not done) step
+      done: payment.status !== 'Reversed',
     })),
     isSettled
       ? { label: 'Fully Settled', date: lastPayment?.paymentDate ?? '', icon: <CheckmarkCircle16Regular />, done: true }
@@ -286,9 +288,19 @@ function PaymentHistory({ payments, status, error, canPay, onRetry, onPay }: Pay
             </TableHeader>
             <TableBody>
               {payments.map((payment, index) => (
-                <TableRow key={payment.id || `${payment.paymentNumber}-${index}`}>
+                // Reversed payments stay listed but greyed out; the paid amount already leaves them out
+                <TableRow
+                  key={payment.id || `${payment.paymentNumber}-${index}`}
+                  className={payment.status === 'Reversed' ? 'payment-row--reversed' : undefined}
+                >
                   <TableCell className="text-xs text-muted">{dash(payment.paymentDate)}</TableCell>
-                  <TableCell className="mono text-xs text-link">{dash(payment.paymentNumber)}</TableCell>
+                  <TableCell className="mono text-xs text-link">
+                    {/* The badge stacks under the number: the fixed-width column has no room beside it */}
+                    <span className="payment-number">
+                      {dash(payment.paymentNumber)}
+                      {payment.status === 'Reversed' && <span className="badge badge-reversed">Reversed</span>}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-secondary">{paymentMethodLabel(payment.paymentMethod)}</TableCell>
                   <TableCell className="mono text-xs text-muted">{dash(payment.reference)}</TableCell>
                   <TableCell className="num text-red payable-payments__amount">{formatCurrencyExact(payment.amount)}</TableCell>

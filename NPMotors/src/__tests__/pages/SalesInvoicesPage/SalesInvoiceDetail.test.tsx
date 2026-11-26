@@ -448,6 +448,19 @@ describe('SalesInvoiceDetail', () => {
       ])
     })
 
+    it('greys out a reversed receipt and marks it Reversed', async () => {
+      const { store, user } = renderProfile(partialInvoice)
+      await user.click(screen.getByRole('tab', { name: 'Payment History' }))
+      const [first, second] = receiptPayments
+      act(() => { store.dispatch(loadPaymentHistorySuccess({ arInvoiceId: '4003', payments: [first!, { ...second!, status: 'Reversed' }] })) })
+
+      const [reversed, posted] = within(screen.getByRole('table', { name: 'Payments for INV-2026-0003' })).getAllByRole('row').slice(1)
+      expect(reversed).toHaveClass('payment-row--reversed')
+      expect(within(reversed!).getAllByRole('cell')[4]).toHaveTextContent('ReversedDeposited to Business Savings')
+      expect(posted).not.toHaveClass('payment-row--reversed')
+      expect(within(posted!).queryByText('Reversed')).not.toBeInTheDocument()
+    })
+
     it('shows when the payments failed to load and retries', async () => {
       const { actions, store, user } = renderProfile(partialInvoice)
       await user.click(screen.getByRole('tab', { name: 'Payment History' }))

@@ -76,6 +76,9 @@ export interface ReceiptCustomerInvoices {
   invoices: Receivable[]
 }
 
+// A receipt stays in the history after ReverseTransaction, marked Reversed; only Posted ones count toward the paid amount
+export type ReceiptPaymentStatus = 'Posted' | 'Reversed'
+
 // One receipt posted against an AR invoice, from GET Receipt/GetPaymentHistory/{arInvoiceId}
 export interface ReceiptPayment {
   id: string
@@ -87,6 +90,7 @@ export interface ReceiptPayment {
   paymentMethod: PaymentMethod | null
   reference: string
   bankAccountName: string
+  status: ReceiptPaymentStatus
 }
 
 export interface ReceiptPaymentHistory {
