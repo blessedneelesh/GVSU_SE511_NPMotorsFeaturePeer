@@ -128,6 +128,31 @@ describe('PayableDetail', () => {
       ])
     })
 
+    it('greys out a reversed payment in the table and the timeline', () => {
+      const { store } = renderLoaded({ ...partialPayableDetail, id: '10' })
+      const [first, second] = payablePayments
+      answerHistory(store, '10', [first!, { ...second!, status: 'Reversed' }])
+
+      const [, reversed, posted] = within(screen.getByRole('table', { name: 'Payment history' })).getAllByRole('row')
+      expect(reversed).toHaveClass('payment-row--reversed')
+      expect(within(reversed!).getAllByRole('cell')[1]).toHaveTextContent('PAY-2026-000009Reversed')
+      expect(posted).not.toHaveClass('payment-row--reversed')
+      expect(within(posted!).queryByText('Reversed')).not.toBeInTheDocument()
+
+      const steps = within(screen.getByText('Timeline').parentElement!).getAllByRole('listitem')
+      expect(steps[1]).toHaveTextContent('Payment Made — $5,000.00')
+      expect(steps[1]).toHaveClass('is-done')
+      expect(steps[2]).toHaveTextContent('Payment Reversed — $500.00')
+      expect(steps[2]).not.toHaveClass('is-done')
+    })
+
+    it('dates the settlement with the last payment that was not reversed', () => {
+      const { store } = renderLoaded(paidPayableDetail)
+      const [first, second] = payablePayments
+      answerHistory(store, '11', [first!, { ...second!, status: 'Reversed' }])
+      expect(screen.getByText('Fully Settled').nextElementSibling).toHaveTextContent('2026-11-23')
+    })
+
     it('dates the settlement with the last payment', () => {
       const { store } = renderLoaded(paidPayableDetail)
       answerHistory(store, '11')

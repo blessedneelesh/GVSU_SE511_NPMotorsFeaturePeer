@@ -89,9 +89,15 @@ describe('mapPayablePaymentHistory', () => {
     expect(mapPayablePaymentHistory(null)).toEqual([])
   })
 
+  it('reads the payment status: Reversed in any casing, and anything else (or none) as Posted', () => {
+    const statuses = mapPayablePaymentHistory([{ id: 1, status: 'Reversed' }, { id: 2, Status: 'REVERSED' }, { id: 3, status: 'Posted' }, { id: 4 }, { id: 5, status: 'odd' }])
+      .map((payment) => payment.status)
+    expect(statuses).toEqual(['Reversed', 'Reversed', 'Posted', 'Posted', 'Posted'])
+  })
+
   it('leaves an unknown method out and falls back for missing fields', () => {
     expect(mapPayablePaymentHistory([{ payment_Method: 'Wire', amount: 'x' }, 'junk'])).toEqual([
-      { id: '', paymentNumber: '', paymentDate: '', paymentMethod: null, reference: '', amount: 0 },
+      { id: '', paymentNumber: '', paymentDate: '', paymentMethod: null, reference: '', amount: 0, status: 'Posted' },
     ])
   })
 })

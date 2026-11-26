@@ -177,8 +177,8 @@ export const sparsePayableDetail: PayableDetail = {
 
 // GetPaymentHistory for AP bill 10, after mapping (in the API's order: oldest first)
 export const payablePayments: PayablePayment[] = [
-  { id: '8', paymentNumber: 'PAY-2026-000008', paymentDate: '2026-11-23', paymentMethod: 'card', reference: 'string', amount: 5000 },
-  { id: '9', paymentNumber: 'PAY-2026-000009', paymentDate: '2026-11-25', paymentMethod: 'check', reference: 'string', amount: 500 },
+  { id: '8', paymentNumber: 'PAY-2026-000008', paymentDate: '2026-11-23', paymentMethod: 'card', reference: 'string', amount: 5000, status: 'Posted' },
+  { id: '9', paymentNumber: 'PAY-2026-000009', paymentDate: '2026-11-25', paymentMethod: 'check', reference: 'string', amount: 500, status: 'Posted' },
 ]
 
 // AP bill 11 as the Make Payment dialog receives it: partly paid

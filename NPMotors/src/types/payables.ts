@@ -80,6 +80,9 @@ export interface PayableVendorOption {
 }
 
 // One vendor payment from GetPaymentHistory
+// A vendor payment stays in the history after ReverseTransaction, marked Reversed; only Posted ones count toward the paid amount
+export type PayablePaymentStatus = 'Posted' | 'Reversed'
+
 export interface PayablePayment {
   id: string
   // PAY-…
@@ -90,6 +93,7 @@ export interface PayablePayment {
   paymentMethod: PaymentMethod | null
   reference: string
   amount: number
+  status: PayablePaymentStatus
 }
 
 // GetPaymentHistory's payments, tagged with the bill they belong to so a late answer for another bill can be ignored

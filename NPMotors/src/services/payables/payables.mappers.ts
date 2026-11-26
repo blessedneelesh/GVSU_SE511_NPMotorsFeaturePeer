@@ -5,6 +5,7 @@ import type {
   PayableAgingBucket,
   PayableDetail,
   PayablePayment,
+  PayablePaymentStatus,
   PayableStatus,
   PayableVendorOption,
   MiscellaneousPaymentRequest,
@@ -182,6 +183,7 @@ const PAYMENT_FIELDS = {
   paymentMethod: ['payment_Method', 'paymentMethod', 'PaymentMethod', 'Payment_Method', 'method', 'Method'],
   reference: ['reference', 'Reference'],
   amount: ['amount', 'Amount'],
+  status: ['status', 'Status'],
 } as const
 
 type PaymentField = keyof typeof PAYMENT_FIELDS
@@ -209,6 +211,11 @@ function readPaymentMethod(dto: Record<string, unknown>): PaymentMethod | null {
   return PAYMENT_METHODS.find((method) => method === value) ?? null
 }
 
+// The API sends "Posted" or "Reversed"; anything else (or no status, from an older API) is treated as Posted
+function readPaymentStatus(dto: Record<string, unknown>): PayablePaymentStatus {
+  return readPaymentString(dto, 'status').toLowerCase() === 'reversed' ? 'Reversed' : 'Posted'
+}
+
 export function mapPayablePayment(dto: Record<string, unknown>): PayablePayment {
   const amount = readPaymentField(dto, 'amount')
   const parsed = typeof amount === 'number' ? amount : typeof amount === 'string' && amount.trim() ? Number(amount) : NaN
@@ -219,6 +226,7 @@ export function mapPayablePayment(dto: Record<string, unknown>): PayablePayment 
     paymentMethod: readPaymentMethod(dto),
     reference: readPaymentString(dto, 'reference'),
     amount: Number.isFinite(parsed) ? parsed : 0,
+    status: readPaymentStatus(dto),
   }
 }
 
