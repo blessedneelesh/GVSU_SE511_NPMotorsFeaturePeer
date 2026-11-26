@@ -18,6 +18,7 @@ import type { PayablesState } from '../../../redux/payables/payables.reducer'
 import {
   overduePayable,
   overduePayableDetail,
+  paidPayable,
   partialPayable,
   payableVendorOptions,
   recentOverduePayable,
@@ -83,8 +84,8 @@ describe('AccountsPayablePage', () => {
   it('falls back for missing fields', () => {
     renderLoaded([sparsePayable])
     const [, row] = within(getTable()).getAllByRole('row')
-    // bill number, vendor, bill date and due date
-    expect(within(row!).getAllByText('—')).toHaveLength(4)
+    // bill number, vendor, bill date, due date, and age (a zero balance has no days overdue)
+    expect(within(row!).getAllByText('—')).toHaveLength(5)
     // Without an id there's nothing to open
     expect(within(row!).getByRole('button', { name: '—' })).toBeDisabled()
   })
@@ -185,16 +186,39 @@ describe('AccountsPayablePage', () => {
   })
 
   describe('filters', () => {
-    it('offers the API\'s statuses, with no Paid, and dispatches the chosen one', async () => {
+    it('offers the API\'s statuses and dispatches the chosen one', async () => {
       const { actions, user } = renderLoaded([overduePayable])
       const filter = screen.getByRole('combobox', { name: 'Status' })
       expect(filter).toHaveTextContent('All Status')
       await user.click(filter)
       expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
-        'All Status', 'Overdue', 'Unpaid (not yet due)', 'Partial (not yet due)',
+        'All Status', 'Overdue', 'Unpaid (not yet due)', 'Partial (not yet due)', 'Paid',
       ])
       await user.click(screen.getByRole('option', { name: 'Overdue' }))
       expect(actions).toContainEqual(setPayableStatusFilter('overdue'))
+    })
+
+    it('dispatches the paid filter', async () => {
+      const { actions, user } = renderLoaded([overduePayable])
+      await user.click(screen.getByRole('combobox', { name: 'Status' }))
+      await user.click(screen.getByRole('option', { name: 'Paid' }))
+      expect(actions).toContainEqual(setPayableStatusFilter('paid'))
+    })
+
+    it('shows a settled bill as Paid, with no age and no Pay action', () => {
+      renderLoaded([paidPayable], withQuery({ status: 'paid' }))
+      const [, row] = within(getTable()).getAllByRole('row')
+      expect(within(row!).getByText('Paid', { selector: '.badge' })).toHaveClass('badge-paid')
+      expect(within(row!).queryByText('966d')).not.toBeInTheDocument()
+      expect(within(row!).getByText('—')).toHaveClass('text-faint')
+      expect(within(row!).getAllByText('$84,000')).toHaveLength(2)
+      expect(within(row!).getByText('$0')).toHaveClass('text-faint')
+      expect(within(row!).queryByRole('button', { name: /^Pay / })).not.toBeInTheDocument()
+    })
+
+    it('says no paid payables when the paid filter finds nothing', () => {
+      renderLoaded([], withQuery({ status: 'paid' }))
+      expect(screen.getByText('No paid payables found. Try clearing the filters.')).toBeInTheDocument()
     })
 
     it('offers every loaded vendor and dispatches the chosen id', async () => {

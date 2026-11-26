@@ -1,14 +1,13 @@
 import type { PaymentMethod } from './common'
 
 // The bill's status as the list shows it. GetAllApBills sends "Overdue" once past due, otherwise the bill's own
-// status (in mixed case: "unpaid", "Unpaid", "partial"). Settled bills are never returned, but "Paid" is kept so an
-// unexpected one still gets a sensible badge.
+// status (in mixed case: "unpaid", "Unpaid", "partial", "Paid"). Settled bills only come back under Status=paid.
 export type PayableStatus = 'Overdue' | 'Partial' | 'Unpaid' | 'Paid'
 
 // The API's aging buckets, by days past due as of the query's date
 export type PayableAgingBucket = 'Current' | '1-30' | '31-60' | '61-90' | 'Over 90'
 
-// One open AP bill from GetAllApBills
+// One AP bill from GetAllApBills (open bills, or settled ones under the paid filter)
 export interface Payable {
   id: string
   // The bill number (AP-…, or the legacy BILL- numbers)
@@ -53,9 +52,9 @@ export interface PayableDetail {
   address: string
 }
 
-// The API's Status values: 'all' = every open bill; overdue = past due; unpaid/partial = that status and not yet due.
-// It rejects anything else (there is no "paid").
-export type PayableStatusFilter = 'all' | 'overdue' | 'unpaid' | 'partial'
+// The API's Status values: 'all' = every open bill; overdue = past due; unpaid/partial = that status and not yet due;
+// paid = fully settled (balance 0), which every other value leaves out
+export type PayableStatusFilter = 'all' | 'overdue' | 'unpaid' | 'partial' | 'paid'
 
 // A vendor id, or 'all' for every vendor
 export type PayableVendorFilter = string

@@ -91,8 +91,8 @@ export const AR_ENDPOINTS = {
   getArById: 'Ar/GetArById',
 } as const
 
-// Accounts payable (Accounts Payable page), on the Customers API origin. GetAllApBills returns open bills only and
-// takes VendorId, Status (unpaid | partial | overdue) and AsOfDate; it has no SearchTerm.
+// Accounts payable (Accounts Payable page), on the Customers API origin. GetAllApBills returns open bills (settled ones
+// only under Status=paid) and takes VendorId, Status (unpaid | partial | overdue | paid) and AsOfDate; it has no SearchTerm.
 // GetApById (?id=) lives under the Ap prefix, not APBill, and answers 404 for an unknown id.
 // GetPaymentHistory takes the bill id in the path and returns the bill with its payments (404 for an unknown id).
 // RecordVendorPayment (POST, bill id in the path, VendorPaymentCreateDto) pays the bill from a bank account.

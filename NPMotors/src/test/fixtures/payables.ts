@@ -72,6 +72,22 @@ export const unpaidPayable: Payable = {
   status: 'Unpaid',
 }
 
+// Matches AP bill 2 under Status=paid: settled, though still 966 days past its due date
+export const paidPayable: Payable = {
+  id: '2',
+  number: 'BILL-0018',
+  vendorId: '1',
+  vendorName: 'ABC Auto Auction',
+  date: '2024-03-05',
+  dueDate: '2024-04-04',
+  amount: 84000,
+  paid: 84000,
+  balance: 0,
+  daysOverdue: 966,
+  agingBucket: 'Over 90',
+  status: 'Paid',
+}
+
 // A row whose optional fields all came back empty
 export const sparsePayable: Payable = {
   id: '',

@@ -32,13 +32,14 @@ const pageSizeOptions = [5, 10, 25, 50]
 
 const ALL_VENDORS = 'all'
 
-// The API's Status values; "unpaid" and "partial" only return bills that aren't due yet ("All Status" means every
-// open bill). Settled bills are never listed, so there is no "Paid" option.
+// The API's Status values; "unpaid" and "partial" only return bills that aren't due yet,
+// and settled bills only come back under "paid" ("All Status" means every open bill)
 const statusOptions: { value: PayableStatusFilter; label: string }[] = [
   { value: 'all', label: 'All Status' },
   { value: 'overdue', label: 'Overdue' },
   { value: 'unpaid', label: 'Unpaid (not yet due)' },
   { value: 'partial', label: 'Partial (not yet due)' },
+  { value: 'paid', label: 'Paid' },
 ]
 
 const isStatusFilter = (value: unknown): value is PayableStatusFilter =>
@@ -180,7 +181,10 @@ export function AccountsPayablePage() {
                     <TableCell className="num text-secondary">{formatCurrency(payable.amount)}</TableCell>
                     <TableCell className="num text-green">{formatCurrency(payable.paid)}</TableCell>
                     <TableCell className={`num strong ${payable.balance > 0 ? 'text-red' : 'text-faint'}`}>{formatCurrency(payable.balance)}</TableCell>
-                    <TableCell className={`text-xs strong ${daysClass(payable.daysOverdue)}`}>{formatDays(payable.daysOverdue)}</TableCell>
+                    {/* A settled bill can't be overdue, though the API still counts days past its due date */}
+                    {payable.balance > 0
+                      ? <TableCell className={`text-xs strong ${daysClass(payable.daysOverdue)}`}>{formatDays(payable.daysOverdue)}</TableCell>
+                      : <TableCell className="text-xs text-faint">—</TableCell>}
                     <TableCell>
                       <span className={`badge ${statusBadgeClass(payable.status)}`}>{payable.status}</span>
                     </TableCell>
@@ -204,7 +208,7 @@ export function AccountsPayablePage() {
                     <TableCell colSpan={10} className="table-empty">
                       {query.pageNumber > 1
                         ? 'No more payables on this page.'
-                        : <>No outstanding payables found.{hasActiveFilters && ' Try clearing the filters.'}</>}
+                        : <>No {query.status === 'paid' ? 'paid' : 'outstanding'} payables found.{hasActiveFilters && ' Try clearing the filters.'}</>}
                     </TableCell>
                   </TableRow>
                 )}

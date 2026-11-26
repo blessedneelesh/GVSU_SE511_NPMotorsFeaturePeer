@@ -34,6 +34,7 @@ describe('payablesReducer', () => {
 
   it.each([
     ['status', actions.setPayableStatusFilter('partial'), { status: 'partial' }],
+    ['status to paid', actions.setPayableStatusFilter('paid'), { status: 'paid' }],
     ['vendor', actions.setPayableVendorFilter('4'), { vendorId: '4' }],
     ['as-of date', actions.setPayableAsOfDate('2026-01-01'), { asOfDate: '2026-01-01' }],
     ['page size', actions.setPayablePageSize(25), { pageSize: 25 }],
