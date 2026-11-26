@@ -295,8 +295,11 @@ function PaymentHistory({ payments, status, error, canPay, onRetry, onPay }: Pay
                 >
                   <TableCell className="text-xs text-muted">{dash(payment.paymentDate)}</TableCell>
                   <TableCell className="mono text-xs text-link">
-                    {dash(payment.paymentNumber)}
-                    {payment.status === 'Reversed' && <span className="badge badge-reversed">Reversed</span>}
+                    {/* The badge stacks under the number: the fixed-width column has no room beside it */}
+                    <span className="payment-number">
+                      {dash(payment.paymentNumber)}
+                      {payment.status === 'Reversed' && <span className="badge badge-reversed">Reversed</span>}
+                    </span>
                   </TableCell>
                   <TableCell className="text-secondary">{paymentMethodLabel(payment.paymentMethod)}</TableCell>
                   <TableCell className="mono text-xs text-muted">{dash(payment.reference)}</TableCell>

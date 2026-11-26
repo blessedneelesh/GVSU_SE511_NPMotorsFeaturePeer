@@ -297,8 +297,11 @@ function PaymentHistory({ payments, status, error, canReceive, onRetry, onReceiv
                 >
                   <TableCell className="text-xs text-muted">{dash(payment.receiptDate)}</TableCell>
                   <TableCell className="mono text-xs text-link">
-                    {dash(payment.receiptNumber)}
-                    {payment.status === 'Reversed' && <span className="badge badge-reversed">Reversed</span>}
+                    {/* The badge stacks under the number: the fixed-width column has no room beside it */}
+                    <span className="payment-number">
+                      {dash(payment.receiptNumber)}
+                      {payment.status === 'Reversed' && <span className="badge badge-reversed">Reversed</span>}
+                    </span>
                   </TableCell>
                   <TableCell className="text-secondary">{paymentMethodLabel(payment.paymentMethod)}</TableCell>
                   <TableCell className="text-secondary">{dash(payment.bankAccountName)}</TableCell>
