@@ -4,7 +4,9 @@ import { customerClient } from '../../../services/api/customerClient'
 import { bankAccountsApi } from '../../../services/bankAccounts/bankAccounts.api'
 import { receiptsApi } from '../../../services/receipts/receipts.api'
 import { getReceiptErrorMessage, getReceiptSaveError } from '../../../services/receipts/receipts.errors'
-import { mapPaymentHistory, toReceiptBankAccountOptions, toRecordArPaymentDto } from '../../../services/receipts/receipts.mappers'
+import { mapPaymentHistory, toReceiptBankAccountOptions, toRecordArPaymentDto, toRecordMiscReceiptDto } from '../../../services/receipts/receipts.mappers'
+import { receivablesApi } from '../../../services/receivables/receivables.api'
+import { overdueReceivable } from '../../../test/fixtures/receivables'
 import { receiptFormValues, receiptPayments } from '../../../test/fixtures/receipts'
 import type { BankAccount } from '../../../types/bankAccounts'
 
@@ -19,7 +21,7 @@ const httpError = (status: number, data?: unknown, code = 'ERR_BAD_REQUEST') =>
 describe('receipts mappers', () => {
   it('offers only active accounts with an id', () => {
     expect(toReceiptBankAccountOptions([account('1', 'Operating', 'Active'), account('2', 'Old', 'Inactive'), account('', 'Ghost', 'Active')]))
-      .toEqual([{ id: '1', name: 'Operating', bankName: 'Chase', accountNumber: '****1' }])
+      .toEqual([{ id: '1', name: 'Operating', bankName: 'Chase', accountNumber: '****1', bookBalance: 0 }])
   })
 
   it('builds the RecordArPaymentRequest body with numbers and a trimmed reference', () => {
@@ -119,5 +121,55 @@ describe('receipts errors', () => {
 
   it('falls back to the payment message', () => {
     expect(getReceiptSaveError(new Error('boom'))).toEqual({ message: 'The payment could not be posted. Please try again.', fieldErrors: {} })
+  })
+})
+
+describe('Bank Receipts services', () => {
+  it('builds the RecordMiscReceiptRequest body: the AR payment fields plus a trimmed payer and description', () => {
+    expect(toRecordMiscReceiptDto({ payer: '  Ally Bank ', description: ' Interest ', values: receiptFormValues })).toEqual({
+      payer: 'Ally Bank',
+      receiptDate: '2026-11-15',
+      amount: 5000.5,
+      paymentMethod: 'check',
+      reference: 'CHK-1042',
+      bankAccountId: 1,
+      description: 'Interest',
+    })
+  })
+
+  it('defaults a blank description to "Receipt from <payer>", as the API requires one', () => {
+    expect(toRecordMiscReceiptDto({ payer: 'Ally Bank', description: '  ', values: receiptFormValues }).description).toBe('Receipt from Ally Bank')
+  })
+
+  it('posts a misc receipt to RecordMiscReceipt', async () => {
+    const post = vi.spyOn(customerClient, 'post').mockResolvedValue({ data: {} })
+    const request = { payer: 'Ally Bank', description: 'Interest', values: receiptFormValues }
+    await receiptsApi.recordMiscReceipt(request)
+    expect(post).toHaveBeenCalledWith('Receipt/RecordMiscReceipt', toRecordMiscReceiptDto(request), { signal: undefined })
+  })
+
+  it('loads the customer\'s open AR invoices, leaving out settled ones and ones without an id', async () => {
+    const open = overdueReceivable
+    const getReceivables = vi.spyOn(receivablesApi, 'getReceivables').mockResolvedValue({
+      items: [open, { ...open, id: '99', balance: 0 }, { ...open, id: '' }],
+      hasNext: false,
+    })
+    const signal = new AbortController().signal
+    expect(await receiptsApi.getCustomerInvoices('5', signal)).toEqual([open])
+    expect(getReceivables).toHaveBeenCalledWith({ pageNumber: 1, pageSize: 100, status: 'all', customerId: '5', asOfDate: '' }, signal)
+  })
+
+  it('reads RecordMiscReceipt\'s bare list of validation messages', () => {
+    expect(getReceiptErrorMessage(httpError(400, { errors: ['Payer is required.', 'Description is required.'] })))
+      .toBe('Payer is required. Description is required.')
+  })
+
+  it('maps payer and description ProblemDetails keys onto the form', () => {
+    expect(getReceiptSaveError(httpError(400, { errors: { Payer: ['Too long'], description: ['Required'] } })))
+      .toEqual({ message: '', fieldErrors: { payer: 'Too long', description: 'Required' } })
+  })
+
+  it('uses the given fallback message', () => {
+    expect(getReceiptSaveError(new Error('boom'), 'Receipt failed')).toEqual({ message: 'Receipt failed', fieldErrors: {} })
   })
 })

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import * as actions from '../../../redux/receipts/receipts.actions'
 import receiptsReducer, { initialReceiptsState, type ReceiptsState } from '../../../redux/receipts/receipts.reducer'
 import { receiptBankAccountOptions, receiptFormValues, receiptPayments } from '../../../test/fixtures/receipts'
+import { receivablePage } from '../../../test/fixtures/receivables'
 
 // A state after a failed post, so each case can be shown to clear or keep the errors
 const failed: ReceiptsState = {
@@ -105,4 +106,55 @@ describe('receiptsReducer', () => {
     })
   })
 
+})
+
+describe('receiptsReducer: Bank Receipts', () => {
+  const failed: ReceiptsState = { ...initialReceiptsState, saveStatus: 'error', saveError: 'old error', fieldErrors: { payer: 'old' } }
+
+  it('RECORD_MISC_RECEIPT sets saving and clears the previous errors', () => {
+    const state = receiptsReducer(failed, actions.recordMiscReceipt({ payer: 'Ally Bank', description: '', values: receiptFormValues }))
+    expect(state).toMatchObject({ saveStatus: 'loading', saveError: null, fieldErrors: {} })
+  })
+
+  it('RECORD_MISC_RECEIPT_SUCCESS marks the save done', () => {
+    expect(receiptsReducer({ ...initialReceiptsState, saveStatus: 'loading' }, actions.recordMiscReceiptSuccess()).saveStatus).toBe('success')
+  })
+
+  it('RECORD_MISC_RECEIPT_FAILURE stores the banner message and field errors', () => {
+    const state = receiptsReducer(initialReceiptsState, actions.recordMiscReceiptFailure({ message: '', fieldErrors: { payer: 'Too long' } }))
+    expect(state).toMatchObject({ saveStatus: 'error', saveError: null, fieldErrors: { payer: 'Too long' } })
+  })
+
+  const loaded: ReceiptsState = {
+    ...initialReceiptsState,
+    customerInvoicesCustomerId: '5',
+    customerInvoices: receivablePage.items,
+    customerInvoicesStatus: 'success',
+  }
+
+  it('LOAD_CUSTOMER_INVOICES for the same customer keeps their invoices while reloading', () => {
+    const state = receiptsReducer(loaded, actions.loadReceiptCustomerInvoices('5'))
+    expect(state).toMatchObject({ customerInvoicesCustomerId: '5', customerInvoices: receivablePage.items, customerInvoicesStatus: 'loading', customerInvoicesError: null })
+  })
+
+  it('LOAD_CUSTOMER_INVOICES for another customer starts empty', () => {
+    const state = receiptsReducer(loaded, actions.loadReceiptCustomerInvoices('7'))
+    expect(state).toMatchObject({ customerInvoicesCustomerId: '7', customerInvoices: [], customerInvoicesStatus: 'loading' })
+  })
+
+  it('LOAD_CUSTOMER_INVOICES_SUCCESS stores the invoices of the current customer only', () => {
+    const loading = receiptsReducer(initialReceiptsState, actions.loadReceiptCustomerInvoices('5'))
+    expect(receiptsReducer(loading, actions.loadReceiptCustomerInvoicesSuccess({ customerId: '7', invoices: receivablePage.items }))).toBe(loading)
+    expect(receiptsReducer(loading, actions.loadReceiptCustomerInvoicesSuccess({ customerId: '5', invoices: receivablePage.items })))
+      .toMatchObject({ customerInvoices: receivablePage.items, customerInvoicesStatus: 'success' })
+  })
+
+  it('LOAD_CUSTOMER_INVOICES_FAILURE stores the message', () => {
+    expect(receiptsReducer(loaded, actions.loadReceiptCustomerInvoicesFailure('nope')))
+      .toMatchObject({ customerInvoicesStatus: 'error', customerInvoicesError: 'nope' })
+  })
+
+  it('CLEAR_CUSTOMER_INVOICES forgets the customer and their invoices', () => {
+    expect(receiptsReducer(loaded, actions.clearReceiptCustomerInvoices())).toEqual(initialReceiptsState)
+  })
 })

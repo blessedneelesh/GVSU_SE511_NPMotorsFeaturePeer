@@ -1,6 +1,8 @@
 import type {
   ArPaymentRequest,
+  MiscReceiptRequest,
   ReceiptBankAccountOption,
+  ReceiptCustomerInvoices,
   ReceiptPaymentHistory,
   ReceiptSaveError,
 } from '../../types/receipts'
@@ -32,6 +34,23 @@ export const loadPaymentHistoryFailure = (message: string) => ({ type: RECEIPT_A
 // Leaving the invoice: cancels an in-flight load and forgets its payments
 export const clearPaymentHistory = () => ({ type: RECEIPT_ACTIONS.CLEAR_PAYMENT_HISTORY })
 
+// Bank Receipts from someone other than a customer invoice
+export const recordMiscReceipt = (request: MiscReceiptRequest) => ({ type: RECEIPT_ACTIONS.RECORD_MISC_RECEIPT, payload: request })
+
+export const recordMiscReceiptSuccess = () => ({ type: RECEIPT_ACTIONS.RECORD_MISC_RECEIPT_SUCCESS })
+
+export const recordMiscReceiptFailure = (error: ReceiptSaveError) => ({ type: RECEIPT_ACTIONS.RECORD_MISC_RECEIPT_FAILURE, payload: error })
+
+// The open AR invoices of the customer picked on Bank Receipts
+export const loadReceiptCustomerInvoices = (customerId: string) => ({ type: RECEIPT_ACTIONS.LOAD_CUSTOMER_INVOICES, payload: customerId })
+
+export const loadReceiptCustomerInvoicesSuccess = (result: ReceiptCustomerInvoices) => ({ type: RECEIPT_ACTIONS.LOAD_CUSTOMER_INVOICES_SUCCESS, payload: result })
+
+export const loadReceiptCustomerInvoicesFailure = (message: string) => ({ type: RECEIPT_ACTIONS.LOAD_CUSTOMER_INVOICES_FAILURE, payload: message })
+
+// No customer picked any more: cancels an in-flight load and forgets the invoices
+export const clearReceiptCustomerInvoices = () => ({ type: RECEIPT_ACTIONS.CLEAR_CUSTOMER_INVOICES })
+
 export type ReceiptsAction =
   | ReturnType<typeof loadReceiptBankAccountOptions>
   | ReturnType<typeof loadReceiptBankAccountOptionsSuccess>
@@ -44,3 +63,10 @@ export type ReceiptsAction =
   | ReturnType<typeof loadPaymentHistorySuccess>
   | ReturnType<typeof loadPaymentHistoryFailure>
   | ReturnType<typeof clearPaymentHistory>
+  | ReturnType<typeof recordMiscReceipt>
+  | ReturnType<typeof recordMiscReceiptSuccess>
+  | ReturnType<typeof recordMiscReceiptFailure>
+  | ReturnType<typeof loadReceiptCustomerInvoices>
+  | ReturnType<typeof loadReceiptCustomerInvoicesSuccess>
+  | ReturnType<typeof loadReceiptCustomerInvoicesFailure>
+  | ReturnType<typeof clearReceiptCustomerInvoices>

@@ -1,6 +1,6 @@
 import type { BankAccount } from '../../types/bankAccounts'
 import type { PaymentMethod } from '../../types/common'
-import type { ReceiptBankAccountOption, ReceiptFormValues, ReceiptPayment } from '../../types/receipts'
+import type { MiscReceiptRequest, ReceiptBankAccountOption, ReceiptFormValues, ReceiptPayment } from '../../types/receipts'
 
 // Only active accounts can take a deposit; accounts without an id can't be posted to
 export function toReceiptBankAccountOptions(accounts: BankAccount[]): ReceiptBankAccountOption[] {
@@ -11,6 +11,7 @@ export function toReceiptBankAccountOptions(accounts: BankAccount[]): ReceiptBan
       name: account.name,
       bankName: account.bankName,
       accountNumber: account.accountNumber,
+      bookBalance: account.bookBalance,
     }))
 }
 
@@ -32,6 +33,22 @@ export function toRecordArPaymentDto(values: ReceiptFormValues): RecordArPayment
     paymentMethod: values.paymentMethod,
     reference: values.reference.trim() || null,
     bankAccountId: Number(values.bankAccountId),
+  }
+}
+
+// Body of POST Receipt/RecordMiscReceipt (RecordMiscReceiptRequest): the AR payment fields plus payer and description.
+// The API requires a description; as in the design, an empty one becomes "Receipt from <payer>".
+export interface RecordMiscReceiptDto extends RecordArPaymentDto {
+  payer: string
+  description: string
+}
+
+export function toRecordMiscReceiptDto({ payer, description, values }: MiscReceiptRequest): RecordMiscReceiptDto {
+  const trimmedPayer = payer.trim()
+  return {
+    payer: trimmedPayer,
+    ...toRecordArPaymentDto(values),
+    description: description.trim() || `Receipt from ${trimmedPayer}`,
   }
 }
 

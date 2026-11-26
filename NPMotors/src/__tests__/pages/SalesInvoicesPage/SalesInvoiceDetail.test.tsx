@@ -335,7 +335,7 @@ describe('SalesInvoiceDetail', () => {
 
       it('posts the payment against the invoice\'s AR invoice', async () => {
         const { actions, store, user } = await openPayment()
-        act(() => { store.dispatch(loadReceiptBankAccountOptionsSuccess([{ id: '1', name: 'Operating Checking', bankName: 'Chase', accountNumber: '****4521' }])) })
+        act(() => { store.dispatch(loadReceiptBankAccountOptionsSuccess([{ id: '1', name: 'Operating Checking', bankName: 'Chase', accountNumber: '****4521', bookBalance: 262733 }])) })
         const amount = screen.getByRole('spinbutton', { name: /Payment Amount/ })
         await user.clear(amount)
         await user.type(amount, '5000')

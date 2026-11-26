@@ -22,3 +22,11 @@ export const selectReceiptPayments = createSelector([selectReceiptState], (recei
 export const selectReceiptPaymentHistoryStatus = createSelector([selectReceiptState], (receipts) => receipts.paymentHistoryStatus)
 
 export const selectReceiptPaymentHistoryError = createSelector([selectReceiptState], (receipts) => receipts.paymentHistoryError)
+
+export const selectReceiptCustomerInvoicesCustomerId = createSelector([selectReceiptState], (receipts) => receipts.customerInvoicesCustomerId)
+
+export const selectReceiptCustomerInvoices = createSelector([selectReceiptState], (receipts) => receipts.customerInvoices)
+
+export const selectReceiptCustomerInvoicesStatus = createSelector([selectReceiptState], (receipts) => receipts.customerInvoicesStatus)
+
+export const selectReceiptCustomerInvoicesError = createSelector([selectReceiptState], (receipts) => receipts.customerInvoicesError)

@@ -5,30 +5,38 @@ import { all, call, cancelled, put, select, takeLatest, takeLeading } from 'redu
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearPaymentHistory,
+  clearReceiptCustomerInvoices,
   loadPaymentHistory,
   loadPaymentHistoryFailure,
   loadPaymentHistorySuccess,
   loadReceiptBankAccountOptions,
   loadReceiptBankAccountOptionsFailure,
   loadReceiptBankAccountOptionsSuccess,
+  loadReceiptCustomerInvoices,
+  loadReceiptCustomerInvoicesFailure,
+  loadReceiptCustomerInvoicesSuccess,
   recordArPayment,
   recordArPaymentFailure,
   recordArPaymentSuccess,
+  recordMiscReceipt,
+  recordMiscReceiptFailure,
+  recordMiscReceiptSuccess,
 } from '../../../redux/receipts/receipts.actions'
 import { RECEIPT_ACTIONS } from '../../../redux/receipts/receipts.constants'
 import receiptsSaga from '../../../redux/receipts/receipts.saga'
 import { loadReceivables, selectReceivable } from '../../../redux/receivables/receivables.actions'
 import { selectSelectedReceivableId } from '../../../redux/receivables/receivables.selectors'
-import { selectReceiptPaymentHistoryInvoiceId } from '../../../redux/receipts/receipts.selectors'
+import { selectReceiptCustomerInvoicesCustomerId, selectReceiptPaymentHistoryInvoiceId } from '../../../redux/receipts/receipts.selectors'
 import { loadSalesInvoices, selectSalesInvoice } from '../../../redux/salesInvoices/salesInvoices.actions'
 import { selectSelectedSalesInvoice } from '../../../redux/salesInvoices/salesInvoices.selectors'
 import { rootReducer } from '../../../redux/rootReducer'
 import { receiptsApi } from '../../../services/receipts/receipts.api'
 import { receiptBankAccountOptions, receiptFormValues, receiptPayments } from '../../../test/fixtures/receipts'
+import { receivablePage } from '../../../test/fixtures/receivables'
 import { postedInvoice } from '../../../test/fixtures/salesInvoices'
 
 vi.mock('../../../services/receipts/receipts.api', () => ({
-  receiptsApi: { getBankAccountOptions: vi.fn(), recordArPayment: vi.fn(), getPaymentHistory: vi.fn() },
+  receiptsApi: { getBankAccountOptions: vi.fn(), recordArPayment: vi.fn(), recordMiscReceipt: vi.fn(), getCustomerInvoices: vi.fn(), getPaymentHistory: vi.fn() },
 }))
 
 // The workers aren't exported; take them from the watchers in the root saga's all([...]) effect
@@ -43,6 +51,8 @@ const workerAt = (index: number): Worker => {
 const loadBankAccountOptionsWorker = workerAt(0)
 const recordArPaymentWorker = workerAt(1)
 const loadPaymentHistoryWorker = workerAt(2)
+const recordMiscReceiptWorker = workerAt(3)
+const loadCustomerInvoicesWorker = workerAt(4)
 
 // The error helpers check axios.isAxiosError / axios.isCancel, so failures must be real axios errors
 const httpError = (status: number, data?: unknown) =>
@@ -52,12 +62,14 @@ const httpError = (status: number, data?: unknown) =>
 const request = { arInvoiceId: '2471', values: receiptFormValues }
 
 describe('receiptsSaga (root)', () => {
-  it('loads accounts and payment history with takeLatest and records payments with takeLeading', () => {
+  it('loads with takeLatest and records receipts with takeLeading', () => {
     const gen = receiptsSaga()
     expect(gen.next().value).toStrictEqual(all([
       takeLatest(RECEIPT_ACTIONS.LOAD_BANK_ACCOUNT_OPTIONS, loadBankAccountOptionsWorker),
       takeLeading(RECEIPT_ACTIONS.RECORD_AR_PAYMENT, recordArPaymentWorker),
       takeLatest([RECEIPT_ACTIONS.LOAD_PAYMENT_HISTORY, RECEIPT_ACTIONS.CLEAR_PAYMENT_HISTORY], loadPaymentHistoryWorker),
+      takeLeading(RECEIPT_ACTIONS.RECORD_MISC_RECEIPT, recordMiscReceiptWorker),
+      takeLatest([RECEIPT_ACTIONS.LOAD_CUSTOMER_INVOICES, RECEIPT_ACTIONS.CLEAR_CUSTOMER_INVOICES], loadCustomerInvoicesWorker),
     ]))
     expect(gen.next().done).toBe(true)
   })
@@ -121,6 +133,7 @@ describe('recordArPaymentWorker', () => {
     expect(gen.next().value).toStrictEqual(select(selectReceiptPaymentHistoryInvoiceId))
     expect(gen.next('2471').value).toStrictEqual(put(loadPaymentHistory('2471')))
     expect(gen.next().value).toStrictEqual(select(selectSelectedSalesInvoice))
+    expect(gen.next(null).value).toStrictEqual(select(selectReceiptCustomerInvoicesCustomerId))
     expect(gen.next(null).done).toBe(true)
   })
 
@@ -129,6 +142,7 @@ describe('recordArPaymentWorker', () => {
       const gen = toReceivableCheck()
       expect(gen.next(openId).value).toStrictEqual(select(selectReceiptPaymentHistoryInvoiceId))
       expect(gen.next(openId).value).toStrictEqual(select(selectSelectedSalesInvoice))
+      expect(gen.next(null).value).toStrictEqual(select(selectReceiptCustomerInvoicesCustomerId))
       expect(gen.next(null).done).toBe(true)
     }
   })
@@ -141,7 +155,8 @@ describe('recordArPaymentWorker', () => {
     expect(gen.next().value).toStrictEqual(select(selectSelectedSalesInvoice))
     expect(gen.next(paidInvoice).value).toStrictEqual(put(loadSalesInvoices()))
     expect(gen.next().value).toStrictEqual(put(selectSalesInvoice('6')))
-    expect(gen.next().done).toBe(true)
+    expect(gen.next().value).toStrictEqual(select(selectReceiptCustomerInvoicesCustomerId))
+    expect(gen.next(null).done).toBe(true)
   })
 
   it.each([
@@ -152,7 +167,18 @@ describe('recordArPaymentWorker', () => {
     const gen = toReceivableCheck()
     gen.next(null)
     gen.next(null)
-    expect(gen.next(salesInvoice).done).toBe(true)
+    expect(gen.next(salesInvoice).value).toStrictEqual(select(selectReceiptCustomerInvoicesCustomerId))
+    expect(gen.next(null).done).toBe(true)
+  })
+
+  it('reloads the customer\'s open invoices and the account balances when paid from Bank Receipts', () => {
+    const gen = toReceivableCheck()
+    gen.next(null)
+    gen.next(null)
+    expect(gen.next(null).value).toStrictEqual(select(selectReceiptCustomerInvoicesCustomerId))
+    expect(gen.next('5').value).toStrictEqual(put(loadReceiptCustomerInvoices('5')))
+    expect(gen.next().value).toStrictEqual(put(loadReceiptBankAccountOptions()))
+    expect(gen.next().done).toBe(true)
   })
 
   it('puts field errors next to their fields', () => {
@@ -179,6 +205,81 @@ describe('recordArPaymentWorker', () => {
   it('dispatches nothing when the request was cancelled', () => {
     const gen = startRecord()
     expect(gen.throw(new CanceledError()).done).toBe(true)
+  })
+})
+
+describe('recordMiscReceiptWorker', () => {
+  const miscRequest = { payer: 'Ally Bank', description: '', values: receiptFormValues }
+  const startMisc = () => {
+    const gen = recordMiscReceiptWorker(recordMiscReceipt(miscRequest))
+    expect(gen.next().value).toStrictEqual(call(receiptsApi.recordMiscReceipt, miscRequest))
+    return gen
+  }
+
+  it('marks the save done and reloads the account balances', () => {
+    const gen = startMisc()
+    expect(gen.next().value).toStrictEqual(put(recordMiscReceiptSuccess()))
+    expect(gen.next().value).toStrictEqual(put(loadReceiptBankAccountOptions()))
+    expect(gen.next().done).toBe(true)
+  })
+
+  it('shows the API\'s list of validation messages as the banner', () => {
+    const gen = startMisc()
+    const error = httpError(400, { errors: ['Payer is required. Amount must be greater than zero.'] })
+    expect(gen.throw(error).value).toStrictEqual(put(recordMiscReceiptFailure({
+      message: 'Payer is required. Amount must be greater than zero.',
+      fieldErrors: {},
+    })))
+  })
+
+  it('puts ProblemDetails field errors next to their fields', () => {
+    const gen = startMisc()
+    expect(gen.throw(httpError(400, { errors: { Payer: ['Too long'] } })).value)
+      .toStrictEqual(put(recordMiscReceiptFailure({ message: '', fieldErrors: { payer: 'Too long' } })))
+  })
+
+  it('falls back to the receipt message', () => {
+    const gen = startMisc()
+    expect(gen.throw(new Error('boom')).value)
+      .toStrictEqual(put(recordMiscReceiptFailure({ message: 'The receipt could not be posted. Please try again.', fieldErrors: {} })))
+  })
+
+  it('dispatches nothing when the request was cancelled', () => {
+    expect(startMisc().throw(new CanceledError()).done).toBe(true)
+  })
+})
+
+describe('loadCustomerInvoicesWorker', () => {
+  const startInvoices = () => {
+    const gen = loadCustomerInvoicesWorker(loadReceiptCustomerInvoices('5'))
+    const effect = gen.next().value
+    expect(effect).toEqual(call(receiptsApi.getCustomerInvoices, '5', expect.any(AbortSignal)))
+    return { gen, signal: effect.payload.args[1] as AbortSignal }
+  }
+
+  it('dispatches the invoices with the customer they belong to', () => {
+    const { gen, signal } = startInvoices()
+    expect(gen.next(receivablePage.items).value).toStrictEqual(put(loadReceiptCustomerInvoicesSuccess({ customerId: '5', invoices: receivablePage.items })))
+    expect(gen.next().value).toStrictEqual(cancelled())
+    expect(gen.next(false).done).toBe(true)
+    expect(signal.aborted).toBe(false)
+  })
+
+  it('does nothing on CLEAR_CUSTOMER_INVOICES, which only cancels the previous load', () => {
+    expect(loadCustomerInvoicesWorker(clearReceiptCustomerInvoices()).next().done).toBe(true)
+  })
+
+  it('falls back to the invoices message when the error has no detail', () => {
+    const { gen } = startInvoices()
+    expect(gen.throw(httpError(400)).value)
+      .toStrictEqual(put(loadReceiptCustomerInvoicesFailure("The customer's open invoices could not be loaded. Please try again.")))
+  })
+
+  it('aborts the request when another customer is picked', () => {
+    const { gen, signal } = startInvoices()
+    expect(gen.return(undefined).value).toStrictEqual(cancelled())
+    expect(gen.next(true).done).toBe(true)
+    expect(signal.aborted).toBe(true)
   })
 })
 
