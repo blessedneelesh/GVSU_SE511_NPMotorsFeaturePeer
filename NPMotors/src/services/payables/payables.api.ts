@@ -1,8 +1,8 @@
 import { AP_BILL_ENDPOINTS } from '../api/apiConstants'
 import { customerClient } from '../api/customerClient'
 import { vendorsApi } from '../vendors/vendors.api'
-import type { PayablePage, PayableQuery, PayableVendorOption } from '../../types/payables'
-import { mapPayableCollection, readHasNext, toPayableVendorOptions } from './payables.mappers'
+import type { PayableDetail, PayablePage, PayableQuery, PayableVendorOption } from '../../types/payables'
+import { mapPayableCollection, mapPayableDetail, readHasNext, toPayableVendorOptions } from './payables.mappers'
 
 interface PayableQueryParams {
   PageNumber: number
@@ -27,9 +27,14 @@ async function getPayables(query: PayableQuery, signal?: AbortSignal): Promise<P
   return { items, hasNext: readHasNext(data) ?? items.length === query.pageSize }
 }
 
+async function getPayableById(id: string, signal?: AbortSignal): Promise<PayableDetail> {
+  const { data } = await customerClient.get<unknown>(AP_BILL_ENDPOINTS.getApById, { params: { id }, signal })
+  return mapPayableDetail(data)
+}
+
 async function getVendorOptions(signal?: AbortSignal): Promise<PayableVendorOption[]> {
   const page = await vendorsApi.getVendors({ pageNumber: 1, pageSize: VENDOR_OPTIONS_PAGE_SIZE, type: 'all', searchTerm: '' }, signal)
   return toPayableVendorOptions(page.items)
 }
 
-export const payablesApi = { getPayables, getVendorOptions }
+export const payablesApi = { getPayables, getPayableById, getVendorOptions }

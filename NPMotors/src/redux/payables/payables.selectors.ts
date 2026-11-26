@@ -13,6 +13,14 @@ export const selectPayableListStatus = createSelector([selectPayableState], (pay
 
 export const selectPayableListError = createSelector([selectPayableState], (payables) => payables.listError)
 
+export const selectSelectedPayableId = createSelector([selectPayableState], (payables) => payables.selectedId)
+
+export const selectSelectedPayable = createSelector([selectPayableState], (payables) => payables.selected)
+
+export const selectPayableDetailStatus = createSelector([selectPayableState], (payables) => payables.detailStatus)
+
+export const selectPayableDetailError = createSelector([selectPayableState], (payables) => payables.detailError)
+
 export const selectPayableVendorOptions = createSelector([selectPayableState], (payables) => payables.vendorOptions)
 
 export const selectPayableVendorOptionsStatus = createSelector([selectPayableState], (payables) => payables.vendorOptionsStatus)

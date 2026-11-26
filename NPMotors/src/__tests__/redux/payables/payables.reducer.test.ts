@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as actions from '../../../redux/payables/payables.actions'
 import payablesReducer, { initialPayablesState, type PayablesState } from '../../../redux/payables/payables.reducer'
-import { overduePayable, payablePage, payableVendorOptions } from '../../../test/fixtures/payables'
+import { overduePayable, overduePayableDetail, payablePage, payableVendorOptions } from '../../../test/fixtures/payables'
 
 // A page-3 state with every filter set, so each reducer case can be shown to reset or keep them
 const filtered: PayablesState = {
@@ -51,6 +51,27 @@ describe('payablesReducer', () => {
   it('SET_PAGE moves to the page, never below 1', () => {
     expect(payablesReducer(filtered, actions.setPayablePage(4)).query.pageNumber).toBe(4)
     expect(payablesReducer(filtered, actions.setPayablePage(0)).query.pageNumber).toBe(1)
+  })
+
+  it('SELECT opens the bill and starts loading it, keeping the list', () => {
+    const next = payablesReducer({ ...filtered, selected: overduePayableDetail, detailError: 'old' }, actions.selectPayable('11'))
+    expect(next).toMatchObject({ selectedId: '11', selected: null, detailStatus: 'loading', detailError: null })
+    expect(next.items).toBe(filtered.items)
+    expect(next.query).toBe(filtered.query)
+  })
+
+  it('stores the loaded bill or the error', () => {
+    const loading = payablesReducer(filtered, actions.selectPayable('4'))
+    expect(payablesReducer(loading, actions.loadPayableByIdSuccess(overduePayableDetail)))
+      .toMatchObject({ selected: overduePayableDetail, detailStatus: 'success' })
+    expect(payablesReducer(loading, actions.loadPayableByIdFailure('This bill no longer exists.')))
+      .toMatchObject({ detailStatus: 'error', detailError: 'This bill no longer exists.' })
+  })
+
+  it('CLEAR_SELECTION closes the detail', () => {
+    const open = { ...filtered, selectedId: '4', selected: overduePayableDetail, detailStatus: 'success' as const }
+    expect(payablesReducer(open, actions.clearPayableSelection()))
+      .toMatchObject({ selectedId: null, selected: null, detailStatus: 'idle', detailError: null })
   })
 
   it('tracks the vendor options request', () => {

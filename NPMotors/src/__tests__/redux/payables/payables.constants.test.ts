@@ -12,6 +12,10 @@ describe('PAYABLE_ACTIONS', () => {
     ['RESET_FILTERS', 'payables/resetFilters'],
     ['SET_PAGE', 'payables/setPage'],
     ['SET_PAGE_SIZE', 'payables/setPageSize'],
+    ['SELECT', 'payables/select'],
+    ['CLEAR_SELECTION', 'payables/clearSelection'],
+    ['LOAD_BY_ID_SUCCESS', 'payables/loadByIdSuccess'],
+    ['LOAD_BY_ID_FAILURE', 'payables/loadByIdFailure'],
     ['LOAD_VENDOR_OPTIONS', 'payables/loadVendorOptions'],
     ['LOAD_VENDOR_OPTIONS_SUCCESS', 'payables/loadVendorOptionsSuccess'],
     ['LOAD_VENDOR_OPTIONS_FAILURE', 'payables/loadVendorOptionsFailure'],
@@ -19,8 +23,8 @@ describe('PAYABLE_ACTIONS', () => {
     expect(PAYABLE_ACTIONS[key]).toBe(value)
   })
 
-  it('has 12 action types', () => {
-    expect(Object.keys(PAYABLE_ACTIONS)).toHaveLength(12)
+  it('has 16 action types', () => {
+    expect(Object.keys(PAYABLE_ACTIONS)).toHaveLength(16)
   })
 
   it('has unique values', () => {

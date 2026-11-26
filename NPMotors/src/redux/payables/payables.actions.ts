@@ -1,4 +1,4 @@
-import type { PayablePage, PayableStatusFilter, PayableVendorFilter, PayableVendorOption } from '../../types/payables'
+import type { PayableDetail, PayablePage, PayableStatusFilter, PayableVendorFilter, PayableVendorOption } from '../../types/payables'
 import { PAYABLE_ACTIONS } from './payables.constants'
 
 export const loadPayables = () => ({ type: PAYABLE_ACTIONS.LOAD })
@@ -21,6 +21,16 @@ export const setPayablePage = (pageNumber: number) => ({ type: PAYABLE_ACTIONS.S
 
 export const setPayablePageSize = (pageSize: number) => ({ type: PAYABLE_ACTIONS.SET_PAGE_SIZE, payload: pageSize })
 
+// Opens the detail view and loads the bill from GetApById
+export const selectPayable = (id: string) => ({ type: PAYABLE_ACTIONS.SELECT, payload: id })
+
+// Closes the detail view; also cancels an in-flight lookup
+export const clearPayableSelection = () => ({ type: PAYABLE_ACTIONS.CLEAR_SELECTION })
+
+export const loadPayableByIdSuccess = (payable: PayableDetail) => ({ type: PAYABLE_ACTIONS.LOAD_BY_ID_SUCCESS, payload: payable })
+
+export const loadPayableByIdFailure = (message: string) => ({ type: PAYABLE_ACTIONS.LOAD_BY_ID_FAILURE, payload: message })
+
 // The vendors offered in the vendor filter
 export const loadPayableVendorOptions = () => ({ type: PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS })
 
@@ -38,6 +48,10 @@ export type PayablesAction =
   | ReturnType<typeof resetPayableFilters>
   | ReturnType<typeof setPayablePage>
   | ReturnType<typeof setPayablePageSize>
+  | ReturnType<typeof selectPayable>
+  | ReturnType<typeof clearPayableSelection>
+  | ReturnType<typeof loadPayableByIdSuccess>
+  | ReturnType<typeof loadPayableByIdFailure>
   | ReturnType<typeof loadPayableVendorOptions>
   | ReturnType<typeof loadPayableVendorOptionsSuccess>
   | ReturnType<typeof loadPayableVendorOptionsFailure>

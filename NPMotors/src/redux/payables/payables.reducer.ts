@@ -1,6 +1,6 @@
 import type { UnknownAction } from 'redux'
 import type { RequestStatus } from '../../types/common'
-import type { Payable, PayableQuery, PayableVendorOption } from '../../types/payables'
+import type { Payable, PayableDetail, PayableQuery, PayableVendorOption } from '../../types/payables'
 import type { PayablesAction } from './payables.actions'
 import { PAYABLE_ACTIONS } from './payables.constants'
 
@@ -10,6 +10,10 @@ export interface PayablesState {
   query: PayableQuery
   listStatus: RequestStatus
   listError: string | null
+  selectedId: string | null
+  selected: PayableDetail | null
+  detailStatus: RequestStatus
+  detailError: string | null
   vendorOptions: PayableVendorOption[]
   vendorOptionsStatus: RequestStatus
   vendorOptionsError: string | null
@@ -21,6 +25,10 @@ export const initialPayablesState: PayablesState = {
   query: { pageNumber: 1, pageSize: 5, status: 'all', vendorId: 'all', asOfDate: '' },
   listStatus: 'idle',
   listError: null,
+  selectedId: null,
+  selected: null,
+  detailStatus: 'idle',
+  detailError: null,
   vendorOptions: [],
   vendorOptionsStatus: 'idle',
   vendorOptionsError: null,
@@ -58,6 +66,14 @@ export default function payablesReducer(state: PayablesState = initialPayablesSt
       return { ...state, listStatus: 'loading', listError: null, query: { ...state.query, pageSize: action.payload, pageNumber: 1 } }
     case PAYABLE_ACTIONS.SET_PAGE:
       return { ...state, listStatus: 'loading', listError: null, query: { ...state.query, pageNumber: Math.max(1, action.payload) } }
+    case PAYABLE_ACTIONS.SELECT:
+      return { ...state, selectedId: action.payload, selected: null, detailStatus: 'loading', detailError: null }
+    case PAYABLE_ACTIONS.CLEAR_SELECTION:
+      return { ...state, selectedId: null, selected: null, detailStatus: 'idle', detailError: null }
+    case PAYABLE_ACTIONS.LOAD_BY_ID_SUCCESS:
+      return { ...state, selected: action.payload, detailStatus: 'success' }
+    case PAYABLE_ACTIONS.LOAD_BY_ID_FAILURE:
+      return { ...state, detailStatus: 'error', detailError: action.payload }
     case PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS:
       return { ...state, vendorOptionsStatus: 'loading', vendorOptionsError: null }
     case PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS_SUCCESS:

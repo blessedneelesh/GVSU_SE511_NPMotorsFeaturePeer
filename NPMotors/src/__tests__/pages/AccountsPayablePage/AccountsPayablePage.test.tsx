@@ -11,10 +11,12 @@ import {
   setPayablePage,
   setPayableStatusFilter,
   setPayableVendorFilter,
+  selectPayable,
 } from '../../../redux/payables/payables.actions'
 import type { PayablesState } from '../../../redux/payables/payables.reducer'
 import {
   overduePayable,
+  overduePayableDetail,
   partialPayable,
   payableVendorOptions,
   recentOverduePayable,
@@ -59,7 +61,7 @@ describe('AccountsPayablePage', () => {
     expect(rows).toHaveLength(6)
 
     const [, overdueRow, recentRow, partialRow, unpaidRow] = rows
-    expect(within(overdueRow!).getByText('BILL-0020')).toHaveClass('mono', 'text-link')
+    expect(within(overdueRow!).getByRole('button', { name: 'BILL-0020' })).toHaveClass('payable-link')
     expect(within(overdueRow!).getByText('Honda Auto Parts')).toBeInTheDocument()
     expect(within(overdueRow!).getByText('2024-03-12')).toBeInTheDocument()
     expect(within(overdueRow!).getByText('2024-04-26')).toBeInTheDocument()
@@ -82,6 +84,20 @@ describe('AccountsPayablePage', () => {
     const [, row] = within(getTable()).getAllByRole('row')
     // bill number, vendor, bill date and due date
     expect(within(row!).getAllByText('—')).toHaveLength(4)
+    // Without an id there's nothing to open
+    expect(within(row!).getByRole('button', { name: '—' })).toBeDisabled()
+  })
+
+  it('opens the detail view from the bill number', async () => {
+    const { actions, user } = renderLoaded([overduePayable, partialPayable])
+    await user.click(screen.getByRole('button', { name: 'AP-2026-000011' }))
+    expect(actions).toContainEqual(selectPayable('11'))
+  })
+
+  it('shows the detail instead of the list while a bill is selected', () => {
+    renderLoaded([overduePayable], { selectedId: '4', selected: overduePayableDetail, detailStatus: 'success' })
+    expect(screen.queryByRole('table', { name: 'Accounts payable' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'BILL-0020' })).toBeInTheDocument()
   })
 
   it('uses the singular for a single bill', () => {

@@ -3,12 +3,13 @@ import {
   agingBucketForDays,
   mapPayable,
   mapPayableCollection,
+  mapPayableDetail,
   normalizeAgingBucket,
   normalizePayableStatus,
   readHasNext,
   toPayableVendorOptions,
 } from '../../../services/payables/payables.mappers'
-import { overduePayable, sparsePayable } from '../../../test/fixtures/payables'
+import { overduePayable, overduePayableDetail, partialPayableDetail, sparsePayable, sparsePayableDetail } from '../../../test/fixtures/payables'
 import { vendor } from '../../../test/fixtures/vendors'
 
 // AP bill 4 exactly as GetAllApBills returns it
@@ -32,6 +33,36 @@ describe('mapPayable', () => {
   it('falls back to empty values for a non-object or missing fields', () => {
     expect(mapPayable(null)).toEqual(sparsePayable)
     expect(mapPayable({ amount: 'abc', days_Overdue: -3 })).toEqual(sparsePayable)
+  })
+})
+
+// AP bills 4 and 11 exactly as GetApById returns them
+const detailDto = {
+  id: 4, number: 'BILL-0020', vendorId: 3, vendor: 'Honda Auto Parts', vehicleId: null, date: '2024-03-12T00:00:00',
+  dueDate: '2024-04-26T00:00:00', amount: 12400.0, paid: 0.0, balance: 12400.0, days: 943, status: 'Unpaid',
+  contact: 'Sam Nguyen', phone: '(800) 555-0312', email: 'parts@honda.com', address: '700 Parts Ave, Columbus OH',
+}
+const partialDetailDto = {
+  id: 11, number: 'AP-2026-000011', vendorId: 1, vendor: 'ABC Auto Auction', vehicleId: 1807, date: '2026-11-25T00:00:00',
+  dueDate: '2026-11-30T00:00:00', amount: 52320.0, paid: 5000.0, balance: 47320.0, days: 0, status: 'partial',
+  contact: 'Mark Reynolds', phone: '(800) 555-0101', email: 'sales@abcauto.com', address: '500 Auction Blvd, Dallas TX',
+}
+
+describe('mapPayableDetail', () => {
+  it('maps a GetApById response, deriving Overdue from the days', () => {
+    expect(mapPayableDetail(detailDto)).toEqual(overduePayableDetail)
+  })
+
+  it('keeps the stored status when not yet due, and the vehicle id', () => {
+    expect(mapPayableDetail(partialDetailDto)).toEqual(partialPayableDetail)
+  })
+
+  it('never calls a settled bill overdue', () => {
+    expect(mapPayableDetail({ ...detailDto, paid: 12400, balance: 0, status: 'Paid' }).status).toBe('Paid')
+  })
+
+  it('falls back to empty values for a non-object', () => {
+    expect(mapPayableDetail(undefined)).toEqual(sparsePayableDetail)
   })
 })
 

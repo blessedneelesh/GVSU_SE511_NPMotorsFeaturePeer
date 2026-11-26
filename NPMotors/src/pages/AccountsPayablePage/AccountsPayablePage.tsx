@@ -3,6 +3,7 @@ import {
   Dropdown,
   Field,
   Input,
+  Link,
   MessageBar,
   MessageBarActions,
   MessageBarBody,
@@ -16,11 +17,13 @@ import {
   TableHeaderCell,
   TableRow,
 } from '@fluentui/react-components'
+import { usePayableDetail } from '../../hooks/usePayableDetail'
 import { usePayables } from '../../hooks/usePayables'
 import { usePayableVendorOptions } from '../../hooks/usePayableVendorOptions'
 import type { Payable, PayableStatusFilter } from '../../types/payables'
 import { daysClass, formatCurrency, formatDays, statusBadgeClass, sumPage } from './payableMetrics'
 import { TablePagination } from '../../components/TablePagination/TablePagination'
+import { PayableDetail } from './PayableDetail'
 import './AccountsPayablePage.css'
 
 const pageSizeOptions = [5, 10, 25, 50]
@@ -68,6 +71,10 @@ export function AccountsPayablePage() {
     retry,
   } = usePayables()
   const { vendorOptions } = usePayableVendorOptions()
+  const { selectedId, openPayable } = usePayableDetail()
+
+  // The list hook stays mounted, so the filters and page survive the round trip
+  if (selectedId) return <PayableDetail />
 
   const isLoading = listStatus === 'loading'
   const isInitialLoad = (isLoading || listStatus === 'idle') && payables.length === 0
@@ -158,7 +165,11 @@ export function AccountsPayablePage() {
               <TableBody>
                 {payables.map((payable) => (
                   <TableRow key={payable.id || `${payable.number}-${payable.dueDate}`}>
-                    <TableCell className="mono text-xs text-link">{payable.number || '—'}</TableCell>
+                    <TableCell>
+                      <Link as="button" className="payable-link" disabled={!payable.id} onClick={() => openPayable(payable.id)}>
+                        {payable.number || '—'}
+                      </Link>
+                    </TableCell>
                     <TableCell className="strong text-dark">{payable.vendorName || '—'}</TableCell>
                     <TableCell className="text-xs text-muted">{payable.date || '—'}</TableCell>
                     <TableCell className="text-xs text-muted">{payable.dueDate || '—'}</TableCell>

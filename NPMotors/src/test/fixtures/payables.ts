@@ -1,4 +1,4 @@
-import type { Payable, PayablePage, PayableVendorOption } from '../../types/payables'
+import type { Payable, PayableDetail, PayablePage, PayableVendorOption } from '../../types/payables'
 
 // Matches AP bill 4 of the running API's sample data, after mapping: unpaid and long overdue
 export const overduePayable: Payable = {
@@ -87,3 +87,66 @@ export const payableVendorOptions: PayableVendorOption[] = [
   { id: '1', name: 'CarMax Auctions' },
   { id: '3', name: 'Honda Auto Parts' },
 ]
+
+// GetApById for AP bill 4, after mapping: stored as "Unpaid" but 943 days past due, so Overdue
+export const overduePayableDetail: PayableDetail = {
+  id: '4',
+  number: 'BILL-0020',
+  vendorId: '3',
+  vendorName: 'Honda Auto Parts',
+  vehicleId: '',
+  date: '2024-03-12',
+  dueDate: '2024-04-26',
+  amount: 12400,
+  paid: 0,
+  balance: 12400,
+  daysOverdue: 943,
+  status: 'Overdue',
+  contact: 'Sam Nguyen',
+  phone: '(800) 555-0312',
+  email: 'parts@honda.com',
+  address: '700 Parts Ave, Columbus OH',
+}
+
+// GetApById for AP bill 11: a vehicle purchase, partly paid and not yet due
+export const partialPayableDetail: PayableDetail = {
+  id: '11',
+  number: 'AP-2026-000011',
+  vendorId: '1',
+  vendorName: 'ABC Auto Auction',
+  vehicleId: '1807',
+  date: '2026-11-25',
+  dueDate: '2026-11-30',
+  amount: 52320,
+  paid: 5000,
+  balance: 47320,
+  daysOverdue: 0,
+  status: 'Partial',
+  contact: 'Mark Reynolds',
+  phone: '(800) 555-0101',
+  email: 'sales@abcauto.com',
+  address: '500 Auction Blvd, Dallas TX',
+}
+
+// A bill whose balance is settled
+export const paidPayableDetail: PayableDetail = { ...partialPayableDetail, paid: 52320, balance: 0, status: 'Paid' }
+
+// A GetApById response whose optional fields all came back empty
+export const sparsePayableDetail: PayableDetail = {
+  id: '',
+  number: '',
+  vendorId: '',
+  vendorName: '',
+  vehicleId: '',
+  date: '',
+  dueDate: '',
+  amount: 0,
+  paid: 0,
+  balance: 0,
+  daysOverdue: 0,
+  status: 'Unpaid',
+  contact: '',
+  phone: '',
+  email: '',
+  address: '',
+}

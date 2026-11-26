@@ -4,6 +4,9 @@ import createSagaMiddleware, { type SagaIterator, type Task } from 'redux-saga'
 import { all, call, cancelled, put, select, takeLatest } from 'redux-saga/effects'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  clearPayableSelection,
+  loadPayableByIdFailure,
+  loadPayableByIdSuccess,
   loadPayables,
   loadPayablesFailure,
   loadPayablesSuccess,
@@ -11,6 +14,7 @@ import {
   loadPayableVendorOptionsFailure,
   loadPayableVendorOptionsSuccess,
   resetPayableFilters,
+  selectPayable,
   setPayableAsOfDate,
   setPayableStatusFilter,
 } from '../../../redux/payables/payables.actions'
@@ -20,11 +24,11 @@ import { selectPayableQuery } from '../../../redux/payables/payables.selectors'
 import { rootReducer } from '../../../redux/rootReducer'
 import { payablesApi } from '../../../services/payables/payables.api'
 import { getPayableErrorMessage } from '../../../services/payables/payables.errors'
-import { overduePayable, partialPayable, payablePage, payableVendorOptions } from '../../../test/fixtures/payables'
-import type { PayablePage, PayableQuery } from '../../../types/payables'
+import { overduePayable, overduePayableDetail, partialPayable, payablePage, payableVendorOptions } from '../../../test/fixtures/payables'
+import type { PayableDetail, PayablePage, PayableQuery } from '../../../types/payables'
 
 vi.mock('../../../services/payables/payables.api', () => ({
-  payablesApi: { getPayables: vi.fn(), getVendorOptions: vi.fn() },
+  payablesApi: { getPayables: vi.fn(), getPayableById: vi.fn(), getVendorOptions: vi.fn() },
 }))
 
 // The workers aren't exported; take them from the watchers in the root saga's all([...]) effect
@@ -37,7 +41,8 @@ const workerAt = (index: number): Worker => {
   return effect.payload.args[1]
 }
 const loadPayablesWorker = workerAt(0)
-const loadVendorOptionsWorker = workerAt(1)
+const loadPayableByIdWorker = workerAt(1)
+const loadVendorOptionsWorker = workerAt(2)
 
 // The error helpers check axios.isAxiosError / axios.isCancel, so failures must be real axios errors
 const httpError = (status: number, data?: unknown) =>
@@ -48,12 +53,13 @@ const canceled = () => new CanceledError()
 const query: PayableQuery = { pageNumber: 2, pageSize: 10, status: 'overdue', vendorId: '3', asOfDate: '' }
 
 describe('payablesSaga (root)', () => {
-  it('starts the two watchers with the right patterns and effects', () => {
+  it('starts the three watchers with the right patterns and effects', () => {
     const gen = payablesSaga()
     expect(gen.next().value).toStrictEqual(all([
       takeLatest([PAYABLE_ACTIONS.LOAD, PAYABLE_ACTIONS.SET_STATUS_FILTER, PAYABLE_ACTIONS.SET_VENDOR_FILTER,
         PAYABLE_ACTIONS.SET_AS_OF_DATE, PAYABLE_ACTIONS.RESET_FILTERS,
         PAYABLE_ACTIONS.SET_PAGE, PAYABLE_ACTIONS.SET_PAGE_SIZE], loadPayablesWorker),
+      takeLatest([PAYABLE_ACTIONS.SELECT, PAYABLE_ACTIONS.CLEAR_SELECTION], loadPayableByIdWorker),
       takeLatest(PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS, loadVendorOptionsWorker),
     ]))
     expect(gen.next().done).toBe(true)
@@ -101,6 +107,52 @@ describe('loadPayablesWorker', () => {
     const { gen, signal } = startLoad()
     const step = gen.return(undefined)
     expect(step.value).toStrictEqual(cancelled())
+    expect(gen.next(true).done).toBe(true)
+    expect(signal.aborted).toBe(true)
+  })
+})
+
+describe('loadPayableByIdWorker', () => {
+  const startDetail = () => {
+    const gen = loadPayableByIdWorker(selectPayable('4'))
+    const effect = gen.next().value
+    expect(effect).toEqual(call(payablesApi.getPayableById, '4', expect.any(AbortSignal)))
+    return { gen, signal: effect.payload.args[1] as AbortSignal }
+  }
+
+  it('does nothing on CLEAR_SELECTION', () => {
+    expect(loadPayableByIdWorker(clearPayableSelection()).next().done).toBe(true)
+  })
+
+  it('dispatches the loaded bill', () => {
+    const { gen, signal } = startDetail()
+    expect(gen.next(overduePayableDetail).value).toStrictEqual(put(loadPayableByIdSuccess(overduePayableDetail)))
+    expect(gen.next().value).toStrictEqual(cancelled())
+    expect(gen.next(false).done).toBe(true)
+    expect(signal.aborted).toBe(false)
+  })
+
+  it('says the bill no longer exists on a 404', () => {
+    const { gen } = startDetail()
+    expect(gen.throw(httpError(404, { title: 'Not Found', status: 404 })).value)
+      .toStrictEqual(put(loadPayableByIdFailure('This bill no longer exists.')))
+  })
+
+  it('falls back to the detail message when the error has no detail', () => {
+    const { gen } = startDetail()
+    expect(gen.throw(httpError(400)).value)
+      .toStrictEqual(put(loadPayableByIdFailure('This bill could not be loaded. Please try again.')))
+  })
+
+  it('dispatches nothing when the request was cancelled', () => {
+    const { gen } = startDetail()
+    expect(gen.throw(canceled()).value).toStrictEqual(cancelled())
+    expect(gen.next(false).done).toBe(true)
+  })
+
+  it('aborts the request when takeLatest cancels the worker', () => {
+    const { gen, signal } = startDetail()
+    expect(gen.return(undefined).value).toStrictEqual(cancelled())
     expect(gen.next(true).done).toBe(true)
     expect(signal.aborted).toBe(true)
   })
@@ -191,6 +243,26 @@ describe('payablesSaga (running)', () => {
     expect(vi.mocked(payablesApi.getPayables).mock.calls[1]?.[0]).toEqual({
       pageNumber: 1, pageSize: 5, status: 'all', vendorId: 'all', asOfDate: '',
     })
+  })
+
+  it('closing the detail cancels its lookup, so a late response is ignored', async () => {
+    const pending = deferred<PayableDetail>()
+    vi.mocked(payablesApi.getPayableById).mockReturnValueOnce(pending.promise)
+
+    store.dispatch(selectPayable('4'))
+    store.dispatch(clearPayableSelection())
+    expect(vi.mocked(payablesApi.getPayableById).mock.calls[0]?.[1]?.aborted).toBe(true)
+
+    pending.resolve(overduePayableDetail)
+    await flush()
+    expect(store.getState().payables).toMatchObject({ selectedId: null, selected: null, detailStatus: 'idle' })
+  })
+
+  it('loads the selected bill', async () => {
+    vi.mocked(payablesApi.getPayableById).mockResolvedValueOnce(overduePayableDetail)
+    store.dispatch(selectPayable('4'))
+    await vi.waitFor(() => expect(store.getState().payables.detailStatus).toBe('success'))
+    expect(store.getState().payables.selected).toEqual(overduePayableDetail)
   })
 
   it('stores the loaded vendor options', async () => {

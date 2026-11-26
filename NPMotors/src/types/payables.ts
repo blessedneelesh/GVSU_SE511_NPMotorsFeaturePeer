@@ -26,6 +26,31 @@ export interface Payable {
   status: PayableStatus
 }
 
+// One AP bill from GetApById: the list row's money fields plus the vendor's contact details and the purchased vehicle.
+// It has no aging bucket and no payments.
+export interface PayableDetail {
+  id: string
+  number: string
+  vendorId: string
+  vendorName: string
+  // The vehicle the bill was raised for, or '' (parts and service bills have none)
+  vehicleId: string
+  // YYYY-MM-DD
+  date: string
+  // YYYY-MM-DD
+  dueDate: string
+  amount: number
+  paid: number
+  balance: number
+  daysOverdue: number
+  // Overdue once past due, as in the list; GetApById itself sends the stored status
+  status: PayableStatus
+  contact: string
+  phone: string
+  email: string
+  address: string
+}
+
 // The API's Status values: 'all' = every open bill; overdue = past due; unpaid/partial = that status and not yet due.
 // It rejects anything else (there is no "paid").
 export type PayableStatusFilter = 'all' | 'overdue' | 'unpaid' | 'partial'

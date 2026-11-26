@@ -1,7 +1,8 @@
 import type { Vendor } from '../../types/vendors'
-import type { Payable, PayableAgingBucket, PayableStatus, PayableVendorOption } from '../../types/payables'
+import type { Payable, PayableAgingBucket, PayableDetail, PayableStatus, PayableVendorOption } from '../../types/payables'
 
-// Accepted spellings per field: the API's snake-ish camelCase first, then camelCase and PascalCase
+// Accepted spellings per field: the API's snake-ish camelCase first, then camelCase and PascalCase.
+// GetAllApBills and GetApById name some fields differently (vendor_Name vs vendor, days_Overdue vs days), so both are listed.
 const DTO_FIELDS = {
   id: ['id', 'Id', 'apBillId', 'ApBillId'],
   number: ['number', 'Number'],
@@ -12,9 +13,14 @@ const DTO_FIELDS = {
   amount: ['amount', 'Amount'],
   paid: ['paid', 'Paid'],
   balance: ['balance', 'Balance'],
-  daysOverdue: ['days_Overdue', 'daysOverdue', 'DaysOverdue', 'Days_Overdue'],
+  vehicleId: ['vehicle_Id', 'vehicleId', 'VehicleId', 'Vehicle_Id'],
+  daysOverdue: ['days_Overdue', 'days', 'daysOverdue', 'DaysOverdue', 'Days_Overdue', 'Days'],
   agingBucket: ['aging_Bucket', 'agingBucket', 'AgingBucket', 'Aging_Bucket'],
   status: ['status', 'Status'],
+  contact: ['contact', 'Contact', 'contact_Name', 'contactName', 'ContactName'],
+  phone: ['phone', 'Phone'],
+  email: ['email', 'Email'],
+  address: ['address', 'Address'],
 } as const
 
 type DtoField = keyof typeof DTO_FIELDS
@@ -72,9 +78,11 @@ export function normalizeAgingBucket(value: unknown, days: number): PayableAging
 // "2024-03-12T00:00:00" -> "2024-03-12"; the time is always midnight
 const toDateOnly = (value: string) => value.slice(0, 10)
 
+const readDays = (dto: PayableDto) => Math.max(0, Math.trunc(readNumber(dto, 'daysOverdue')))
+
 export function mapPayable(raw: unknown): Payable {
   const dto: PayableDto = isRecord(raw) ? raw : {}
-  const daysOverdue = Math.max(0, Math.trunc(readNumber(dto, 'daysOverdue')))
+  const daysOverdue = readDays(dto)
 
   return {
     id: readString(dto, 'id'),
@@ -89,6 +97,34 @@ export function mapPayable(raw: unknown): Payable {
     daysOverdue,
     agingBucket: normalizeAgingBucket(readField(dto, 'agingBucket'), daysOverdue),
     status: normalizePayableStatus(readField(dto, 'status')),
+  }
+}
+
+// GetApById returns a bare object (no envelope) with the stored status ("Unpaid" even when long past due), so the
+// status is derived as GetAllApBills does: anything unsettled and past due is Overdue
+export function mapPayableDetail(raw: unknown): PayableDetail {
+  const dto: PayableDto = isRecord(raw) ? raw : {}
+  const daysOverdue = readDays(dto)
+  const balance = readNumber(dto, 'balance')
+  const stored = normalizePayableStatus(readField(dto, 'status'))
+
+  return {
+    id: readString(dto, 'id'),
+    number: readString(dto, 'number'),
+    vendorId: readString(dto, 'vendorId'),
+    vendorName: readString(dto, 'vendorName'),
+    vehicleId: readString(dto, 'vehicleId'),
+    date: toDateOnly(readString(dto, 'date')),
+    dueDate: toDateOnly(readString(dto, 'dueDate')),
+    amount: readNumber(dto, 'amount'),
+    paid: readNumber(dto, 'paid'),
+    balance,
+    daysOverdue,
+    status: stored !== 'Paid' && balance > 0 && daysOverdue > 0 ? 'Overdue' : stored,
+    contact: readString(dto, 'contact'),
+    phone: readString(dto, 'phone'),
+    email: readString(dto, 'email'),
+    address: readString(dto, 'address'),
   }
 }
 

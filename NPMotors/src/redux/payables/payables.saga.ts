@@ -1,13 +1,21 @@
 import { all, call, cancelled, put, select, takeLatest } from 'redux-saga/effects'
 import type { SagaIterator } from 'redux-saga'
 import { payablesApi } from '../../services/payables/payables.api'
-import { getPayableErrorMessage, VENDOR_OPTIONS_FALLBACK_MESSAGE } from '../../services/payables/payables.errors'
-import type { PayablePage, PayableQuery, PayableVendorOption } from '../../types/payables'
 import {
+  getPayableDetailErrorMessage,
+  getPayableErrorMessage,
+  VENDOR_OPTIONS_FALLBACK_MESSAGE,
+} from '../../services/payables/payables.errors'
+import type { PayableDetail, PayablePage, PayableQuery, PayableVendorOption } from '../../types/payables'
+import {
+  type clearPayableSelection,
+  loadPayableByIdFailure,
+  loadPayableByIdSuccess,
   loadPayablesFailure,
   loadPayablesSuccess,
   loadPayableVendorOptionsFailure,
   loadPayableVendorOptionsSuccess,
+  type selectPayable,
 } from './payables.actions'
 import { PAYABLE_ACTIONS } from './payables.constants'
 import { selectPayableQuery } from './payables.selectors'
@@ -23,6 +31,24 @@ function* loadPayablesWorker(): SagaIterator {
     if (message) yield put(loadPayablesFailure(message))
   } finally {
     // takeLatest cancels superseded workers; abort their HTTP request too
+    const wasCancelled: boolean = yield cancelled()
+    if (wasCancelled) controller.abort()
+  }
+}
+
+type PayableDetailAction = ReturnType<typeof selectPayable> | ReturnType<typeof clearPayableSelection>
+
+function* loadPayableByIdWorker(action: PayableDetailAction): SagaIterator {
+  // CLEAR_SELECTION only exists to make takeLatest cancel an in-flight lookup
+  if (action.type !== PAYABLE_ACTIONS.SELECT) return
+  const controller = new AbortController()
+  try {
+    const payable: PayableDetail = yield call(payablesApi.getPayableById, action.payload, controller.signal)
+    yield put(loadPayableByIdSuccess(payable))
+  } catch (error) {
+    const message = getPayableDetailErrorMessage(error)
+    if (message) yield put(loadPayableByIdFailure(message))
+  } finally {
     const wasCancelled: boolean = yield cancelled()
     if (wasCancelled) controller.abort()
   }
@@ -56,6 +82,8 @@ export default function* payablesSaga(): SagaIterator {
       ],
       loadPayablesWorker,
     ),
+    // Leaving the detail view cancels an in-flight lookup, so a late response can't fill a closed view
+    takeLatest([PAYABLE_ACTIONS.SELECT, PAYABLE_ACTIONS.CLEAR_SELECTION], loadPayableByIdWorker),
     takeLatest(PAYABLE_ACTIONS.LOAD_VENDOR_OPTIONS, loadVendorOptionsWorker),
   ])
 }

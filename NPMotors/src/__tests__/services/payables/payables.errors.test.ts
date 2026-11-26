@@ -1,6 +1,6 @@
 import { AxiosError, AxiosHeaders, CanceledError } from 'axios'
 import { describe, expect, it } from 'vitest'
-import { getPayableErrorMessage, VENDOR_OPTIONS_FALLBACK_MESSAGE } from '../../../services/payables/payables.errors'
+import { getPayableDetailErrorMessage, getPayableErrorMessage, VENDOR_OPTIONS_FALLBACK_MESSAGE } from '../../../services/payables/payables.errors'
 
 const httpError = (status: number, data?: unknown) =>
   new AxiosError('Request failed', 'ERR_BAD_REQUEST', undefined, undefined,
@@ -30,5 +30,17 @@ describe('getPayableErrorMessage', () => {
   it('falls back to the given message, ignoring HTML bodies', () => {
     expect(getPayableErrorMessage(httpError(400, '<html></html>'))).toBe('Payables could not be loaded. Please try again.')
     expect(getPayableErrorMessage(new Error('boom'), VENDOR_OPTIONS_FALLBACK_MESSAGE)).toBe('Vendors could not be loaded. Please try again.')
+  })
+})
+
+describe('getPayableDetailErrorMessage', () => {
+  it('says the bill no longer exists on a 404', () => {
+    expect(getPayableDetailErrorMessage(httpError(404, { title: 'Not Found' }))).toBe('This bill no longer exists.')
+  })
+
+  it('reads other errors, falling back to the detail message', () => {
+    expect(getPayableDetailErrorMessage(httpError(400, { errors: { id: ["The value 'abc' is not valid."] } }))).toBe("The value 'abc' is not valid.")
+    expect(getPayableDetailErrorMessage(httpError(400))).toBe('This bill could not be loaded. Please try again.')
+    expect(getPayableDetailErrorMessage(new CanceledError())).toBe('')
   })
 })
