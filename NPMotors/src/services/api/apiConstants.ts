@@ -124,6 +124,12 @@ export const REPORT_ENDPOINTS = {
   comparePeriods: 'Report/ComparePeriods',
 } as const
 
+// Dashboard summary, on the Customers API origin. Read-only. GetSummary takes an optional As_Of_Date (defaults to today):
+// sales figures cover that date's calendar month against the month before, and an invalid date answers 400.
+export const DASHBOARD_ENDPOINTS = {
+  getSummary: 'Dashboard/GetSummary',
+} as const
+
 export const RECEIPT_ENDPOINTS = {
   // The AR invoice id goes in the path
   recordArPayment: (arInvoiceId: string) => `Receipt/RecordArPayment/${encodeURIComponent(arInvoiceId)}`,

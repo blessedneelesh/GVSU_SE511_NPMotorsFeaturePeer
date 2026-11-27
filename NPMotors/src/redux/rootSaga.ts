@@ -14,7 +14,8 @@ import receivablesSaga from './receivables/receivables.saga'
 import receiptsSaga from './receipts/receipts.saga'
 import payablesSaga from './payables/payables.saga'
 import profitLossSaga from './profitLoss/profitLoss.saga'
+import dashboardSaga from './dashboard/dashboard.saga'
 
 export default function* rootSaga(): SagaIterator {
-  yield all([fork(customersSaga), fork(vendorsSaga), fork(employeesSaga), fork(vehiclesSaga), fork(partsSaga), fork(salesInvoicesSaga), fork(bankAccountsSaga), fork(transactionsSaga), fork(statementLinesSaga), fork(transfersSaga), fork(receivablesSaga), fork(receiptsSaga), fork(payablesSaga), fork(profitLossSaga)])
+  yield all([fork(customersSaga), fork(vendorsSaga), fork(employeesSaga), fork(vehiclesSaga), fork(partsSaga), fork(salesInvoicesSaga), fork(bankAccountsSaga), fork(transactionsSaga), fork(statementLinesSaga), fork(transfersSaga), fork(receivablesSaga), fork(receiptsSaga), fork(payablesSaga), fork(profitLossSaga), fork(dashboardSaga)])
 }

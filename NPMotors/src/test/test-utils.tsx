@@ -20,6 +20,7 @@ import { initialReceivablesState, type ReceivablesState } from '../redux/receiva
 import { initialReceiptsState, type ReceiptsState } from '../redux/receipts/receipts.reducer'
 import { initialPayablesState, type PayablesState } from '../redux/payables/payables.reducer'
 import { initialProfitLossState, type ProfitLossState } from '../redux/profitLoss/profitLoss.reducer'
+import { initialDashboardState, type DashboardState } from '../redux/dashboard/dashboard.reducer'
 
 // Builds a full RootState from each slice's initial state; tests override only what the scenario needs
 export const makeState = (
@@ -37,6 +38,7 @@ export const makeState = (
   receiptOverrides: Partial<ReceiptsState> = {},
   payableOverrides: Partial<PayablesState> = {},
   profitLossOverrides: Partial<ProfitLossState> = {},
+  dashboardOverrides: Partial<DashboardState> = {},
 ): RootState => ({
   customers: { ...initialCustomersState, ...overrides },
   vendors: { ...initialVendorsState, ...vendorOverrides },
@@ -52,6 +54,7 @@ export const makeState = (
   receipts: { ...initialReceiptsState, ...receiptOverrides },
   payables: { ...initialPayablesState, ...payableOverrides },
   profitLoss: { ...initialProfitLossState, ...profitLossOverrides },
+  dashboard: { ...initialDashboardState, ...dashboardOverrides },
 })
 
 // Shorthand for vendor tests: default customers slice, overridden vendors slice
@@ -105,6 +108,10 @@ export const makeVendorPaymentState = (overrides: Partial<PayablesState> = {}, r
 // Shorthand for profit and loss tests: every other slice at its default, overridden profitLoss slice
 export const makeProfitLossState = (overrides: Partial<ProfitLossState> = {}): RootState =>
   makeState({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, overrides)
+
+// Shorthand for dashboard tests: every other slice at its default, overridden dashboard slice
+export const makeDashboardState = (overrides: Partial<DashboardState> = {}): RootState =>
+  makeState({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, overrides)
 
 interface RenderOptions {
   preloadedState?: RootState

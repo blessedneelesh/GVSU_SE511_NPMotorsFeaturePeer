@@ -1,0 +1,23 @@
+/* Dashboard additions; the layout primitives (.page, .metric-*, .panel, .chart, .donut, .customer-row) live in App.css */
+.dashboard-page .is-refreshing { opacity: .55; transition: opacity .15s; }
+.dashboard-page .dashboard-month { min-width: 180px; }
+.dashboard-message { margin-bottom: 24px; }
+.dashboard-loading { display: flex; justify-content: center; padding: 48px 16px; }
+.dashboard-page .dashboard-empty { margin: 8px 0; color: #8996ae; font-size: 12px; }
+
+.dashboard-page .metric-note { color: #91a0b9; font-size: 11px; white-space: nowrap; }
+.dashboard-page .panel-heading__note { color: #8996ae; font-size: 11px; }
+.dashboard-page .dashboard-chart-caption { color: #8491aa; font-size: 11px; }
+
+/* Fluent table (overrides the global table styles from App.css); cell text helpers need the extra specificity */
+.dashboard-page .table-scroll { overflow-x: auto; }
+.dashboard-page .data-table { min-width: 560px; }
+.dashboard-page .data-table th { color: #8996ae; font-size: 10px; text-transform: uppercase; letter-spacing: .6px; font-weight: 600; padding: 0 10px 13px; border-bottom: 1px solid #edf0f5; }
+.dashboard-page .data-table td { padding: 15px 10px; color: #5e6e8b; font-size: 11px; border-bottom: 1px solid #f0f2f6; white-space: nowrap; }
+.dashboard-page .data-table .num { justify-content: flex-end; text-align: right; }
+.dashboard-page .data-table .table-empty { text-align: center; color: #8996ae; padding: 24px 10px; }
+
+/* Invoice status badges (paid comes from App.css) */
+.dashboard-page .status--partial { background: #fff3dc; color: #c77d1d; }
+.dashboard-page .status--unpaid { background: #feebec; color: #d45e63; }
+.dashboard-page .status--draft, .dashboard-page .status--cancelled { background: #f0f2f6; color: #78859d; }
