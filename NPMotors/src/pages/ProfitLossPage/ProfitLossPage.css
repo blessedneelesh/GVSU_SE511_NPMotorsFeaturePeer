@@ -20,7 +20,8 @@
 /* Fluent tables (override the global table styles from App.css); cell text helpers need the extra specificity */
 .profit-loss-page .data-table th, .profit-loss-page .data-table td { padding: 10px 12px; font-size: 13px; color: var(--gray-700); white-space: nowrap; }
 .profit-loss-page .data-table th { background: var(--slate-50); font-size: 11px; font-weight: 600; color: var(--slate-500); text-transform: uppercase; letter-spacing: .05em; }
-.profit-loss-page .data-table .num { justify-content: flex-end; text-align: right; font-family: var(--mono); }
+/* Amounts start under their headings: Fluent header cells keep their text left-aligned in an inner flex div */
+.profit-loss-page .data-table .num { text-align: left; font-family: var(--mono); }
 .profit-loss-page .data-table th.num { font-family: inherit; }
 .profit-loss-page .data-table .text-faint { color: var(--slate-400); }
 
