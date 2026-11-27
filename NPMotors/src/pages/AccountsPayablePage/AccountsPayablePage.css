@@ -57,7 +57,6 @@
 .payables-loading { display: flex; justify-content: center; padding: 48px 16px; }
 
 .payables-page .payables-table { min-width: 960px; }
-.payables-page .payables-table .payable-actions { width: 1%; }
 
 /* Page totals, as the design's "Total Outstanding" footer (the API has no totals, so only this page is summed) */
 .payables-page .data-table .payables-total-row td { background: var(--slate-50); font-weight: 600; color: var(--slate-600); }
