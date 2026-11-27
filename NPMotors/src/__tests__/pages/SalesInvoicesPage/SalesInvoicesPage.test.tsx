@@ -1,9 +1,8 @@
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SalesInvoicesPage } from '../../../pages/SalesInvoicesPage/SalesInvoicesPage'
 import {
-  cancelSalesInvoiceSuccess,
   createSalesInvoice,
   loadSalesInvoiceOptions,
   loadSalesInvoiceOptionsSuccess,
@@ -11,7 +10,6 @@ import {
   loadSalesInvoicesFailure,
   loadSalesInvoicesSuccess,
   postSalesInvoice,
-  resetSalesInvoiceCancel,
   resetSalesInvoiceSave,
   saveSalesInvoiceSuccess,
   selectSalesInvoice,
@@ -78,7 +76,7 @@ describe('SalesInvoicesPage', () => {
     // header row + 5 invoices
     expect(within(table()).getAllByRole('row')).toHaveLength(6)
     expect(within(table()).getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([
-      'Invoice #', 'Date', 'Customer', 'Vehicle / VIN', 'Salesperson', 'Sale Price', 'Tax', 'Total', 'Paid', 'Balance', 'Status', 'Actions',
+      'Invoice #', 'Date', 'Customer', 'Vehicle / VIN', 'Salesperson', 'Sale Price', 'Tax', 'Total', 'Paid', 'Balance', 'Status',
     ])
   })
 
@@ -86,7 +84,7 @@ describe('SalesInvoicesPage', () => {
     renderLoaded([postedInvoice])
     expect(cellsOf('INV-2026-0006')).toEqual([
       'INV-2026-0006', '2026-10-15', 'John Smith', 'Toyota CamryK0RU000024', 'Maria Lopez',
-      '$30,250', '$2,420', '$33,120', '$0', '$33,120', 'PostedUnpaid', '',
+      '$30,250', '$2,420', '$33,120', '$0', '$33,120', 'PostedUnpaid',
     ])
     expect(within(table()).getByText('Posted')).toHaveClass('badge-approved')
     expect(within(table()).getByText('Unpaid')).toHaveClass('badge-unpaid')
@@ -96,7 +94,7 @@ describe('SalesInvoicesPage', () => {
     renderLoaded([partialInvoice])
     expect(cellsOf('INV-2026-0003')).toEqual([
       'INV-2026-0003', '2026-09-20', 'John Smith', 'Chevrolet Silverado 1500D5NZ123456', 'Employee #1',
-      '$44,500', '$3,560', '$48,010', '$10,000', '$38,010', 'PostedPartial', '',
+      '$44,500', '$3,560', '$48,010', '$10,000', '$38,010', 'PostedPartial',
     ])
   })
 
@@ -104,7 +102,7 @@ describe('SalesInvoicesPage', () => {
     renderLoaded([draftInvoice])
     expect(cellsOf('INV-2026-0008')).toEqual([
       'INV-2026-0008', '2026-11-01', 'John Smith', 'Toyota CamryK0RU000024', 'Maria Lopez',
-      '$30,250', '$2,420', '$33,120', '—', '—', 'Draft', '',
+      '$30,250', '$2,420', '$33,120', '—', '—', 'Draft',
     ])
     expect(within(table()).getByRole('button', { name: 'INV-2026-0008' }).closest('tr')).toHaveClass('is-draft')
   })
@@ -112,7 +110,7 @@ describe('SalesInvoicesPage', () => {
   it('falls back for missing fields and hides a zero balance', () => {
     renderLoaded([sparseInvoice])
     expect(cellsOf('INV-SPARSE')).toEqual([
-      'INV-SPARSE', '—', '—', '——', '—', '$0', '$0', '$0', '$0', '—', 'PostedPaid', '',
+      'INV-SPARSE', '—', '—', '——', '—', '$0', '$0', '$0', '$0', '—', 'PostedPaid',
     ])
   })
 
@@ -122,22 +120,14 @@ describe('SalesInvoicesPage', () => {
     expect(within(table()).getByText('Employee #12')).toBeInTheDocument()
   })
 
-  it('offers Cancel only on posted invoices with nothing paid', () => {
+  it('has no row action buttons; invoices are opened, edited and cancelled from their number', () => {
     renderLoaded([postedInvoice, partialInvoice, draftInvoice, cancelledInvoice])
-    expect(within(table()).getAllByRole('button', { name: /^Cancel invoice/ }))
-      .toEqual([within(table()).getByRole('button', { name: 'Cancel invoice INV-2026-0006' })])
-    // The draft gets Edit instead of View, as in the design
-    expect(within(table()).getAllByRole('button', { name: /^View invoice/ })).toHaveLength(3)
-    expect(within(table()).getAllByRole('button', { name: /^Edit draft/ }))
-      .toEqual([within(table()).getByRole('button', { name: 'Edit draft INV-2026-0008' })])
+    expect(within(table()).queryByRole('button', { name: /^(Cancel invoice|View invoice|Edit draft)/ })).not.toBeInTheDocument()
   })
 
-  it.each([
-    ['its number', 'INV-2026-0008'],
-    ['its Edit button', 'Edit draft INV-2026-0008'],
-  ])('opens a draft in the form from %s, not the detail view', async (_, name) => {
+  it('opens a draft in the form from its number, not the detail view', async () => {
     const { actions, user } = renderLoaded([draftInvoice])
-    await user.click(screen.getByRole('button', { name }))
+    await user.click(screen.getByRole('button', { name: 'INV-2026-0008' }))
 
     expect(actions).toContainEqual(resetSalesInvoiceSave())
     expect(actions.some((action) => action.type === selectSalesInvoice('8').type)).toBe(false)
@@ -147,7 +137,7 @@ describe('SalesInvoicesPage', () => {
 
   it('shows the update banner after saving a draft\'s changes', async () => {
     const { store, user } = renderLoaded([draftInvoice])
-    await user.click(screen.getByRole('button', { name: 'Edit draft INV-2026-0008' }))
+    await user.click(screen.getByRole('button', { name: 'INV-2026-0008' }))
     act(() => {
       store.dispatch(updateSalesInvoiceDraft({ id: '8', values: salesInvoiceFormValues }))
       store.dispatch(saveSalesInvoiceSuccess())
@@ -247,18 +237,14 @@ describe('SalesInvoicesPage', () => {
     expect(actions).toContainEqual(setSalesInvoicePage(2))
   })
 
-  it('disables the number and View links when an invoice has no id', () => {
+  it('disables the number link when an invoice has no id', () => {
     renderLoaded([sparseInvoice])
     expect(within(table()).getByRole('button', { name: 'INV-SPARSE' })).toBeDisabled()
-    expect(within(table()).getByRole('button', { name: 'View invoice INV-SPARSE' })).toBeDisabled()
   })
 
-  it.each([
-    ['its number', 'INV-2026-0006'],
-    ['its View button', 'View invoice INV-2026-0006'],
-  ])('opens an invoice from %s', async (_, name) => {
+  it('opens an invoice from its number', async () => {
     const { actions, user } = renderLoaded([postedInvoice])
-    await user.click(screen.getByRole('button', { name }))
+    await user.click(screen.getByRole('button', { name: 'INV-2026-0006' }))
     expect(actions).toContainEqual(selectSalesInvoice('6'))
     expect(screen.getByText('Loading sales invoice…')).toBeInTheDocument()
   })
@@ -320,41 +306,6 @@ describe('SalesInvoicesPage', () => {
       await user.click(screen.getByRole('button', { name: 'Dismiss' }))
       expect(screen.queryByText('Draft saved successfully.')).not.toBeInTheDocument()
       expect(store.getState().salesInvoices.saveStatus).toBe('idle')
-    })
-  })
-
-  describe('Cancel invoice', () => {
-    it('resets the cancel state and opens the dialog for the row', async () => {
-      const { actions, user } = renderLoaded([postedInvoice])
-      await user.click(screen.getByRole('button', { name: 'Cancel invoice INV-2026-0006' }))
-
-      expect(actions).toContainEqual(resetSalesInvoiceCancel())
-      expect(screen.getByRole('alertdialog')).toBeInTheDocument()
-      expect(screen.getByText('Cancel Invoice INV-2026-0006?')).toBeInTheDocument()
-    })
-
-    it('closes the dialog on Keep Invoice without a banner', async () => {
-      const { user } = renderLoaded([postedInvoice])
-      await user.click(screen.getByRole('button', { name: 'Cancel invoice INV-2026-0006' }))
-      await user.click(screen.getByRole('button', { name: 'Keep Invoice' }))
-
-      await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
-      expect(screen.queryByText(/cancelled\. The vehicle/)).not.toBeInTheDocument()
-    })
-
-    it('swaps the dialog for a banner once cancelled, then hides it after 4 seconds', async () => {
-      vi.useFakeTimers({ shouldAdvanceTime: true })
-      const { store } = renderLoaded([postedInvoice])
-      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-      await user.click(screen.getByRole('button', { name: 'Cancel invoice INV-2026-0006' }))
-
-      act(() => { store.dispatch(cancelSalesInvoiceSuccess()) })
-      await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
-      expect(screen.getByText('Invoice INV-2026-0006 cancelled. The vehicle is available again.')).toBeInTheDocument()
-
-      act(() => { vi.advanceTimersByTime(4000) })
-      expect(screen.queryByText(/cancelled\. The vehicle/)).not.toBeInTheDocument()
-      expect(store.getState().salesInvoices.cancelStatus).toBe('idle')
     })
   })
 
