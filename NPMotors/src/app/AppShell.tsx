@@ -6,7 +6,7 @@ import {
   Dismiss24Regular,
   Navigation24Regular,
 } from '@fluentui/react-icons'
-import { navigationGroups } from './navigation'
+import { sidebarGroups } from './navigation'
 import './AppShell.css'
 
 export function AppShell() {
@@ -43,7 +43,7 @@ export function AppShell() {
           </button>
         </div>
         <nav className="sidebar__nav" aria-label="Primary navigation">
-          {navigationGroups.map((group) => (
+          {sidebarGroups.map((group) => (
             <div key={group.section} className="sidebar__group">
               {isCollapsed ? <hr className="sidebar__divider" /> : <p className="sidebar__label">{group.section}</p>}
               {group.items.map(({ label, path, icon: Icon }) => (
