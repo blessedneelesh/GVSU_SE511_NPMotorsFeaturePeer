@@ -7,7 +7,6 @@ import {
   BuildingFactory20Regular,
   DataBarVertical20Regular,
   DataTrending20Regular,
-  Diagram20Regular,
   DocumentText20Regular,
   Grid20Regular,
   Money20Regular,
@@ -81,7 +80,6 @@ export const navigationGroups: NavigationGroup[] = [
     items: [
       { label: 'Profit & Loss', path: '/profit-loss', icon: DataBarVertical20Regular },
       { label: 'Vehicle Profitability', path: '/vehicle-profitability', icon: DataTrending20Regular },
-      { label: 'ER Diagram', path: '/er-diagram', icon: Diagram20Regular },
     ],
   },
 ]
