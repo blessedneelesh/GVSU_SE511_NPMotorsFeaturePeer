@@ -112,6 +112,18 @@ export const BANK_PAYMENT_ENDPOINTS = {
   recordMiscellaneousPayment: 'BankPayment/RecordMiscellaneousPayment',
 } as const
 
+// Financial reports (Profit & Loss page), on the Customers API origin. Every endpoint takes Period_Type
+// (Month | Quarter | YearToDate) and Anchor_Date; a missing or invalid one answers 400. GetProfitAndLoss embeds the
+// Revenue, COGS and Operating Expenses reports. ComparePeriods takes Current_Anchor_Date and an optional
+// Previous_Anchor_Date, which defaults to the prior month or quarter, or the same span of the prior year for YearToDate.
+export const REPORT_ENDPOINTS = {
+  getRevenue: 'Report/GetRevenue',
+  getCostOfGoodsSold: 'Report/GetCostOfGoodsSold',
+  getOperatingExpenses: 'Report/GetOperatingExpenses',
+  getProfitAndLoss: 'Report/GetProfitAndLoss',
+  comparePeriods: 'Report/ComparePeriods',
+} as const
+
 export const RECEIPT_ENDPOINTS = {
   // The AR invoice id goes in the path
   recordArPayment: (arInvoiceId: string) => `Receipt/RecordArPayment/${encodeURIComponent(arInvoiceId)}`,

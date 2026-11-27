@@ -19,6 +19,7 @@ import { initialTransfersState, type TransfersState } from '../redux/transfers/t
 import { initialReceivablesState, type ReceivablesState } from '../redux/receivables/receivables.reducer'
 import { initialReceiptsState, type ReceiptsState } from '../redux/receipts/receipts.reducer'
 import { initialPayablesState, type PayablesState } from '../redux/payables/payables.reducer'
+import { initialProfitLossState, type ProfitLossState } from '../redux/profitLoss/profitLoss.reducer'
 
 // Builds a full RootState from each slice's initial state; tests override only what the scenario needs
 export const makeState = (
@@ -35,6 +36,7 @@ export const makeState = (
   receivableOverrides: Partial<ReceivablesState> = {},
   receiptOverrides: Partial<ReceiptsState> = {},
   payableOverrides: Partial<PayablesState> = {},
+  profitLossOverrides: Partial<ProfitLossState> = {},
 ): RootState => ({
   customers: { ...initialCustomersState, ...overrides },
   vendors: { ...initialVendorsState, ...vendorOverrides },
@@ -49,6 +51,7 @@ export const makeState = (
   receivables: { ...initialReceivablesState, ...receivableOverrides },
   receipts: { ...initialReceiptsState, ...receiptOverrides },
   payables: { ...initialPayablesState, ...payableOverrides },
+  profitLoss: { ...initialProfitLossState, ...profitLossOverrides },
 })
 
 // Shorthand for vendor tests: default customers slice, overridden vendors slice
@@ -98,6 +101,10 @@ export const makePayableState = (overrides: Partial<PayablesState> = {}): RootSt
 // Shorthand for make-payment tests: an overridden payables slice and receipts slice (the Pay From accounts live there)
 export const makeVendorPaymentState = (overrides: Partial<PayablesState> = {}, receiptOverrides: Partial<ReceiptsState> = {}): RootState =>
   makeState({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, receiptOverrides, overrides)
+
+// Shorthand for profit and loss tests: every other slice at its default, overridden profitLoss slice
+export const makeProfitLossState = (overrides: Partial<ProfitLossState> = {}): RootState =>
+  makeState({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, overrides)
 
 interface RenderOptions {
   preloadedState?: RootState
