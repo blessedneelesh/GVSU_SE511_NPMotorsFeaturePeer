@@ -22,7 +22,7 @@ export interface TransactionsState {
 export const initialTransactionsState: TransactionsState = {
   items: [],
   hasNext: false,
-  query: { pageNumber: 1, pageSize: 5, bankAccountId: 'all', direction: 'all', dateFrom: '', dateTo: '' },
+  query: { pageNumber: 1, pageSize: 10, bankAccountId: 'all', direction: 'all', dateFrom: '', dateTo: '' },
   listStatus: 'idle',
   listError: null,
   selectedId: null,

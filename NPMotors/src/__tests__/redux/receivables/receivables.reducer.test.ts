@@ -15,7 +15,7 @@ const filtered: ReceivablesState = {
 describe('receivablesReducer', () => {
   it('returns the initial state', () => {
     expect(receivablesReducer(undefined, { type: '@@INIT' })).toEqual(initialReceivablesState)
-    expect(initialReceivablesState.query).toEqual({ pageNumber: 1, pageSize: 5, status: 'all', customerId: 'all', asOfDate: '' })
+    expect(initialReceivablesState.query).toEqual({ pageNumber: 1, pageSize: 10, status: 'all', customerId: 'all', asOfDate: '' })
   })
 
   it('ignores actions from other slices', () => {

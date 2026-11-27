@@ -38,7 +38,7 @@ export interface VehiclesState {
 export const initialVehiclesState: VehiclesState = {
   items: [],
   hasNext: false,
-  query: { pageNumber: 1, pageSize: 5, status: 'all', searchTerm: '' },
+  query: { pageNumber: 1, pageSize: 10, status: 'all', searchTerm: '' },
   listStatus: 'idle',
   listError: null,
   selectedId: null,

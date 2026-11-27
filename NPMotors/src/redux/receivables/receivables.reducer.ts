@@ -22,7 +22,7 @@ export interface ReceivablesState {
 export const initialReceivablesState: ReceivablesState = {
   items: [],
   hasNext: false,
-  query: { pageNumber: 1, pageSize: 5, status: 'all', customerId: 'all', asOfDate: '' },
+  query: { pageNumber: 1, pageSize: 10, status: 'all', customerId: 'all', asOfDate: '' },
   listStatus: 'idle',
   listError: null,
   selectedId: null,

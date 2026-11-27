@@ -15,7 +15,7 @@ const filtered: PayablesState = {
 describe('payablesReducer', () => {
   it('returns the initial state and ignores other slices\' actions', () => {
     expect(payablesReducer(undefined, { type: '@@INIT' })).toEqual(initialPayablesState)
-    expect(initialPayablesState.query).toEqual({ pageNumber: 1, pageSize: 5, status: 'all', vendorId: 'all', asOfDate: '' })
+    expect(initialPayablesState.query).toEqual({ pageNumber: 1, pageSize: 10, status: 'all', vendorId: 'all', asOfDate: '' })
     expect(payablesReducer(filtered, { type: 'receivables/load' })).toBe(filtered)
   })
 

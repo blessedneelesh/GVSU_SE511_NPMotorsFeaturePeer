@@ -25,8 +25,8 @@ describe('bankAccountsReducer', () => {
     expect(bankAccountsReducer(undefined, { type: '@@INIT' })).toEqual(initialBankAccountsState)
   })
 
-  it('starts on page 1 of 5 with every bank', () => {
-    expect(initialBankAccountsState.query).toEqual({ pageNumber: 1, pageSize: 5, bankId: 'all', searchTerm: '' })
+  it('starts on page 1 of 10 with every bank', () => {
+    expect(initialBankAccountsState.query).toEqual({ pageNumber: 1, pageSize: 10, bankId: 'all', searchTerm: '' })
   })
 
   it('returns the same state reference for an unknown action', () => {

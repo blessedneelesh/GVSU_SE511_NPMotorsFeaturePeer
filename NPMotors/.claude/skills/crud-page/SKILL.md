@@ -1,7 +1,7 @@
 ---
 name: crud-page
 description: Build or connect a full CRUD page (list + create/edit/delete + detail) for an NPMotors entity — Vendors, Vehicles, Sales Invoices, Banks, Parts, ... — from the Figma Make design, using the same Redux + redux-saga + reselect + service/mapper pattern as the Customers feature. Use when the user asks to build a page from Figma, integrate an API for a page/table/list page, add create/edit/delete (CRUD) to a page, or replicate the Customers pattern for another entity.
-argument-hint: <entity> getAll=<path> [getById=<path>] [create=<path>] [update=<path>] [delete=<path>] [extra=name:METHOD:path,...] [api=https://localhost:PORT] [route=/path] [figmaNode=<code-node-id>] [pageSize=5]
+argument-hint: <entity> getAll=<path> [getById=<path>] [create=<path>] [update=<path>] [delete=<path>] [extra=name:METHOD:path,...] [api=https://localhost:PORT] [route=/path] [figmaNode=<code-node-id>] [pageSize=10]
 ---
 
 # Full CRUD page from Figma (Customers pattern)
@@ -22,7 +22,7 @@ Arguments: `$ARGUMENTS`
 | `api=` | no | `https://localhost:7005` | Backend origin. Default: the Customers origin `https://localhost:7003`. |
 | `route=` | no | `/<plural>` | Frontend route. Default: the matching entry in `src/app/navigation.ts`. |
 | `figmaNode=` | no | `0-6` | Make code node for this page. Default: find the entity's page in the Make file. |
-| `pageSize=` | no | `10` | Initial page size. Default `5`. |
+| `pageSize=` | no | `25` | Initial page size. Default `10`. |
 
 All endpoint paths are **relative to the API origin, with no leading slash**. Their first segment (`<Entity>`) is the Vite proxy prefix.
 
