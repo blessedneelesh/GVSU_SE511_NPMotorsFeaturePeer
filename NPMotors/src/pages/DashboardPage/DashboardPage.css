@@ -6,7 +6,14 @@
 .dashboard-page .dashboard-empty { margin: 8px 0; color: #8996ae; font-size: 12px; }
 
 .dashboard-page .metric-note { color: #91a0b9; font-size: 11px; white-space: nowrap; }
-.dashboard-page .panel-heading__note { color: #8996ae; font-size: 11px; }
+
+/* Clickable metric cards: the label link's ::after covers the card */
+.dashboard-page .metric-card--link { position: relative; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.dashboard-page .metric-card--link:hover { border-color: #9bb2dd; box-shadow: 0 4px 14px #253c6514; }
+.dashboard-page .metric-card--link:focus-within { outline: 2px solid #315fbd; outline-offset: 2px; }
+.dashboard-page .metric-card__link { color: #73809b; text-decoration: none; }
+.dashboard-page .metric-card__link:focus-visible { outline: none; }
+.dashboard-page .metric-card__link::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
 .dashboard-page .dashboard-chart-caption { color: #8491aa; font-size: 11px; }
 
 /* Fluent table (overrides the global table styles from App.css); cell text helpers need the extra specificity */

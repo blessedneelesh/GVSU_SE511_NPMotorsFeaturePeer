@@ -37,12 +37,30 @@ describe('DashboardPage', () => {
     // 9 sold against 6 last month; revenue has no previous month to compare with
     expect(within(metrics).getByText('+50.0%', { exact: false })).not.toHaveClass('metric-trend--negative')
     expect(within(metrics).getByText('Last month: $0')).toBeInTheDocument()
+    expect(within(metrics).getByText('9 available')).toBeInTheDocument()
+  })
+
+  it('links every metric card to its page', async () => {
+    const { user } = renderLoaded()
+    const metrics = screen.getByRole('region', { name: 'Dealership metrics' })
+    const links = within(metrics).getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])
+    expect(links).toEqual([
+      ['Total inventory', '/vehicle-inventory'],
+      ['Available vehicles', '/vehicle-inventory'],
+      ['Vehicles sold', '/sales-invoices'],
+      ['Total sales revenue', '/sales-invoices'],
+      ['Accounts receivable', '/accounts-receivable'],
+      ['Active customers', '/customers'],
+    ])
+    await user.click(within(metrics).getByRole('link', { name: 'Accounts receivable' }))
+    expect(screen.queryByRole('region', { name: 'Dealership metrics' })).not.toBeInTheDocument()
   })
 
   it('charts the monthly revenue and the available vehicles by make', () => {
     renderLoaded()
     expect(screen.getByRole('img', { name: /Nov \$370,950/ })).toBeInTheDocument()
-    expect(screen.getByText('Last 7 months')).toBeInTheDocument()
+    expect(screen.getByText('total revenue · last 7 months')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Profit & Loss' })).toHaveAttribute('href', '/profit-loss')
     expect(screen.getByText('Toyota')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'View inventory' })).toHaveAttribute('href', '/vehicle-inventory')
   })

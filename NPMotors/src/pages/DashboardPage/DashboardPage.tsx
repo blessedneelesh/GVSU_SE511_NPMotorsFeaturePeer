@@ -110,7 +110,6 @@ function DashboardContent({ summary }: { summary: DashboardSummary }) {
   const slices = useMemo(() => buildInventorySlices(summary.availableByMake), [summary.availableByMake])
   const customers = useMemo(() => recentCustomers(summary.recentInvoices), [summary.recentInvoices])
 
-  const availablePct = summary.totalInventory > 0 ? Math.round((summary.availableVehicles / summary.totalInventory) * 100) : 0
   const makeCount = summary.availableByMake.filter((make) => make.count > 0).length
   const soldTrend = countTrend(summary.vehiclesSold, summary.vehiclesSoldPrevious)
   const revenueTrend = formatTrend(summary.revenueChangePct)
@@ -118,20 +117,20 @@ function DashboardContent({ summary }: { summary: DashboardSummary }) {
   return (
     <>
       <section className="metric-grid" aria-label="Dealership metrics">
-        <MetricCard label="Total inventory" value={summary.totalInventory.toLocaleString()} icon="▣" tone="blue" note={`${availablePct}% available`} />
-        <MetricCard label="Available vehicles" value={summary.availableVehicles.toLocaleString()} icon="◈" tone="green" note={`${makeCount} ${makeCount === 1 ? 'make' : 'makes'}`} />
-        <MetricCard label="Vehicles sold" value={summary.vehiclesSold.toLocaleString()} icon="↗" tone="orange" trend={soldTrend} note={`Last month: ${summary.vehiclesSoldPrevious.toLocaleString()}`} />
-        <MetricCard label="Total sales revenue" value={formatCurrency(summary.revenue)} icon="$" tone="purple" trend={revenueTrend} note={`Last month: ${formatCurrency(summary.revenuePrevious)}`} />
-        <MetricCard label="Accounts receivable" value={formatCurrency(summary.receivableBalance)} icon="◷" tone="red" note={`${summary.openReceivables} open ${summary.openReceivables === 1 ? 'invoice' : 'invoices'}`} />
-        <MetricCard label="Active customers" value={summary.activeCustomers.toLocaleString()} icon="♙" tone="teal" note="Active accounts" />
+        <MetricCard label="Total inventory" value={summary.totalInventory.toLocaleString()} icon="▣" tone="blue" note={`${summary.availableVehicles.toLocaleString()} available`} to="/vehicle-inventory" />
+        <MetricCard label="Available vehicles" value={summary.availableVehicles.toLocaleString()} icon="◈" tone="green" note={`${makeCount} ${makeCount === 1 ? 'make' : 'makes'}`} to="/vehicle-inventory" />
+        <MetricCard label="Vehicles sold" value={summary.vehiclesSold.toLocaleString()} icon="↗" tone="orange" trend={soldTrend} note={`Last month: ${summary.vehiclesSoldPrevious.toLocaleString()}`} to="/sales-invoices" />
+        <MetricCard label="Total sales revenue" value={formatCurrency(summary.revenue)} icon="$" tone="purple" trend={revenueTrend} note={`Last month: ${formatCurrency(summary.revenuePrevious)}`} to="/sales-invoices" />
+        <MetricCard label="Accounts receivable" value={formatCurrency(summary.receivableBalance)} icon="◷" tone="red" note={`${summary.openReceivables} open ${summary.openReceivables === 1 ? 'invoice' : 'invoices'}`} to="/accounts-receivable" />
+        <MetricCard label="Active customers" value={summary.activeCustomers.toLocaleString()} icon="♙" tone="teal" note="Active accounts" to="/customers" />
       </section>
 
       <section className="content-grid content-grid--wide">
         <article className="panel sales-panel">
-          <PanelHeading title="Sales performance" note={`Last ${summary.monthlyRevenue.length} months`} />
+          <PanelHeading title="Sales performance" action="Profit & Loss" link="/profit-loss" />
           <div className="chart-summary">
             <strong>{formatCompactCurrency(chart.total)}</strong>
-            <span className="dashboard-chart-caption">total revenue</span>
+            <span className="dashboard-chart-caption">total revenue · last {summary.monthlyRevenue.length} months</span>
           </div>
           <div className="chart" role="img" aria-label={chart.description}>
             <div className="chart__grid">{chart.ticks.map((tick, index) => <span key={`${tick}-${index}`}>{tick}</span>)}</div>
@@ -234,14 +233,17 @@ interface MetricCardProps {
   // Shown when there is no trend (or nothing to compare against)
   note: string
   trend?: TrendDisplay | null
+  // The page behind the figure; the whole card links there
+  to?: string
 }
 
-function MetricCard({ label, value, icon, tone, note, trend }: MetricCardProps) {
+function MetricCard({ label, value, icon, tone, note, trend, to }: MetricCardProps) {
   return (
-    <article className="metric-card">
+    <article className={`metric-card ${to ? 'metric-card--link' : ''}`}>
       <div className={`metric-icon metric-icon--${tone}`} aria-hidden="true">{icon}</div>
       <div>
-        <span className="metric-label">{label}</span>
+        {/* The link's ::after stretches over the card, so the whole card is clickable */}
+        {to ? <Link className="metric-label metric-card__link" to={to}>{label}</Link> : <span className="metric-label">{label}</span>}
         <strong className="metric-value">{value}</strong>
         {trend
           ? <span className={`metric-trend ${trend.negative ? 'metric-trend--negative' : ''}`}>{trend.label} <small>vs. last month</small></span>
@@ -253,18 +255,16 @@ function MetricCard({ label, value, icon, tone, note, trend }: MetricCardProps) 
 
 interface PanelHeadingProps {
   title: string
-  // A link to the full list, or a plain note such as the chart's range
-  action?: string
-  link?: string
-  note?: string
+  // The link to the related page
+  action: string
+  link: string
 }
 
-function PanelHeading({ title, action, link, note }: PanelHeadingProps) {
+function PanelHeading({ title, action, link }: PanelHeadingProps) {
   return (
     <div className="panel-heading">
       <h2>{title}</h2>
-      {link && action && <Link to={link}>{action} <ChevronRight24Regular /></Link>}
-      {note && <span className="panel-heading__note">{note}</span>}
+      <Link to={link}>{action} <ChevronRight24Regular /></Link>
     </div>
   )
 }
