@@ -23,8 +23,8 @@ describe('statementLinesReducer', () => {
     expect(statementLinesReducer(undefined, { type: '@@INIT' })).toEqual(initialStatementLinesState)
   })
 
-  it('starts on page 1 of 5 with every account and no filters', () => {
-    expect(initialStatementLinesState.query).toEqual({ pageNumber: 1, pageSize: 5, bankAccountId: 'all', month: '', type: 'all' })
+  it('starts on page 1 of 10 with every account and no filters', () => {
+    expect(initialStatementLinesState.query).toEqual({ pageNumber: 1, pageSize: 10, bankAccountId: 'all', month: '', type: 'all' })
   })
 
   it('returns the same state reference for an unknown action', () => {

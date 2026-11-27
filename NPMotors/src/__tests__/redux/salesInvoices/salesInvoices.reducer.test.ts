@@ -40,9 +40,9 @@ describe('salesInvoicesReducer', () => {
     expect(salesInvoicesReducer(undefined, { type: '@@INIT' })).toEqual(initialSalesInvoicesState)
   })
 
-  it('starts on page 1 with 5 rows and no filters', () => {
+  it('starts on page 1 with 10 rows and no filters', () => {
     expect(initialSalesInvoicesState.query)
-      .toEqual({ pageNumber: 1, pageSize: 5, status: 'all', fromDate: '', toDate: '', searchTerm: '' })
+      .toEqual({ pageNumber: 1, pageSize: 10, status: 'all', fromDate: '', toDate: '', searchTerm: '' })
   })
 
   it('returns the same state reference for an unknown action', () => {

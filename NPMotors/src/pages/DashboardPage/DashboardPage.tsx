@@ -1,86 +1,270 @@
-import { ArrowUpRight24Regular, CalendarLtr24Regular, ChevronRight24Regular, MoreHorizontal24Regular } from '@fluentui/react-icons'
+import { useMemo } from 'react'
+import {
+  Button,
+  Dropdown,
+  MessageBar,
+  MessageBarActions,
+  MessageBarBody,
+  MessageBarTitle,
+  Option,
+  Spinner,
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+} from '@fluentui/react-components'
+import { ArrowUpRight24Regular, ChevronRight24Regular } from '@fluentui/react-icons'
 import { Link } from 'react-router-dom'
-import type { DashboardMetrics, Invoice, Vehicle } from '../../types/npmotors'
+import { useDashboard } from '../../hooks/useDashboard'
+import type { DashboardSummary } from '../../types/dashboard'
+import {
+  CHART_HEIGHT,
+  CHART_WIDTH,
+  buildInventorySlices,
+  buildRevenueChart,
+  countTrend,
+  donutGradient,
+  formatCompactCurrency,
+  formatCurrency,
+  formatDate,
+  formatLongDate,
+  formatMonth,
+  formatPeriod,
+  formatTrend,
+  greeting,
+  invoiceStatus,
+  monthOptions,
+  recentCustomers,
+  vehicleName,
+  type TrendDisplay,
+} from './dashboardMetrics'
+import './DashboardPage.css'
 
-const metrics: DashboardMetrics = {
-  inventory: 248,
-  available: 184,
-  sold: 64,
-  revenue: 2846500,
-  receivable: 128450,
-  activeCustomers: 1248,
+const todayValue = () => {
+  const today = new Date()
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 }
 
-const invoices: Invoice[] = [
-  { id: 'INV-1048', customer: 'Olivia Bennett', vehicle: '2024 Toyota RAV4', amount: 38900, date: 'Oct 24, 2024', status: 'Paid' },
-  { id: 'INV-1047', customer: 'James Wilson', vehicle: '2023 Ford F-150', amount: 46750, date: 'Oct 23, 2024', status: 'Paid' },
-  { id: 'INV-1046', customer: 'Sophia Carter', vehicle: '2024 Honda CR-V', amount: 35400, date: 'Oct 22, 2024', status: 'Pending' },
-]
-
-const vehicles: Vehicle[] = [
-  { model: 'SUVs', category: 'SUV', count: 92, percentage: 50, color: '#315fbd' },
-  { model: 'Sedans', category: 'Sedan', count: 48, percentage: 26, color: '#55b6a7' },
-  { model: 'Trucks', category: 'Truck', count: 29, percentage: 16, color: '#efaa55' },
-  { model: 'Coupes', category: 'Coupe', count: 15, percentage: 8, color: '#b28ed6' },
-]
-
-const recentCustomers = [
-  { initials: 'OB', name: 'Olivia Bennett', detail: 'Purchased an SUV', color: 'blue' },
-  { initials: 'JW', name: 'James Wilson', detail: 'Purchased a truck', color: 'green' },
-  { initials: 'SC', name: 'Sophia Carter', detail: 'New customer', color: 'orange' },
-]
-
-const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
-
 export function DashboardPage() {
+  const { summary, query, status, error, setMonth, retry } = useDashboard()
+  const months = useMemo(() => monthOptions(), [])
+
+  const isLoading = status === 'loading'
+  const isInitialLoad = (isLoading || status === 'idle') && summary === null
+  const showSummary = summary !== null && status !== 'error'
+  const monthLabel = months.find((option) => option.value === query.month)?.label ?? formatMonth(query.month)
+
   return (
-    <div className="page">
+    <div className="page dashboard-page">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Tuesday, October 29, 2024</p>
-          <h1>Good morning, Alex</h1>
-          <p className="page-subtitle">Here&apos;s what&apos;s happening at NPMotors today.</p>
+          <p className="eyebrow">{formatLongDate(summary?.asOfDate || todayValue())}</p>
+          <h1>{greeting()}</h1>
+          <p className="page-subtitle">
+            Here&apos;s what&apos;s happening at NPMotors
+            {summary ? ` · ${formatPeriod(summary.periodStart, summary.periodEnd, summary.asOfDate)}` : ''}
+          </p>
         </div>
-        <button className="date-control" type="button"><CalendarLtr24Regular /> Oct 1 – Oct 29, 2024</button>
+        <Dropdown
+          className="dashboard-month"
+          aria-label="Month"
+          value={monthLabel}
+          selectedOptions={[query.month]}
+          onOptionSelect={(_, data) => { if (data.optionValue) setMonth(data.optionValue) }}
+        >
+          {months.map((option) => <Option key={option.value} value={option.value}>{option.label}</Option>)}
+        </Dropdown>
       </header>
-      <section className="metric-grid" aria-label="Dealership metrics">
-        <MetricCard label="Total inventory" value={metrics.inventory.toString()} trend="+12.5%" icon="▣" tone="blue" />
-        <MetricCard label="Available vehicles" value={metrics.available.toString()} trend="+8.2%" icon="◈" tone="green" />
-        <MetricCard label="Vehicles sold" value={metrics.sold.toString()} trend="+18.4%" icon="↗" tone="orange" />
-        <MetricCard label="Total sales revenue" value={currency.format(metrics.revenue)} trend="+14.6%" icon="$" tone="purple" />
-        <MetricCard label="Accounts receivable" value={currency.format(metrics.receivable)} trend="-4.2%" icon="◷" tone="red" negative />
-        <MetricCard label="Active customers" value={metrics.activeCustomers.toLocaleString()} trend="+9.8%" icon="♙" tone="teal" />
-      </section>
-      <section className="content-grid content-grid--wide">
-        <article className="panel sales-panel">
-          <PanelHeading title="Sales performance" action="Last 7 months" />
-          <div className="chart-summary"><strong>$2.85M</strong><span className="positive">+14.6% <small>vs. last period</small></span></div>
-          <div className="chart" role="img" aria-label="Sales performance increased from January through October">
-            <div className="chart__grid"><span>$500k</span><span>$400k</span><span>$300k</span><span>$200k</span><span>$100k</span><span>$0</span></div>
-            <svg viewBox="0 0 640 180" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="salesFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#315fbd" stopOpacity=".25" /><stop offset="1" stopColor="#315fbd" stopOpacity="0" /></linearGradient></defs><path d="M0 148 C45 150 55 126 100 130 S145 124 180 136 S220 122 260 105 S300 108 340 90 S380 101 420 75 S460 86 500 55 S550 66 590 42 S620 52 640 25 L640 180 L0 180Z" fill="url(#salesFill)" /><path d="M0 148 C45 150 55 126 100 130 S145 124 180 136 S220 122 260 105 S300 108 340 90 S380 101 420 75 S460 86 500 55 S550 66 590 42 S620 52 640 25" fill="none" stroke="#315fbd" strokeWidth="3" /></svg>
-            <div className="chart__months"><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span></div>
-          </div>
-        </article>
-        <article className="panel inventory-panel">
-          <PanelHeading title="Inventory overview" action="View inventory" />
-          <div className="donut-wrap"><div className="donut"><strong>184</strong><span>Available</span></div><div className="legend">{vehicles.map((vehicle) => <div className="legend__item" key={vehicle.model}><i style={{ backgroundColor: vehicle.color }} /> <span>{vehicle.model}</span><strong>{vehicle.count}</strong></div>)}</div></div>
-        </article>
-      </section>
-      <section className="content-grid content-grid--lower">
-        <article className="panel table-panel"><PanelHeading title="Recent sales invoices" action="View all invoices" /><div className="responsive-table"><table><thead><tr><th>Invoice</th><th>Customer</th><th>Vehicle</th><th>Amount</th><th>Status</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{invoices.map((invoice) => <tr key={invoice.id}><td className="strong">{invoice.id}<small>{invoice.date}</small></td><td>{invoice.customer}</td><td>{invoice.vehicle}</td><td className="strong">{currency.format(invoice.amount)}</td><td><span className={`status status--${invoice.status.toLowerCase()}`}>{invoice.status}</span></td><td><button className="icon-button" aria-label={`More actions for ${invoice.id}`} type="button"><MoreHorizontal24Regular /></button></td></tr>)}</tbody></table></div></article>
-        <article className="panel customers-panel"><PanelHeading title="Recent customers" action="View all" link="/customers" />{recentCustomers.map((customer) => <div className="customer-row" key={customer.name}><div className={`avatar avatar--${customer.color}`}>{customer.initials}</div><div><strong>{customer.name}</strong><span>{customer.detail}</span></div><ArrowUpRight24Regular /></div>)}</article>
-      </section>
-      <Link className="dashboard-customers-link" to="/customers">Manage customer relationships <ChevronRight24Regular /></Link>
+
+      {status === 'error' && (
+        <MessageBar intent="error" className="dashboard-message">
+          <MessageBarBody>
+            <MessageBarTitle>Couldn&apos;t load the dashboard</MessageBarTitle>
+            {error}
+          </MessageBarBody>
+          <MessageBarActions>
+            <Button onClick={retry}>Retry</Button>
+          </MessageBarActions>
+        </MessageBar>
+      )}
+
+      {isInitialLoad && (
+        <section className="panel dashboard-loading">
+          <Spinner label="Loading dashboard…" />
+        </section>
+      )}
+
+      {showSummary && (
+        <div className={isLoading ? 'is-refreshing' : ''} aria-busy={isLoading}>
+          <DashboardContent summary={summary} />
+        </div>
+      )}
     </div>
   )
 }
 
-interface MetricCardProps { label: string; value: string; trend: string; icon: string; tone: string; negative?: boolean }
-function MetricCard({ label, value, trend, icon, tone, negative = false }: MetricCardProps) {
-  return <article className="metric-card"><div className={`metric-icon metric-icon--${tone}`} aria-hidden="true">{icon}</div><div><span className="metric-label">{label}</span><strong className="metric-value">{value}</strong><span className={`metric-trend ${negative ? 'metric-trend--negative' : ''}`}>{trend} <small>vs. last month</small></span></div></article>
+function DashboardContent({ summary }: { summary: DashboardSummary }) {
+  const chart = useMemo(() => buildRevenueChart(summary.monthlyRevenue), [summary.monthlyRevenue])
+  const slices = useMemo(() => buildInventorySlices(summary.availableByMake), [summary.availableByMake])
+  const customers = useMemo(() => recentCustomers(summary.recentInvoices), [summary.recentInvoices])
+
+  const makeCount = summary.availableByMake.filter((make) => make.count > 0).length
+  const soldTrend = countTrend(summary.vehiclesSold, summary.vehiclesSoldPrevious)
+  const revenueTrend = formatTrend(summary.revenueChangePct)
+
+  return (
+    <>
+      <section className="metric-grid" aria-label="Dealership metrics">
+        <MetricCard label="Total inventory" value={summary.totalInventory.toLocaleString()} icon="▣" tone="blue" note={`${summary.availableVehicles.toLocaleString()} available`} to="/vehicle-inventory" />
+        <MetricCard label="Available vehicles" value={summary.availableVehicles.toLocaleString()} icon="◈" tone="green" note={`${makeCount} ${makeCount === 1 ? 'make' : 'makes'}`} to="/vehicle-inventory" />
+        <MetricCard label="Vehicles sold" value={summary.vehiclesSold.toLocaleString()} icon="↗" tone="orange" trend={soldTrend} note={`Last month: ${summary.vehiclesSoldPrevious.toLocaleString()}`} to="/sales-invoices" />
+        <MetricCard label="Total sales revenue" value={formatCurrency(summary.revenue)} icon="$" tone="purple" trend={revenueTrend} note={`Last month: ${formatCurrency(summary.revenuePrevious)}`} to="/sales-invoices" />
+        <MetricCard label="Accounts receivable" value={formatCurrency(summary.receivableBalance)} icon="◷" tone="red" note={`${summary.openReceivables} open ${summary.openReceivables === 1 ? 'invoice' : 'invoices'}`} to="/accounts-receivable" />
+        <MetricCard label="Active customers" value={summary.activeCustomers.toLocaleString()} icon="♙" tone="teal" note="Active accounts" to="/customers" />
+      </section>
+
+      <section className="content-grid content-grid--wide">
+        <article className="panel sales-panel">
+          <PanelHeading title="Sales performance" action="Profit & Loss" link="/profit-loss" />
+          <div className="chart-summary">
+            <strong>{formatCompactCurrency(chart.total)}</strong>
+            <span className="dashboard-chart-caption">total revenue · last {summary.monthlyRevenue.length} months</span>
+          </div>
+          <div className="chart" role="img" aria-label={chart.description}>
+            <div className="chart__grid">{chart.ticks.map((tick, index) => <span key={`${tick}-${index}`}>{tick}</span>)}</div>
+            <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="salesFill" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0" stopColor="#315fbd" stopOpacity=".25" />
+                  <stop offset="1" stopColor="#315fbd" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              {chart.areaPath && <path d={chart.areaPath} fill="url(#salesFill)" />}
+              {chart.linePath && <path d={chart.linePath} fill="none" stroke="#315fbd" strokeWidth="3" vectorEffect="non-scaling-stroke" />}
+            </svg>
+            <div className="chart__months">{chart.months.map((month, index) => <span key={`${month}-${index}`}>{month}</span>)}</div>
+          </div>
+        </article>
+
+        <article className="panel inventory-panel">
+          <PanelHeading title="Inventory overview" action="View inventory" link="/vehicle-inventory" />
+          <div className="donut-wrap">
+            <div className="donut" style={{ background: donutGradient(slices) }}>
+              <strong>{summary.availableVehicles}</strong>
+              <span>Available</span>
+            </div>
+            <div className="legend">
+              {slices.length === 0
+                ? <p className="dashboard-empty">No available vehicles.</p>
+                : slices.map((slice) => (
+                  <div className="legend__item" key={slice.label}>
+                    <i style={{ backgroundColor: slice.color }} /> <span>{slice.label}</span><strong>{slice.count}</strong>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section className="content-grid content-grid--lower">
+        <article className="panel table-panel">
+          <PanelHeading title="Recent sales invoices" action="View all invoices" link="/sales-invoices" />
+          <div className="table-scroll">
+            <Table aria-label="Recent sales invoices" className="data-table dashboard-invoices-table">
+              <TableHeader>
+                <TableRow>
+                  <TableHeaderCell>Invoice</TableHeaderCell>
+                  <TableHeaderCell>Customer</TableHeaderCell>
+                  <TableHeaderCell>Vehicle</TableHeaderCell>
+                  <TableHeaderCell className="num">Amount</TableHeaderCell>
+                  <TableHeaderCell>Status</TableHeaderCell>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {summary.recentInvoices.map((invoice, index) => {
+                  const badge = invoiceStatus(invoice)
+                  return (
+                    <TableRow key={invoice.id || `${invoice.number}-${index}`}>
+                      <TableCell>
+                        <div className="strong">{invoice.number || '—'}<small>{formatDate(invoice.invoiceDate) || '—'}</small></div>
+                      </TableCell>
+                      <TableCell>{invoice.customerName || '—'}</TableCell>
+                      <TableCell>{vehicleName(invoice) || '—'}</TableCell>
+                      <TableCell className="num strong">{formatCurrency(invoice.total)}</TableCell>
+                      <TableCell><span className={`status ${badge.className}`}>{badge.label}</span></TableCell>
+                    </TableRow>
+                  )
+                })}
+                {summary.recentInvoices.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="table-empty">No sales invoices yet.</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </article>
+
+        <article className="panel customers-panel">
+          <PanelHeading title="Recent customers" action="View all" link="/customers" />
+          {customers.length === 0 && <p className="dashboard-empty">No recent customers.</p>}
+          {customers.map((customer) => (
+            <div className="customer-row" key={customer.key}>
+              <div className={`avatar avatar--${customer.color}`}>{customer.initials}</div>
+              <div><strong>{customer.name}</strong><span>{customer.detail}</span></div>
+              <ArrowUpRight24Regular />
+            </div>
+          ))}
+        </article>
+      </section>
+
+      <Link className="dashboard-customers-link" to="/customers">Manage customer relationships <ChevronRight24Regular /></Link>
+    </>
+  )
 }
 
-interface PanelHeadingProps { title: string; action: string; link?: string }
+interface MetricCardProps {
+  label: string
+  value: string
+  icon: string
+  tone: string
+  // Shown when there is no trend (or nothing to compare against)
+  note: string
+  trend?: TrendDisplay | null
+  // The page behind the figure; the whole card links there
+  to?: string
+}
+
+function MetricCard({ label, value, icon, tone, note, trend, to }: MetricCardProps) {
+  return (
+    <article className={`metric-card ${to ? 'metric-card--link' : ''}`}>
+      <div className={`metric-icon metric-icon--${tone}`} aria-hidden="true">{icon}</div>
+      <div>
+        {/* The link's ::after stretches over the card, so the whole card is clickable */}
+        {to ? <Link className="metric-label metric-card__link" to={to}>{label}</Link> : <span className="metric-label">{label}</span>}
+        <strong className="metric-value">{value}</strong>
+        {trend
+          ? <span className={`metric-trend ${trend.negative ? 'metric-trend--negative' : ''}`}>{trend.label} <small>vs. last month</small></span>
+          : <span className="metric-note">{note}</span>}
+      </div>
+    </article>
+  )
+}
+
+interface PanelHeadingProps {
+  title: string
+  // The link to the related page
+  action: string
+  link: string
+}
+
 function PanelHeading({ title, action, link }: PanelHeadingProps) {
-  return <div className="panel-heading"><h2>{title}</h2>{link ? <Link to={link}>{action} <ChevronRight24Regular /></Link> : <button type="button">{action} <ChevronRight24Regular /></button>}</div>
+  return (
+    <div className="panel-heading">
+      <h2>{title}</h2>
+      <Link to={link}>{action} <ChevronRight24Regular /></Link>
+    </div>
+  )
 }

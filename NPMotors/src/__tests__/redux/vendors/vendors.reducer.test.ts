@@ -19,8 +19,8 @@ describe('vendorsReducer', () => {
     expect(vendorsReducer(undefined, { type: '@@INIT' })).toEqual(initialVendorsState)
   })
 
-  it('starts on page 1 with 5 rows and no type filter', () => {
-    expect(initialVendorsState.query).toEqual({ pageNumber: 1, pageSize: 5, type: 'all', searchTerm: '' })
+  it('starts on page 1 with 10 rows and no type filter', () => {
+    expect(initialVendorsState.query).toEqual({ pageNumber: 1, pageSize: 10, type: 'all', searchTerm: '' })
   })
 
   it('returns the same state reference for an unknown action', () => {

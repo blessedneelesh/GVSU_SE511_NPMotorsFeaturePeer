@@ -39,8 +39,8 @@ describe('partsReducer', () => {
     expect(partsReducer(undefined, { type: '@@INIT' })).toEqual(initialPartsState)
   })
 
-  it('starts on page 1 with 5 rows and no filters', () => {
-    expect(initialPartsState.query).toEqual({ pageNumber: 1, pageSize: 5, category: 'all', stock: 'all', searchTerm: '' })
+  it('starts on page 1 with 10 rows and no filters', () => {
+    expect(initialPartsState.query).toEqual({ pageNumber: 1, pageSize: 10, category: 'all', stock: 'all', searchTerm: '' })
   })
 
   it('returns the same state reference for an unknown action', () => {

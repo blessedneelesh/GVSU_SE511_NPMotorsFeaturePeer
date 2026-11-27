@@ -23,8 +23,8 @@ describe('transactionsReducer', () => {
     expect(transactionsReducer(undefined, { type: '@@INIT' })).toEqual(initialTransactionsState)
   })
 
-  it('starts on page 1 of 5 with no filters', () => {
-    expect(initialTransactionsState.query).toEqual({ pageNumber: 1, pageSize: 5, bankAccountId: 'all', direction: 'all', dateFrom: '', dateTo: '' })
+  it('starts on page 1 of 10 with no filters', () => {
+    expect(initialTransactionsState.query).toEqual({ pageNumber: 1, pageSize: 10, bankAccountId: 'all', direction: 'all', dateFrom: '', dateTo: '' })
   })
 
   it('returns the same state reference for an unknown action', () => {

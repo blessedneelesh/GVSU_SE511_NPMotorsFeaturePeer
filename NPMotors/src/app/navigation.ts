@@ -7,7 +7,6 @@ import {
   BuildingFactory20Regular,
   DataBarVertical20Regular,
   DataTrending20Regular,
-  Diagram20Regular,
   DocumentText20Regular,
   Grid20Regular,
   Money20Regular,
@@ -25,6 +24,8 @@ export interface NavigationItem {
   label: string
   path: string
   icon: typeof Grid20Regular
+  // Left out of the sidebar but still routed, so links elsewhere in the app keep working
+  hidden?: boolean
 }
 
 export interface NavigationGroup {
@@ -73,17 +74,21 @@ export const navigationGroups: NavigationGroup[] = [
       { label: 'Bank Receipts', path: '/bank-receipt', icon: ArrowDownload20Regular },
       { label: 'Bank Payments', path: '/bank-payment', icon: ArrowUpload20Regular },
       { label: 'Bank Transfers', path: '/bank-transfer', icon: ArrowRepeatAll20Regular },
-      { label: 'Bank Reconciliation', path: '/bank-reconciliation', icon: Scales20Regular },
+      { label: 'Bank Reconciliation', path: '/bank-reconciliation', icon: Scales20Regular, hidden: true },
     ],
   },
   {
     section: 'Reports',
     items: [
       { label: 'Profit & Loss', path: '/profit-loss', icon: DataBarVertical20Regular },
-      { label: 'Vehicle Profitability', path: '/vehicle-profitability', icon: DataTrending20Regular },
-      { label: 'ER Diagram', path: '/er-diagram', icon: Diagram20Regular },
+      { label: 'Vehicle Profitability', path: '/vehicle-profitability', icon: DataTrending20Regular, hidden: true },
     ],
   },
 ]
 
 export const navigationItems = navigationGroups.flatMap((group) => group.items)
+
+// What the sidebar shows: hidden items removed, and any section left empty dropped
+export const sidebarGroups: NavigationGroup[] = navigationGroups
+  .map((group) => ({ ...group, items: group.items.filter((item) => !item.hidden) }))
+  .filter((group) => group.items.length > 0)

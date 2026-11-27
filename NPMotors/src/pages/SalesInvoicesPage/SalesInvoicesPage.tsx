@@ -17,18 +17,16 @@ import {
   TableHeader,
   TableHeaderCell,
   TableRow,
-  Tooltip,
 } from '@fluentui/react-components'
-import { Add20Regular, DismissCircle20Regular, Edit20Regular, Eye20Regular } from '@fluentui/react-icons'
+import { Add20Regular } from '@fluentui/react-icons'
 import { useSalesInvoiceDetail } from '../../hooks/useSalesInvoiceDetail'
 import { useSalesInvoiceMutations } from '../../hooks/useSalesInvoiceMutations'
 import { useSalesInvoiceOptions } from '../../hooks/useSalesInvoiceOptions'
 import { useSalesInvoices } from '../../hooks/useSalesInvoices'
 import type { SalesInvoice, SalesInvoiceStatusFilter } from '../../types/salesInvoices'
-import { CancelSalesInvoiceDialog } from './CancelSalesInvoiceDialog'
 import { SalesInvoiceDetail } from './SalesInvoiceDetail'
 import { SalesInvoiceForm } from './SalesInvoiceForm'
-import { canCancel, formatCurrency, shortVin, statusBadges, statusTitle } from './salesInvoiceMetrics'
+import { formatCurrency, shortVin, statusBadges, statusTitle } from './salesInvoiceMetrics'
 import { TablePagination } from '../../components/TablePagination/TablePagination'
 import './SalesInvoicesPage.css'
 
@@ -85,12 +83,11 @@ export function SalesInvoicesPage() {
     retry,
   } = useSalesInvoices()
   const { selectedId, openSalesInvoice } = useSalesInvoiceDetail()
-  const { saveMode, saveStatus, cancelStatus, resetSave, resetCancel } = useSalesInvoiceMutations()
+  const { saveMode, saveStatus, resetSave } = useSalesInvoiceMutations()
   const { salespersonName } = useSalesInvoiceOptions()
   const [isFormOpen, setFormOpen] = useState(false)
   // The draft the form edits; null for a new invoice
   const [formDraft, setFormDraft] = useState<SalesInvoice | null>(null)
-  const [cancelTarget, setCancelTarget] = useState<SalesInvoice | null>(null)
 
   // As in the design, a draft opens back in the form ("Edit INV-…"); posted and cancelled invoices open the detail view
   const openForm = (draft: SalesInvoice | null = null) => {
@@ -108,29 +105,13 @@ export function SalesInvoicesPage() {
     else openSalesInvoice(invoice.id)
   }
 
-  const openCancel = (invoice: SalesInvoice) => {
-    resetCancel()
-    setCancelTarget(invoice)
-  }
-  const closeCancel = useCallback(() => {
-    resetCancel()
-    setCancelTarget(null)
-  }, [resetCancel])
-
-  // A successful save or cancel swaps the form or dialog for a success banner, which hides itself after a few seconds
+  // A successful save swaps the form for a success banner, which hides itself after a few seconds
   const isSaved = isFormOpen && saveStatus === 'success'
   useEffect(() => {
     if (!isSaved) return
     const timer = window.setTimeout(closeForm, BANNER_MS)
     return () => window.clearTimeout(timer)
   }, [isSaved, closeForm])
-
-  const isCancelled = cancelTarget !== null && cancelStatus === 'success'
-  useEffect(() => {
-    if (!isCancelled) return
-    const timer = window.setTimeout(closeCancel, BANNER_MS)
-    return () => window.clearTimeout(timer)
-  }, [isCancelled, closeCancel])
 
   // The list hook stays mounted while the detail view or form is open, so its query and page are kept
   if (selectedId) return <SalesInvoiceDetail />
@@ -164,15 +145,6 @@ export function SalesInvoicesPage() {
           </MessageBarBody>
           <MessageBarActions>
             <Button appearance="transparent" size="small" onClick={closeForm}>Dismiss</Button>
-          </MessageBarActions>
-        </MessageBar>
-      )}
-
-      {isCancelled && (
-        <MessageBar intent="success" className="sales-invoices-message">
-          <MessageBarBody>Invoice {cancelTarget.number} cancelled. The vehicle is available again.</MessageBarBody>
-          <MessageBarActions>
-            <Button appearance="transparent" size="small" onClick={closeCancel}>Dismiss</Button>
           </MessageBarActions>
         </MessageBar>
       )}
@@ -247,7 +219,6 @@ export function SalesInvoicesPage() {
                   <TableHeaderCell className="num">Paid</TableHeaderCell>
                   <TableHeaderCell className="num">Balance</TableHeaderCell>
                   <TableHeaderCell>Status</TableHeaderCell>
-                  <TableHeaderCell>Actions</TableHeaderCell>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -286,51 +257,12 @@ export function SalesInvoicesPage() {
                           {statusBadges(invoice).map((badge) => <span key={badge.label} className={`badge ${badge.className}`}>{badge.label}</span>)}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="row-actions">
-                          {isDraft ? (
-                            <Tooltip content="Edit draft" relationship="label">
-                              <Button
-                                appearance="subtle"
-                                size="small"
-                                icon={<Edit20Regular />}
-                                aria-label={`Edit draft ${invoice.number}`}
-                                disabled={!invoice.id}
-                                onClick={() => openForm(invoice)}
-                              />
-                            </Tooltip>
-                          ) : (
-                            <Tooltip content="View" relationship="label">
-                              <Button
-                                appearance="subtle"
-                                size="small"
-                                icon={<Eye20Regular />}
-                                aria-label={`View invoice ${invoice.number}`}
-                                disabled={!invoice.id}
-                                onClick={() => openSalesInvoice(invoice.id)}
-                              />
-                            </Tooltip>
-                          )}
-                          {canCancel(invoice) && (
-                            <Tooltip content="Cancel invoice" relationship="label">
-                              <Button
-                                appearance="subtle"
-                                size="small"
-                                className="row-actions__danger"
-                                icon={<DismissCircle20Regular />}
-                                aria-label={`Cancel invoice ${invoice.number}`}
-                                onClick={() => openCancel(invoice)}
-                              />
-                            </Tooltip>
-                          )}
-                        </div>
-                      </TableCell>
                     </TableRow>
                   )
                 })}
                 {salesInvoices.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={12} className="table-empty">
+                    <TableCell colSpan={11} className="table-empty">
                       {query.pageNumber > 1
                         ? 'No more sales invoices on this page.'
                         : <>No sales invoices found.{hasActiveFilters && ' Try clearing the search, dates or status filter.'}</>}
@@ -354,7 +286,6 @@ export function SalesInvoicesPage() {
         </section>
       )}
 
-      {cancelTarget && !isCancelled && <CancelSalesInvoiceDialog invoice={cancelTarget} onClose={closeCancel} />}
     </div>
   )
 }

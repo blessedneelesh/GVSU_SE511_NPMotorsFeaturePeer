@@ -22,7 +22,7 @@ export interface VendorsState {
 export const initialVendorsState: VendorsState = {
   items: [],
   hasNext: false,
-  query: { pageNumber: 1, pageSize: 5, type: 'all', searchTerm: '' },
+  query: { pageNumber: 1, pageSize: 10, type: 'all', searchTerm: '' },
   listStatus: 'idle',
   listError: null,
   selectedId: null,

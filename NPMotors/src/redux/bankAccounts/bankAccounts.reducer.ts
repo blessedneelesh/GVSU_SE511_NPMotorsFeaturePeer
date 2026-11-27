@@ -25,7 +25,7 @@ export interface BankAccountsState {
 export const initialBankAccountsState: BankAccountsState = {
   items: [],
   hasNext: false,
-  query: { pageNumber: 1, pageSize: 5, bankId: 'all', searchTerm: '' },
+  query: { pageNumber: 1, pageSize: 10, bankId: 'all', searchTerm: '' },
   listStatus: 'idle',
   listError: null,
   selectedId: null,

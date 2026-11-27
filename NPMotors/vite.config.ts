@@ -93,8 +93,20 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Report endpoints (Profit & Loss page), same API. Capitalised with a trailing slash; no page route starts with "/Report/".
+      '/Report/': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
       // AP bill lookup (GetApById, the Accounts Payable detail view), same API. Capitalised with a trailing slash, so it can't catch /accounts-payable.
       '/Ap/': {
+        target: 'https://localhost:7003',
+        changeOrigin: true,
+        secure: false,
+      },
+      // Dashboard summary (Dashboard page), same API. Capitalised with a trailing slash, so it can't catch the /dashboard page route.
+      '/Dashboard/': {
         target: 'https://localhost:7003',
         changeOrigin: true,
         secure: false,

@@ -1,0 +1,100 @@
+/* Profit & Loss screen — matches the Figma Make "Car Dealership Management System" design */
+.profit-loss-page {
+  --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-300: #cbd5e1; --slate-400: #94a3b8;
+  --slate-500: #64748b; --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b; --slate-900: #0f172a;
+  --gray-700: #374151; --accent: #2563eb;
+  --blue-50: #eff6ff; --blue-700: #1d4ed8; --blue-800: #1e40af;
+  --emerald-50: #ecfdf5; --emerald-300: #6ee7b7; --emerald-600: #059669; --emerald-700: #047857; --emerald-800: #065f46;
+  --red-300: #fca5a5; --red-500: #ef4444; --red-600: #dc2626;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  padding: 20px;
+  color: var(--slate-900);
+  font-size: 14px;
+}
+
+/* Shared primitives */
+.profit-loss-page .card { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; }
+.profit-loss-page .table-scroll { overflow-x: auto; }
+.profit-loss-page .is-refreshing { opacity: .55; transition: opacity .15s; }
+
+/* Fluent tables (override the global table styles from App.css); cell text helpers need the extra specificity */
+.profit-loss-page .data-table th, .profit-loss-page .data-table td { padding: 10px 12px; font-size: 13px; color: var(--gray-700); white-space: nowrap; }
+.profit-loss-page .data-table th { background: var(--slate-50); font-size: 11px; font-weight: 600; color: var(--slate-500); text-transform: uppercase; letter-spacing: .05em; }
+/* Amounts start under their headings: Fluent header cells keep their text left-aligned in an inner flex div */
+.profit-loss-page .data-table .num { text-align: left; font-family: var(--mono); }
+.profit-loss-page .data-table th.num { font-family: inherit; }
+.profit-loss-page .data-table .text-faint { color: var(--slate-400); }
+
+/* Header */
+.profit-loss-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.profit-loss-header h1 { margin: 0; font-size: 20px; font-weight: 600; color: var(--slate-900); }
+.profit-loss-header p { margin: 0; font-size: 14px; color: var(--slate-500); }
+.profit-loss-header__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.profit-loss-page .profit-loss-filters__month { min-width: 160px; }
+.profit-loss-page .profit-loss-filters__period { min-width: 144px; }
+
+.profit-loss-message { margin-bottom: 16px; }
+.profit-loss-loading { display: flex; justify-content: center; padding: 48px 16px; }
+
+/* Summary cards */
+.profit-loss-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+.profit-loss-page .stat-card { background: #fff; border: 1px solid var(--slate-200); border-radius: 8px; padding: 16px 20px; }
+.profit-loss-page .stat-label { font-size: 12px; font-weight: 500; color: var(--slate-500); margin-bottom: 4px; }
+.profit-loss-page .stat-value { font-family: var(--mono); font-size: 22px; font-weight: 600; line-height: 1.2; }
+.profit-loss-page .stat-value--blue { color: var(--accent); }
+.profit-loss-page .stat-value--green { color: var(--emerald-600); }
+.profit-loss-page .stat-value--green-dark { color: var(--emerald-700); }
+.profit-loss-page .stat-value--red { color: var(--red-600); }
+.profit-loss-page .stat-sub { margin-top: 4px; font-size: 12px; color: var(--slate-400); }
+
+/* Statement */
+.profit-loss-page .profit-loss-table { min-width: 640px; }
+.profit-loss-page .data-table .pl-section td { background: var(--slate-50); padding: 8px 12px; font-size: 12px; font-weight: 700; color: var(--slate-500); text-transform: uppercase; letter-spacing: .05em; }
+.profit-loss-page .data-table .pl-line__label { padding-left: 32px; color: var(--slate-700); }
+.profit-loss-page .data-table .pl-line__label--muted { font-size: 12px; color: var(--slate-400); }
+
+.profit-loss-page .data-table .pl-subtotal td { font-weight: 600; }
+.profit-loss-page .data-table .pl-subtotal .pl-subtotal__label { font-size: 14px; }
+.profit-loss-page .data-table .pl-subtotal .pl-subtotal__value { font-size: 15px; font-weight: 700; }
+.profit-loss-page .data-table .pl-subtotal .pl-subtotal__previous { color: var(--slate-500); }
+.profit-loss-page .data-table .pl-subtotal--blue td { background: var(--blue-50); }
+.profit-loss-page .data-table .pl-subtotal--blue .pl-subtotal__label { color: var(--blue-800); }
+.profit-loss-page .data-table .pl-subtotal--blue .pl-subtotal__value { color: var(--blue-700); }
+.profit-loss-page .data-table .pl-subtotal--green td { background: var(--emerald-50); }
+.profit-loss-page .data-table .pl-subtotal--green .pl-subtotal__label { color: var(--emerald-800); }
+.profit-loss-page .data-table .pl-subtotal--green .pl-subtotal__value { color: var(--emerald-700); }
+.profit-loss-page .data-table .pl-subtotal--green.pl-subtotal--loss .pl-subtotal__value { color: var(--red-600); }
+.profit-loss-page .data-table .pl-subtotal--neutral td { background: var(--slate-50); }
+.profit-loss-page .data-table .pl-subtotal--neutral .pl-subtotal__label { color: var(--slate-700); }
+.profit-loss-page .data-table .pl-subtotal--neutral .pl-subtotal__value { color: var(--slate-800); }
+.profit-loss-page .data-table .pl-subtotal--dark td { background: var(--slate-900); }
+.profit-loss-page .data-table .pl-subtotal--dark .pl-subtotal__label { color: #fff; }
+.profit-loss-page .data-table .pl-subtotal--dark .pl-subtotal__value { color: var(--emerald-300); }
+.profit-loss-page .data-table .pl-subtotal--dark.pl-subtotal--loss .pl-subtotal__value { color: var(--red-300); }
+.profit-loss-page .data-table .pl-subtotal--dark .pl-subtotal__previous { color: var(--slate-400); }
+
+.profit-loss-page .pl-change { font-family: inherit; font-size: 12px; font-weight: 500; }
+.profit-loss-page .pl-change--positive { color: var(--emerald-600); }
+.profit-loss-page .pl-change--negative { color: var(--red-500); }
+.profit-loss-page .pl-change--neutral { color: var(--slate-400); }
+
+/* Source notes */
+.profit-loss-sources { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.profit-loss-sources .card { padding: 12px; font-size: 12px; color: var(--slate-500); }
+.profit-loss-sources h2 { margin: 0 0 4px; font-size: 12px; font-weight: 600; color: var(--slate-600); }
+.profit-loss-sources p { margin: 0; }
+
+@media (max-width: 960px) {
+  .profit-loss-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profit-loss-sources { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .profit-loss-page { padding: 70px 16px 32px; }
+  .profit-loss-header { flex-direction: column; align-items: stretch; }
+  .profit-loss-page .profit-loss-filters__month, .profit-loss-page .profit-loss-filters__period { width: 100%; }
+}
+
+@media print {
+  .profit-loss-header__actions, .profit-loss-message { display: none; }
+}

@@ -44,7 +44,7 @@ export interface SalesInvoicesState {
 export const initialSalesInvoicesState: SalesInvoicesState = {
   items: [],
   hasNext: false,
-  query: { pageNumber: 1, pageSize: 5, status: 'all', fromDate: '', toDate: '', searchTerm: '' },
+  query: { pageNumber: 1, pageSize: 10, status: 'all', fromDate: '', toDate: '', searchTerm: '' },
   listStatus: 'idle',
   listError: null,
   selectedId: null,

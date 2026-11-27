@@ -20,8 +20,8 @@ describe('employeesReducer', () => {
     expect(employeesReducer(undefined, { type: '@@INIT' })).toEqual(initialEmployeesState)
   })
 
-  it('starts on page 1 with 5 rows and no filters', () => {
-    expect(initialEmployeesState.query).toEqual({ pageNumber: 1, pageSize: 5, department: 'all', status: 'all', searchTerm: '' })
+  it('starts on page 1 with 10 rows and no filters', () => {
+    expect(initialEmployeesState.query).toEqual({ pageNumber: 1, pageSize: 10, department: 'all', status: 'all', searchTerm: '' })
   })
 
   it('returns the same state reference for an unknown action', () => {

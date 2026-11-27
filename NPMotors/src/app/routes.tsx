@@ -12,6 +12,7 @@ import { DashboardPage } from '../pages/DashboardPage/DashboardPage'
 import { EmployeesPage } from '../pages/EmployeesPage/EmployeesPage'
 import { NotFoundPage } from '../pages/NotFoundPage/NotFoundPage'
 import { PartsPage } from '../pages/PartsPage/PartsPage'
+import { ProfitLossPage } from '../pages/ProfitLossPage/ProfitLossPage'
 import { PurchaseVehiclePage } from '../pages/PurchaseVehiclePage/PurchaseVehiclePage'
 import { TransactionsPage } from '../pages/TransactionsPage/TransactionsPage'
 import { StatementLinesPage } from '../pages/StatementLinesPage/StatementLinesPage'
@@ -20,7 +21,7 @@ import { SalesInvoicesPage } from '../pages/SalesInvoicesPage/SalesInvoicesPage'
 import { VehiclesPage } from '../pages/VehiclesPage/VehiclesPage'
 import { VendorsPage } from '../pages/VendorsPage/VendorsPage'
 
-const builtPaths = new Set(['/dashboard', '/customers', '/vendors', '/employees', '/vehicle-inventory', '/parts-inventory', '/sales-invoices', '/banks', '/transactions', '/bank-statement', '/bank-receipt', '/bank-payment', '/bank-transfer', '/accounts-receivable', '/purchase-vehicle', '/accounts-payable'])
+const builtPaths = new Set(['/dashboard', '/customers', '/vendors', '/employees', '/vehicle-inventory', '/parts-inventory', '/sales-invoices', '/banks', '/transactions', '/bank-statement', '/bank-receipt', '/bank-payment', '/bank-transfer', '/accounts-receivable', '/purchase-vehicle', '/accounts-payable', '/profit-loss'])
 
 export function AppRoutes() {
   return (
@@ -43,6 +44,7 @@ export function AppRoutes() {
         <Route path="/accounts-receivable" element={<AccountsReceivablePage />} />
         <Route path="/accounts-payable" element={<AccountsPayablePage />} />
         <Route path="/purchase-vehicle" element={<PurchaseVehiclePage />} />
+        <Route path="/profit-loss" element={<ProfitLossPage />} />
         {navigationItems
           .filter((item) => !builtPaths.has(item.path))
           .map((item) => <Route key={item.path} path={item.path} element={<ComingSoonPage title={item.label} />} />)}

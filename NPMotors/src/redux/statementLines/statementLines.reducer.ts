@@ -18,7 +18,7 @@ export interface StatementLinesState {
 export const initialStatementLinesState: StatementLinesState = {
   items: [],
   hasNext: false,
-  query: { pageNumber: 1, pageSize: 5, bankAccountId: 'all', month: '', type: 'all' },
+  query: { pageNumber: 1, pageSize: 10, bankAccountId: 'all', month: '', type: 'all' },
   listStatus: 'idle',
   listError: null,
   accountOptions: [],

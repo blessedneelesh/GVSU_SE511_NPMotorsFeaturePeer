@@ -29,7 +29,7 @@ export interface PartsState {
 export const initialPartsState: PartsState = {
   items: [],
   hasNext: false,
-  query: { pageNumber: 1, pageSize: 5, category: 'all', stock: 'all', searchTerm: '' },
+  query: { pageNumber: 1, pageSize: 10, category: 'all', stock: 'all', searchTerm: '' },
   listStatus: 'idle',
   listError: null,
   selectedId: null,

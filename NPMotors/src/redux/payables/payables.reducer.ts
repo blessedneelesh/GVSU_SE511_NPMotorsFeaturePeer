@@ -43,7 +43,7 @@ export interface PayablesState {
 export const initialPayablesState: PayablesState = {
   items: [],
   hasNext: false,
-  query: { pageNumber: 1, pageSize: 5, status: 'all', vendorId: 'all', asOfDate: '' },
+  query: { pageNumber: 1, pageSize: 10, status: 'all', vendorId: 'all', asOfDate: '' },
   listStatus: 'idle',
   listError: null,
   selectedId: null,

@@ -29,8 +29,8 @@ describe('vehiclesReducer', () => {
     expect(vehiclesReducer(undefined, { type: '@@INIT' })).toEqual(initialVehiclesState)
   })
 
-  it('starts on page 1 with 5 rows and no filters', () => {
-    expect(initialVehiclesState.query).toEqual({ pageNumber: 1, pageSize: 5, status: 'all', searchTerm: '' })
+  it('starts on page 1 with 10 rows and no filters', () => {
+    expect(initialVehiclesState.query).toEqual({ pageNumber: 1, pageSize: 10, status: 'all', searchTerm: '' })
   })
 
   it('returns the same state reference for an unknown action', () => {

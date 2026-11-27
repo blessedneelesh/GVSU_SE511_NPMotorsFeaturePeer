@@ -438,7 +438,7 @@ describe('payablesSaga (running)', () => {
     store.dispatch(resetPayableFilters())
     await vi.waitFor(() => expect(payablesApi.getPayables).toHaveBeenCalledTimes(2))
     expect(vi.mocked(payablesApi.getPayables).mock.calls[1]?.[0]).toEqual({
-      pageNumber: 1, pageSize: 5, status: 'all', vendorId: 'all', asOfDate: '',
+      pageNumber: 1, pageSize: 10, status: 'all', vendorId: 'all', asOfDate: '',
     })
   })
 

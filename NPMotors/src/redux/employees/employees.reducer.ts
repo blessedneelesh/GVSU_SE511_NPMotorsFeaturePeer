@@ -22,7 +22,7 @@ export interface EmployeesState {
 export const initialEmployeesState: EmployeesState = {
   items: [],
   hasNext: false,
-  query: { pageNumber: 1, pageSize: 5, department: 'all', status: 'all', searchTerm: '' },
+  query: { pageNumber: 1, pageSize: 10, department: 'all', status: 'all', searchTerm: '' },
   listStatus: 'idle',
   listError: null,
   selectedId: null,

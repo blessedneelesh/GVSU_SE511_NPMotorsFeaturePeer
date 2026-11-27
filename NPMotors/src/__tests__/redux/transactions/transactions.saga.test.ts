@@ -263,7 +263,7 @@ describe('transactionsSaga (running)', () => {
     store.dispatch(resetTransactionFilters())
     await vi.waitFor(() => expect(transactionsApi.getTransactions).toHaveBeenCalledTimes(2))
     expect(vi.mocked(transactionsApi.getTransactions).mock.calls[1]?.[0]).toEqual({
-      pageNumber: 1, pageSize: 5, bankAccountId: 'all', direction: 'all', dateFrom: '', dateTo: '',
+      pageNumber: 1, pageSize: 10, bankAccountId: 'all', direction: 'all', dateFrom: '', dateTo: '',
     })
   })
 

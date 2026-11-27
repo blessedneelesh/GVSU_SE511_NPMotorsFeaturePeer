@@ -259,7 +259,7 @@ describe('receivablesSaga (running)', () => {
     store.dispatch(resetReceivableFilters())
     await vi.waitFor(() => expect(receivablesApi.getReceivables).toHaveBeenCalledTimes(2))
     expect(vi.mocked(receivablesApi.getReceivables).mock.calls[1]?.[0]).toEqual({
-      pageNumber: 1, pageSize: 5, status: 'all', customerId: 'all', asOfDate: '',
+      pageNumber: 1, pageSize: 10, status: 'all', customerId: 'all', asOfDate: '',
     })
   })
 

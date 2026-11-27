@@ -211,7 +211,7 @@ describe('statementLinesSaga (running)', () => {
     store.dispatch(setStatementLineBankAccountFilter('4'))
     await vi.waitFor(() => expect(statementLinesApi.getStatementLines).toHaveBeenCalledTimes(2))
     expect(vi.mocked(statementLinesApi.getStatementLines).mock.calls[1]?.[0]).toEqual({
-      pageNumber: 1, pageSize: 5, bankAccountId: '4', month: '', type: 'all',
+      pageNumber: 1, pageSize: 10, bankAccountId: '4', month: '', type: 'all',
     })
   })
 
