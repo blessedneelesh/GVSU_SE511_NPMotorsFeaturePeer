@@ -14,7 +14,6 @@ import {
   setReceivableStatusFilter,
 } from '../../../redux/receivables/receivables.actions'
 import type { ReceivablesState } from '../../../redux/receivables/receivables.reducer'
-import { resetReceiptSave } from '../../../redux/receipts/receipts.actions'
 import {
   overdueReceivable,
   paidReceivable,
@@ -104,27 +103,11 @@ describe('AccountsReceivablePage', () => {
     expect(within(row!).getByRole('button', { name: '—' })).toBeDisabled()
   })
 
-  it('offers Receive on unpaid, partial and overdue rows but not on paid or zero-balance ones', () => {
-    renderLoaded([overdueReceivable, partialReceivable, unpaidReceivable, paidReceivable, { ...unpaidReceivable, id: '4232', number: 'AR-004232', balance: 0 }])
-    const receiveButtons = screen.getAllByRole('button', { name: /^Receive payment for / })
-    expect(receiveButtons.map((button) => button.getAttribute('aria-label'))).toEqual([
-      'Receive payment for SI-0005',
-      'Receive payment for AR-003975',
-      'Receive payment for AR-003974',
-    ])
-  })
-
-  it('opens the payment dialog for the row, starting from a clean save state', async () => {
-    const { actions, user } = renderLoaded([overdueReceivable, partialReceivable])
-    await user.click(screen.getByRole('button', { name: 'Receive payment for AR-003975' }))
-
-    expect(actions).toContainEqual(resetReceiptSave())
-    const dialog = screen.getByRole('dialog', { name: 'Receive Payment' })
-    expect(within(dialog).getByText('AR-003975 · Lisa Anderson')).toBeInTheDocument()
-    expect(within(dialog).getByRole('spinbutton', { name: /Payment Amount/ })).toHaveValue(18690)
-
-    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
-    expect(screen.queryByRole('dialog', { name: 'Receive Payment' })).not.toBeInTheDocument()
+  it('has no Actions column or Receive buttons; payments are taken from the detail view', () => {
+    renderLoaded([overdueReceivable, partialReceivable, unpaidReceivable])
+    const headers = within(getTable()).getAllByRole('columnheader').map((cell) => cell.textContent)
+    expect(headers).toEqual(['Invoice #', 'Customer', 'Due Date', 'Amount', 'Paid', 'Balance', 'Days', 'Status'])
+    expect(screen.queryByRole('button', { name: /^Receive payment for / })).not.toBeInTheDocument()
   })
 
   it('opens the detail view from the invoice number', async () => {

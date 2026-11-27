@@ -127,7 +127,6 @@
 .receivables-page .receivable-summary .text-green { color: var(--green); }
 .receivable-summary__total { border-top: 1px solid var(--slate-100); padding-top: 10px; }
 .receivables-page .receivable-summary__receive { width: 100%; margin-top: 16px; }
-.receivables-page .receivables-table .receivable-actions { width: 1%; }
 .receivables-page .receivable-summary__total dt, .receivables-page .receivable-summary__total dd { font-weight: 700; color: var(--amber); }
 
 .receivable-timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
