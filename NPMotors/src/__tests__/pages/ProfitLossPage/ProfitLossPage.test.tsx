@@ -114,6 +114,27 @@ describe('ProfitLossPage', () => {
     expect(getTable().closest('.is-refreshing')).not.toBeNull()
   })
 
+  it('downloads the statement as CSV', async () => {
+    // jsdom has no object URLs and can't follow the download link, so stub both
+    const createObjectURL = vi.fn((blob: Blob) => (blob ? 'blob:profit-loss' : ''))
+    const revokeObjectURL = vi.fn()
+    Object.assign(URL, { createObjectURL, revokeObjectURL })
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const { user } = renderLoaded()
+
+    await user.click(screen.getByRole('button', { name: 'Export' }))
+
+    expect(click).toHaveBeenCalledTimes(1)
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:profit-loss')
+    const blob = createObjectURL.mock.calls[0]?.[0]
+    expect(blob?.type).toBe('text/csv')
+    const csv = await blob?.text()
+    expect(csv?.split('\n')[0]).toBe('"Category","November 2026","October 2026","Change"')
+    expect(csv).toContain('"Revenue","","",""')
+    expect(csv).toContain('"Vehicle Sales","367800.00","0.00","—"')
+    expect(csv).toContain('"NET PROFIT","48531.67","-12658.33","+483.4%"')
+  })
+
   it('prints', async () => {
     const print = vi.spyOn(window, 'print').mockImplementation(() => {})
     const { user } = renderLoaded()

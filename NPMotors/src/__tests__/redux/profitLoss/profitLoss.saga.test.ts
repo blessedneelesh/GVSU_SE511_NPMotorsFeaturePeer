@@ -1,15 +1,16 @@
 import { AxiosError, AxiosHeaders, CanceledError } from 'axios'
-import type { UnknownAction } from 'redux'
-import type { SagaIterator } from 'redux-saga'
+import { applyMiddleware, legacy_createStore as createStore, type UnknownAction } from 'redux'
+import createSagaMiddleware, { type SagaIterator, type Task } from 'redux-saga'
 import { all, call, cancelled, put, select, takeLatest } from 'redux-saga/effects'
-import { describe, expect, it, vi } from 'vitest'
-import { loadProfitLoss, loadProfitLossFailure, loadProfitLossSuccess } from '../../../redux/profitLoss/profitLoss.actions'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { loadProfitLoss, loadProfitLossFailure, loadProfitLossSuccess, setProfitLossAnchorMonth, setProfitLossPeriodType } from '../../../redux/profitLoss/profitLoss.actions'
 import { PROFIT_LOSS_ACTIONS } from '../../../redux/profitLoss/profitLoss.constants'
 import profitLossSaga from '../../../redux/profitLoss/profitLoss.saga'
 import { selectProfitLossQuery } from '../../../redux/profitLoss/profitLoss.selectors'
+import { rootReducer } from '../../../redux/rootReducer'
 import { reportsApi } from '../../../services/reports/reports.api'
 import { monthComparison } from '../../../test/fixtures/reports'
-import type { ReportQuery } from '../../../types/reports'
+import type { PeriodComparison, ReportQuery } from '../../../types/reports'
 
 vi.mock('../../../services/reports/reports.api', () => ({
   reportsApi: { comparePeriods: vi.fn() },
@@ -73,5 +74,70 @@ describe('profitLossSaga', () => {
     expect(gen.return(undefined).value).toStrictEqual(cancelled())
     gen.next(true)
     expect(signal.aborted).toBe(true)
+  })
+})
+
+interface Deferred<T> { promise: Promise<T>; resolve: (value: T) => void; reject: (reason: unknown) => void }
+function deferred<T>(): Deferred<T> {
+  let resolve!: (value: T) => void
+  let reject!: (reason: unknown) => void
+  const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej })
+  return { promise, resolve, reject }
+}
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+describe('profitLossSaga with a real store', () => {
+  let store: ReturnType<typeof createStore<ReturnType<typeof rootReducer>, UnknownAction>>
+  let task: Task
+
+  beforeEach(() => {
+    vi.mocked(reportsApi.comparePeriods).mockReset()
+    vi.mocked(reportsApi.comparePeriods).mockResolvedValue(monthComparison)
+    const saga = createSagaMiddleware()
+    store = createStore(rootReducer, applyMiddleware(saga))
+    task = saga.run(profitLossSaga)
+  })
+
+  afterEach(() => {
+    task.cancel()
+  })
+
+  it('loads the comparison for the current query', async () => {
+    store.dispatch(setProfitLossAnchorMonth('2026-11'))
+    await vi.waitFor(() => expect(store.getState().profitLoss.status).toBe('success'))
+    expect(store.getState().profitLoss.comparison).toEqual(monthComparison)
+    expect(vi.mocked(reportsApi.comparePeriods).mock.calls[0]?.[0]).toEqual({ periodType: 'Month', anchorMonth: '2026-11' })
+  })
+
+  it('keeps only the latest response and aborts the stale request', async () => {
+    const first = deferred<PeriodComparison>()
+    const second = deferred<PeriodComparison>()
+    vi.mocked(reportsApi.comparePeriods).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+
+    store.dispatch(setProfitLossPeriodType('Quarter'))
+    store.dispatch(setProfitLossPeriodType('YearToDate'))
+    const firstSignal = vi.mocked(reportsApi.comparePeriods).mock.calls[0]?.[1]
+    expect(firstSignal?.aborted).toBe(true)
+    expect(vi.mocked(reportsApi.comparePeriods).mock.calls[1]?.[0].periodType).toBe('YearToDate')
+
+    const latest = { ...monthComparison, netProfitChangePct: 1 }
+    second.resolve(latest)
+    await vi.waitFor(() => expect(store.getState().profitLoss.status).toBe('success'))
+    first.resolve(monthComparison)
+    await flush()
+
+    expect(store.getState().profitLoss.comparison).toEqual(latest)
+    expect(store.getState().profitLoss.query.periodType).toBe('YearToDate')
+  })
+
+  it('stores the error and recovers on retry', async () => {
+    vi.mocked(reportsApi.comparePeriods).mockRejectedValueOnce(httpError(502))
+    store.dispatch(loadProfitLoss())
+    await vi.waitFor(() => expect(store.getState().profitLoss.status).toBe('error'))
+    expect(store.getState().profitLoss.error).toBe('Report service is unreachable. Is the API running on https://localhost:7003?')
+
+    store.dispatch(loadProfitLoss())
+    await vi.waitFor(() => expect(store.getState().profitLoss.status).toBe('success'))
+    expect(store.getState().profitLoss.error).toBeNull()
   })
 })
